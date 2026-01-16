@@ -1,0 +1,32 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Rules for the 'users' collection
+    match /users/{userId} {
+
+      // Any authenticated user can read public user data for leaderboards and referrals.
+      allow read: if request.auth != null;
+
+      // New users can create their own user document upon signup.
+      // The document ID must match the user's UID.
+      allow create: if request.auth.uid == userId;
+
+      // Users can update their own theme.
+      // Any authenticated user can also increment points/counts for a referrer.
+      allow update: if
+        // Allow a user to update their own theme
+        (request.auth.uid == userId && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['theme'])) ||
+
+        // Allow a new signup to credit their referrer.
+        // This is scoped to only allow incrementing points and referral count by the correct amounts.
+        (
+          request.auth != null &&
+          request.resource.data.diff(resource.data).affectedKeys().hasAll(['points', 'referralCount']) &&
+          request.resource.data.diff(resource.data).affectedKeys().size() == 2 &&
+          request.resource.data.referralCount == resource.data.referralCount + 1 &&
+          request.resource.data.points == resource.data.points + 100
+        );
+    }
+  }
+}
