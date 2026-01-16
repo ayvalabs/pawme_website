@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { Button } from '@/app/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/app/components/ui/dropdown-menu';
 import { User, LogOut, Trophy, Palette } from 'lucide-react';
@@ -9,39 +10,30 @@ import { AuthDialog } from '@/app/components/auth-dialog';
 import { ThemeAwareLogo } from '@/app/components/theme-aware-logo';
 
 interface HeaderProps {
-  onShowLeaderboard?: () => void;
+  variant?: 'transparent' | 'solid';
 }
 
-export function Header({ onShowLeaderboard }: HeaderProps) {
+export function Header({ variant = 'solid' }: HeaderProps) {
   const [authDialogOpen, setAuthDialogOpen] = useState(false);
   const { user, profile, signOut, updateTheme } = useAuth();
 
-  const headerClasses = user ? 'border-b' : 'absolute top-0 left-0 right-0 z-40';
+  const headerClasses = variant === 'transparent'
+    ? 'absolute top-0 left-0 right-0 z-40'
+    : 'border-b bg-background';
 
   useEffect(() => {
-    // Apply theme color to CSS variables
-    console.log('Theme effect triggered, profile theme:', profile?.theme);
     if (profile?.theme) {
-      console.log('Setting data-theme attribute to:', profile.theme);
       document.documentElement.setAttribute('data-theme', profile.theme);
-      console.log('Current data-theme attribute:', document.documentElement.getAttribute('data-theme'));
-    } else {
-      console.log('No profile theme available');
     }
   }, [profile?.theme]);
 
   const handleThemeChange = async (theme: string) => {
-    console.log('handleThemeChange called with theme:', theme);
-    console.log('updateTheme function exists:', !!updateTheme);
     if (updateTheme) {
       try {
         await updateTheme(theme);
-        console.log('Theme change completed');
       } catch (error) {
         console.error('Error in handleThemeChange:', error);
       }
-    } else {
-      console.error('updateTheme function not available');
     }
   };
 
@@ -57,7 +49,7 @@ export function Header({ onShowLeaderboard }: HeaderProps) {
     <>
       <header className={headerClasses}>
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <Link href="/" className="flex items-center gap-3">
             <ThemeAwareLogo
               type="circle"
               alt="PawMe Circle Logo"
@@ -68,7 +60,7 @@ export function Header({ onShowLeaderboard }: HeaderProps) {
               alt="PawMe Text Logo"
               className="h-8 w-auto"
             />
-          </div>
+          </Link>
 
           <div className="flex items-center gap-3">
             {!user ? (

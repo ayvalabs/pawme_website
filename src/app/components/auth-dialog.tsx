@@ -1,6 +1,7 @@
 
 'use client';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/app/components/ui/dialog';
 import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
@@ -19,6 +20,7 @@ interface AuthDialogProps {
 }
 
 export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referralCode }: AuthDialogProps) {
+  const router = useRouter();
   const { signIn, signUp, signInWithGoogle, sendPasswordReset } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
@@ -43,6 +45,7 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
       await signIn(signInEmail, signInPassword);
       toast.success('Welcome back!');
       onOpenChange(false);
+      router.push('/dashboard');
     } catch (error: any) {
       let message = 'Sign in failed. Please try again.';
       switch (error.code) {
@@ -98,6 +101,7 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
       await signUp(signUpEmail, signUpPassword, signUpName, referralCode, privacyPolicyAgreed, marketingOptIn);
       toast.success('Account created successfully!');
       onOpenChange(false);
+      router.push('/dashboard');
     } catch (error: any) {
       const message = error.code === 'auth/email-already-in-use'
         ? 'This email address is already in use.'
@@ -114,6 +118,7 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
       await signInWithGoogle();
       onOpenChange(false);
       toast.success('Signed in with Google!');
+      router.push('/dashboard');
     } catch (error: any) {
       setError(error.message || 'Google sign in failed');
     }

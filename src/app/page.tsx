@@ -15,15 +15,13 @@ import { Footer } from '@/app/components/footer';
 import { FloatingActions } from '@/app/components/floating-actions';
 import { BottomFloatingCTA } from '@/app/components/bottom-floating-cta';
 import { AuthDialog } from '@/app/components/auth-dialog';
-import { ReferralDashboard } from '@/app/components/referral-dashboard';
 import { Skeleton } from '@/app/components/ui/skeleton';
 
 export default function HomePage() {
-  const { user, profile, loading } = useAuth();
+  const { user, loading } = useAuth();
   const [authDialogOpen, setAuthDialogOpen] = useState(false);
   const [authDefaultTab, setAuthDefaultTab] = useState<'signin' | 'signup'>('signup');
   const [referralCodeFromUrl, setReferralCodeFromUrl] = useState<string | undefined>(undefined);
-  const [showLeaderboard, setShowLeaderboard] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -56,7 +54,7 @@ export default function HomePage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      <Header onShowLeaderboard={() => setShowLeaderboard(true)} />
+      <Header variant="transparent" />
       <main className="flex-grow">
         <Hero />
         <Features />
@@ -75,13 +73,6 @@ export default function HomePage() {
         defaultTab={authDefaultTab}
         referralCode={referralCodeFromUrl}
       />
-      {user && profile && showLeaderboard && (
-        <ReferralDashboard 
-          email={profile.email}
-          referralCode={profile.referralCode}
-          referralCount={profile.referralCount}
-        />
-      )}
     </div>
   );
 }
