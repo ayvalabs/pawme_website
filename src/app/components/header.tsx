@@ -7,7 +7,6 @@ import { User, LogOut, Trophy, Palette } from 'lucide-react';
 import { useAuth } from '@/app/context/AuthContext';
 import { AuthDialog } from '@/app/components/auth-dialog';
 import { ImageWithFallback } from '@/app/components/figma/ImageWithFallback';
-import imageData from '@/app/lib/placeholder-images.json';
 
 interface HeaderProps {
   onShowLeaderboard?: () => void;
@@ -46,12 +45,12 @@ export function Header({ onShowLeaderboard }: HeaderProps) {
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <ImageWithFallback
-              src="favicon.png"
+              src="/favicon.png"
               alt="PawMe - AI Campanion robot for your pets"
               className="h-10 w-10"
             />
             <ImageWithFallback
-              src="text_logo.png"
+              src="/text_logo.png"
               alt="PawMe - AI Campanion robot for your pets"
               className="h-8 w-auto"
             />

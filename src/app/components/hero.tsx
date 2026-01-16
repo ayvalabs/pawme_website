@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/app/components/ui/button';
 import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
@@ -7,31 +9,31 @@ import { AuthDialog } from '@/app/components/auth-dialog';
 
 const slides = [
   {
-    image: 'https://images.unsplash.com/photo-1749542119767-28f14d41c87c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwZXJzb24lMjB3aXRoJTIwZG9nJTIwaGFwcHl8ZW58MXx8fHwxNzY4NTM1OTk2fDA&ixlib=rb-4.1.0&q=80&w=1080',
+    image: '/images/hero-slide-1.jpg',
     title: '360° Movement',
     subtitle: 'Follows Your Pet Anywhere',
     description: 'Advanced AI tracking keeps PawMe moving with your pet throughout your home, never missing a moment of their day.',
   },
   {
-    image: 'https://images.unsplash.com/photo-1758925403665-fd17d683b841?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwZXJzb24lMjB3aXRoJTIwY2F0JTIwaG9tZXxlbnwxfHx8fDE3Njg1MzU5OTd8MA&ixlib=rb-4.1.0&q=80&w=1080',
+    image: '/images/hero-slide-2.jpg',
     title: 'AI Health Monitoring',
     subtitle: 'Early Detection Saves Lives',
     description: 'Detect skin issues, ticks, unusual behavior, and health changes before they become serious problems.',
   },
   {
-    image: 'https://images.unsplash.com/photo-1597046902504-dfae3612605f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkb2clMjBwbGF5aW5nJTIwZmV0Y2h8ZW58MXx8fHwxNzY4NTM1OTk3fDA&ixlib=rb-4.1.0&q=80&w=1080',
+    image: '/images/hero-slide-3.jpg',
     title: 'Interactive Play Mode',
     subtitle: 'Keep Your Pet Entertained',
     description: 'Built-in laser pointer and motion tracking for endless fun, keeping your pet active and engaged while you\'re away.',
   },
   {
-    image: 'https://images.unsplash.com/photo-1753685725058-1230c9a6586b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwZXQlMjBvd25lciUyMHNtYXJ0cGhvbmV8ZW58MXx8fHwxNzY4NTM1OTk4fDA&ixlib=rb-4.1.0&q=80&w=1080',
+    image: '/images/hero-slide-4.jpg',
     title: 'Remote Control via App',
     subtitle: 'Monitor From Anywhere',
     description: 'Live HD video feed, two-way audio, and full remote control through our iOS and Android companion app.',
   },
   {
-    image: 'https://images.unsplash.com/photo-1632498301446-5f78baad40d0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxoYXBweSUyMGRvZyUyMG93bmVyfGVufDF8fHx8MTc2ODQ0NjIwMHww&ixlib=rb-4.1.0&q=80&w=1080',
+    image: '/images/hero-slide-5.jpg',
     title: 'Daily Highlight Reels',
     subtitle: 'Never Miss A Precious Moment',
     description: 'Automatic motion detection captures your pet\'s cutest and funniest moments, compiled into daily highlight videos.',

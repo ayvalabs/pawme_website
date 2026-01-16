@@ -1,14 +1,14 @@
 {
   "circleIcon": {
-    "src": "figma:asset/bdd95d9196437c53040ed91a0ab1509a30e2ba09.png",
+    "src": "/favicon.png",
     "alt": "PawMe Circle Logo"
   },
   "textLogo": {
-    "src": "figma:asset/94fe960e5888dfb11d640069616da8e885e693aa.png",
+    "src": "/text_logo.png",
     "alt": "PawMe Text Logo"
   },
   "fullLogo": {
-    "src": "https://picsum.photos/seed/pawme-full-logo/250/60",
+    "src": "/full_logo.png",
     "alt": "PawMe Full Logo",
     "data-ai-hint": "logo"
   }
