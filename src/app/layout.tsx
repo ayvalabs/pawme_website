@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { AuthProvider } from '@/app/context/AuthContext';
 import { Toaster } from '@/app/components/ui/sonner';
-import { FaviconHandler } from '@/app/components/favicon-handler';
+import { FaviconHandler } from './components/favicon-handler';
 
 export const metadata: Metadata = {
   title: 'PawMe - AI Companion Robot for Pets | Coming Soon on Kickstarter',

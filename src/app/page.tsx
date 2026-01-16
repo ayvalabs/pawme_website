@@ -29,11 +29,13 @@ export default function HomePage() {
       const refCode = urlParams.get('ref');
       if (refCode) {
         setReferralCodeFromUrl(refCode);
-        setAuthDialogOpen(true);
-        setAuthDefaultTab('signup');
+        if (!user) {
+          setAuthDialogOpen(true);
+          setAuthDefaultTab('signup');
+        }
       }
     }
-  }, []);
+  }, [user]);
 
   const handleEmailSubmitInCTA = () => {
     setAuthDefaultTab('signup');

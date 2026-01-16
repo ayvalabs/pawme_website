@@ -7,7 +7,7 @@ import { User, LogOut, Trophy, Palette } from 'lucide-react';
 import { useAuth } from '@/app/context/AuthContext';
 import { AuthDialog } from '@/app/components/auth-dialog';
 import { ImageWithFallback } from '@/app/components/figma/ImageWithFallback';
-import placeholderImages from '@/app/lib/placeholder-images.json';
+import imageData from '@/app/lib/placeholder-images.json';
 
 interface HeaderProps {
   onShowLeaderboard?: () => void;
@@ -39,29 +39,21 @@ export function Header({ onShowLeaderboard }: HeaderProps) {
     { name: 'Orange', value: 'orange', color: '#f97316' },
     { name: 'Pink', value: 'pink', color: '#ec4899' },
   ];
-  
-  const { favicon, logoText } = placeholderImages;
 
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 z-50 bg-transparent backdrop-blur-md border-b border-white/10">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-transparent backdrop-blur-md border-b ">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <ImageWithFallback
-              src={favicon.src}
-              alt={favicon.alt}
-              width={favicon.width}
-              height={favicon.height}
+              src={imageData.circleIcon.src}
+              alt={imageData.circleIcon.alt}
               className="h-10 w-10"
-              data-ai-hint={favicon.hint}
             />
             <ImageWithFallback
-              src={logoText.src}
-              alt={logoText.alt}
-              width={logoText.width}
-              height={logoText.height}
+              src={imageData.textLogo.src}
+              alt={imageData.textLogo.alt}
               className="h-8 w-auto"
-              data-ai-hint={logoText.hint}
             />
           </div>
 

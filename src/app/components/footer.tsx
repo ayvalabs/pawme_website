@@ -1,6 +1,6 @@
 import { Twitter, Facebook, Instagram, Linkedin } from 'lucide-react';
 import { ImageWithFallback } from '@/app/components/figma/ImageWithFallback';
-import placeholderImages from '@/app/lib/placeholder-images.json';
+import imageData from '@/app/lib/placeholder-images.json';
 
 export function Footer() {
   const socialLinks = [
@@ -10,8 +10,6 @@ export function Footer() {
     { icon: Linkedin, href: 'https://linkedin.com/company/pawme', label: 'LinkedIn' },
   ];
 
-  const { favicon, logoText } = placeholderImages;
-
   return (
     <footer className="border-t border-border bg-gradient-to-b from-transparent to-secondary/20 py-12 px-4">
       <div className="max-w-6xl mx-auto">
@@ -20,20 +18,14 @@ export function Footer() {
           <div>
             <div className="flex items-center gap-3 mb-4">
               <ImageWithFallback
-                src={favicon.src}
-                alt={favicon.alt}
-                width={favicon.width}
-                height={favicon.height}
+                src={imageData.circleIcon.src}
+                alt={imageData.circleIcon.alt}
                 className="h-10 w-10"
-                data-ai-hint={favicon.hint}
               />
               <ImageWithFallback
-                src={logoText.src}
-                alt={logoText.alt}
-                width={logoText.width}
-                height={logoText.height}
+                src={imageData.textLogo.src}
+                alt={imageData.textLogo.alt}
                 className="h-6 w-auto"
-                data-ai-hint={logoText.hint}
               />
             </div>
             <p className="text-sm text-muted-foreground mb-4">
