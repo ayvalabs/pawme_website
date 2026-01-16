@@ -17,12 +17,14 @@ import { toast } from 'sonner';
 export default function DashboardPage() {
   const { user, profile, loading } = useAuth();
   const router = useRouter();
+  
   const [copied, setCopied] = useState(false);
+  const referralUrl = typeof window !== 'undefined' ? `${window.location.origin}/?ref=${profile?.referralCode}` : '';
+
+  const [receiverName, setReceiverName] = useState('');
   const [emailAddress, setEmailAddress] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [shareMessage, setShareMessage] = useState('');
-
-  const referralUrl = typeof window !== 'undefined' ? `${window.location.origin}/?ref=${profile?.referralCode}` : '';
 
   useEffect(() => {
     if (!loading && !user) {
@@ -32,12 +34,13 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (profile && referralUrl) {
+      const recipient = receiverName.trim() ? receiverName.trim() : 'there';
       setShareMessage(
-`Hey!
+`Hey ${recipient}!
 
 I'm on the waitlist for PawMe, an amazing AI companion for pets that I think you'd love. It has features like an HD camera, health monitoring, and even a laser for interactive play.
 
-Sign up using my link to get 100 bonus points: ${referralUrl}
+Sign up using my link to get 100 bonus points and join me on the leaderboard: ${referralUrl}
 
 Let me know what you think!
 
@@ -45,66 +48,63 @@ Best,
 ${profile.name}`
       );
     }
-  }, [profile, referralUrl]);
+  }, [profile, referralUrl, receiverName]);
 
-  const handleCopyReferralCode = () => {
-    if (profile?.referralCode) {
-      navigator.clipboard.writeText(profile.referralCode);
+  const handleCopyReferralLink = () => {
+    if (referralUrl) {
+      navigator.clipboard.writeText(referralUrl);
       setCopied(true);
-      toast.success('Referral code copied to clipboard!');
+      toast.success('Referral link copied to clipboard!');
       setTimeout(() => setCopied(false), 2000);
     }
   };
 
-  const handleShareReferral = () => {
+  const handleGenericShare = () => {
     if (navigator.share) {
       navigator.share({
-        title: 'Join PawMe!',
-        text: 'Join me on PawMe and get 100 points! Use my referral code:',
+        title: 'Join me on the PawMe waitlist!',
+        text: `I'm on the waitlist for PawMe, an amazing AI companion for pets. Join with my link to get 100 bonus points!`,
         url: referralUrl,
       });
     } else {
-      navigator.clipboard.writeText(referralUrl);
-      toast.success('Referral link copied to clipboard!');
+      handleCopyReferralLink();
     }
   };
 
   const handleEmailShare = () => {
     if (!emailAddress) {
-      toast.error('Please enter an email address.');
+      toast.error("Please enter your friend's email address.");
       return;
     }
-
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(emailAddress)) {
       toast.error('Please enter a valid email address.');
       return;
     }
 
-    const subject = encodeURIComponent(`🐾 You're invited to join PawMe!`);
+    const subject = encodeURIComponent(`🐾 ${profile?.name} invited you to join PawMe!`);
     const body = encodeURIComponent(shareMessage);
 
     window.location.href = `mailto:${emailAddress}?subject=${subject}&body=${body}`;
     setEmailAddress('');
+    setReceiverName('');
     toast.success('Your email client has been opened!');
   };
 
   const handleWhatsAppShare = () => {
     if (!phoneNumber) {
-      toast.error('Please enter a phone number.');
+      toast.error("Please enter your friend's phone number.");
       return;
     }
-    
     const cleanPhone = phoneNumber.replace(/\D/g, '');
-    
     if (cleanPhone.length < 10) {
       toast.error('Please enter a valid phone number (including country code).');
       return;
     }
-
     const message = encodeURIComponent(shareMessage);
     window.open(`https://wa.me/${cleanPhone}?text=${message}`, '_blank');
     setPhoneNumber('');
+    setReceiverName('');
     toast.success('WhatsApp has been opened!');
   };
 
@@ -131,7 +131,7 @@ ${profile.name}`
         {/* Welcome Section */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-2">Welcome back, {profile.name}! 👋</h1>
-          <p className="text-muted-foreground">Track your referrals and earn rewards.</p>
+          <p className="text-muted-foreground">Share your referral link to earn points and climb the leaderboard.</p>
         </div>
 
         {/* Stats Grid */}
@@ -148,7 +148,6 @@ ${profile.name}`
               </p>
             </CardContent>
           </Card>
-
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Referrals</CardTitle>
@@ -161,7 +160,6 @@ ${profile.name}`
               </p>
             </CardContent>
           </Card>
-
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Rewards</CardTitle>
@@ -177,172 +175,113 @@ ${profile.name}`
         </div>
 
         {/* Referral Section */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>Share Your Referral Link</CardTitle>
+            <CardDescription>Share your unique link and earn 100 points for every friend who signs up.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div>
+              <Label htmlFor="referral-link">Your Unique Link</Label>
+              <div className="flex items-center gap-2 mt-2">
+                <Input id="referral-link" value={referralUrl} readOnly className="flex-1 font-mono text-sm bg-muted" />
+                <Button variant="outline" size="icon" onClick={handleCopyReferralLink}>
+                  {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                </Button>
+                <Button onClick={handleGenericShare} className="gap-2">
+                  <Share2 className="h-4 w-4" />
+                  Share
+                </Button>
+              </div>
+            </div>
+
+            <div className="border-t pt-6 space-y-4">
+              <h3 className="text-lg font-semibold">Send a Personal Invite</h3>
+              <div className="grid sm:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="receiver-name">Friend's Name</Label>
+                  <Input id="receiver-name" placeholder="e.g., Jane" value={receiverName} onChange={(e) => setReceiverName(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Friend's Email</Label>
+                  <Input id="email" type="email" placeholder="jane@example.com" value={emailAddress} onChange={(e) => setEmailAddress(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Friend's WhatsApp</Label>
+                  <Input id="phone" type="tel" placeholder="+15551234567" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="share-message">Your Message</Label>
+                <Textarea id="share-message" value={shareMessage} onChange={(e) => setShareMessage(e.target.value)} className="min-h-[200px]" />
+              </div>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Button onClick={handleEmailShare} className="gap-2 flex-1" disabled={!emailAddress}>
+                  <Mail className="h-4 w-4" />
+                  Send via Email
+                </Button>
+                <Button onClick={handleWhatsAppShare} className="gap-2 flex-1 bg-[#25D366] hover:bg-[#20BA5A]" disabled={!phoneNumber}>
+                  <MessageCircle className="h-4 w-4" />
+                  Send via WhatsApp
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
-              <CardTitle>Your Referral Code</CardTitle>
-              <CardDescription>
-                Share this code with friends to earn 100 points for each signup.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center gap-2">
-                <div className="flex-1 p-4 bg-muted rounded-lg text-center">
-                  <p className="text-2xl font-bold tracking-wider text-primary">
-                    {profile.referralCode}
-                  </p>
-                </div>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={handleCopyReferralCode}
-                >
-                  {copied ? (
-                    <Check className="h-4 w-4 text-green-500" />
-                  ) : (
-                    <Copy className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
-
-              <Button
-                onClick={handleShareReferral}
-                className="w-full gap-2"
-              >
-                <Share2 className="h-4 w-4" />
-                Share Referral Link
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
               <CardTitle>How Referrals Work</CardTitle>
-              <CardDescription>
-                Earn points and climb the leaderboard.
-              </CardDescription>
+              <CardDescription>Earn points and climb the leaderboard.</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <div className="flex gap-3">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
-                    1
-                  </div>
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">1</div>
                   <div>
-                    <p className="font-medium">Share Your Code</p>
-                    <p className="text-sm text-muted-foreground">
-                      Send your referral code to friends and family.
-                    </p>
+                    <p className="font-medium">Share Your Link</p>
+                    <p className="text-sm text-muted-foreground">Send your referral link to friends and family.</p>
                   </div>
                 </div>
-
                 <div className="flex gap-3">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
-                    2
-                  </div>
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">2</div>
                   <div>
                     <p className="font-medium">They Sign Up</p>
-                    <p className="text-sm text-muted-foreground">
-                      Your friend joins using your referral code.
-                    </p>
+                    <p className="text-sm text-muted-foreground">Your friend joins using your referral link.</p>
                   </div>
                 </div>
-
                 <div className="flex gap-3">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
-                    3
-                  </div>
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">3</div>
                   <div>
                     <p className="font-medium">Earn Points</p>
-                    <p className="text-sm text-muted-foreground">
-                      Get 100 points instantly when they complete signup.
-                    </p>
+                    <p className="text-sm text-muted-foreground">Get 100 points instantly when they complete signup.</p>
                   </div>
                 </div>
               </div>
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Account Information</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Email:</span>
+                <span className="font-medium">{profile.email}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Member Since:</span>
+                <span className="font-medium">{new Date(profile.createdAt).toLocaleDateString()}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Theme:</span>
+                <span className="font-medium capitalize">{profile.theme}</span>
+              </div>
+            </CardContent>
+          </Card>
         </div>
-
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle>Share with a Personal Message</CardTitle>
-            <CardDescription>
-              Customize the message below and send it directly to your friends.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="share-message">Your Message</Label>
-              <Textarea
-                id="share-message"
-                value={shareMessage}
-                onChange={(e) => setShareMessage(e.target.value)}
-                className="min-h-[150px]"
-              />
-            </div>
-            
-            <div className="grid sm:grid-cols-2 gap-x-6 gap-y-4">
-              <div className="space-y-3">
-                <Label htmlFor="email">Send via Email</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="friend@example.com"
-                    value={emailAddress}
-                    onChange={(e) => setEmailAddress(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleEmailShare()}
-                  />
-                  <Button onClick={handleEmailShare} className="gap-2 whitespace-nowrap">
-                    <Mail className="h-4 w-4" />
-                    Send
-                  </Button>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <Label htmlFor="phone">Send via WhatsApp</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="phone"
-                    type="tel"
-                    placeholder="Phone number"
-                    value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleWhatsAppShare()}
-                  />
-                  <Button onClick={handleWhatsAppShare} className="gap-2 whitespace-nowrap bg-[#25D366] hover:bg-[#20BA5A]">
-                    <MessageCircle className="h-4 w-4" />
-                    Send
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle>Account Information</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Email:</span>
-              <span className="font-medium">{profile.email}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Member Since:</span>
-              <span className="font-medium">
-                {new Date(profile.createdAt).toLocaleDateString()}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Theme:</span>
-              <span className="font-medium capitalize">{profile.theme}</span>
-            </div>
-          </CardContent>
-        </Card>
       </div>
       
       <Footer />
