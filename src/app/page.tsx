@@ -37,7 +37,7 @@ export default function HomePage() {
     }
   }, [user]);
 
-  const handleEmailSubmitInCTA = () => {
+  const handleOpenAuthDialog = () => {
     setAuthDefaultTab('signup');
     setAuthDialogOpen(true);
   };
@@ -62,11 +62,11 @@ export default function HomePage() {
         <HowItWorks />
         <ReferralProgram />
         <Timeline />
-        <CTA onEmailSubmit={handleEmailSubmitInCTA} />
+        <CTA onEmailSubmit={handleOpenAuthDialog} />
       </main>
       <Footer />
       <FloatingActions />
-      {!user && <BottomFloatingCTA />}
+      {!user && <BottomFloatingCTA onClick={handleOpenAuthDialog} />}
       <AuthDialog
         open={authDialogOpen}
         onOpenChange={setAuthDialogOpen}
