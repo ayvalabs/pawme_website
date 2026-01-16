@@ -7,10 +7,10 @@
 - ✅ **Text Logo** ("PawMe") now used as main logo throughout site
 - ✅ Applied in Header, Footer, and Browser Tab
 
-### 2. **Brand Color: #7678EE**
+### 2. **Brand Color: #837bf6**
 - ✅ Primary color updated across entire application
 - ✅ All buttons, links, and accents use your brand purple-blue
-- ✅ Secondary color (#E8E8FC) - light purple-blue for backgrounds
+- ✅ Secondary color (#eef0fe) - light purple-blue for backgrounds
 - ✅ Theme system updated to include your exact color
 
 ### 3. **Updated Components**
@@ -31,13 +31,13 @@
 - Adds meta description for SEO
 
 #### Theme System (`/src/styles/theme.css`)
-- Default primary color: #7678EE
-- Purple theme option also uses #7678EE
+- Default primary color: #837bf6
+- Purple theme option also uses #837bf6
 - Users can still switch between 5 themes
 
 ---
 
-## 🎨 Where Your Brand Color (#7678EE) Appears
+## 🎨 Where Your Brand Color (#837bf6) Appears
 
 ### Visual Elements:
 1. ✨ **Kickstarter Badge** - "Coming Soon on Kickstarter - March 2026"
@@ -84,13 +84,13 @@ Browser tab icon
 ## 🎯 Brand Colors Reference
 
 ### Primary Colors:
-- **Main Brand:** `#7678EE` (Purple-Blue)
-- **Light Background:** `#E8E8FC` (Light Purple-Blue)
+- **Main Brand:** `#837bf6` (Vibrant Lilac)
+- **Light Background:** `#eef0fe` (Light Lilac)
 - **White Text:** `#ffffff` (On colored backgrounds)
 
 ### Usage Guidelines:
-- **#7678EE** - Buttons, links, accents, important elements
-- **#E8E8FC** - Subtle backgrounds, hover states
+- **#837bf6** - Buttons, links, accents, important elements
+- **#eef0fe** - Subtle backgrounds, hover states
 - **White** - Text on colored backgrounds for contrast
 
 ---
@@ -119,11 +119,11 @@ Browser tab icon
 Users can still choose from 5 color themes:
 1. **Green** - #10b981
 2. **Blue** - #3b82f6
-3. **Purple** - #7678EE ⭐ (Your brand color - matches default!)
+3. **Purple** - #837bf6 ⭐ (Your brand color - matches default!)
 4. **Orange** - #f97316
 5. **Pink** - #ec4899
 
-**Default:** #7678EE (your brand color)
+**Default:** #837bf6 (your brand color)
 
 When users select "Purple" theme, it matches your brand perfectly!
 
@@ -155,7 +155,7 @@ Kickstarter launch!
 
 - [x] Circle icon as favicon (browser tab)
 - [x] Text logo as main logo (header & footer)
-- [x] Brand color #7678EE applied globally
+- [x] Brand color #837bf6 applied globally
 - [x] Consistent logo sizing across devices
 - [x] High-quality image imports (PNG)
 - [x] Proper alt text for accessibility
@@ -207,8 +207,8 @@ import textLogo from 'figma:asset/94fe960e5888dfb11d640069616da8e885e693aa.png';
 - ✅ Use circle icon for favicon and app icons
 - ✅ Use text logo for main branding
 - ✅ Pair circle icon + text logo together
-- ✅ Use #7678EE for primary brand color
-- ✅ Use #E8E8FC for light backgrounds
+- ✅ Use #837bf6 for primary brand color
+- ✅ Use #eef0fe for light backgrounds
 - ✅ Maintain adequate white space
 
 ### Don'ts:
@@ -249,7 +249,7 @@ import textLogo from 'figma:asset/94fe960e5888dfb11d640069616da8e885e693aa.png';
 ## 💡 Pro Tips
 
 1. **Consistency is Key** - Your circle icon is now your brand's face. Use it everywhere!
-2. **Color Psychology** - Purple-blue (#7678EE) conveys:
+2. **Color Psychology** - Vibrant Lilac (#837bf6) conveys:
    - Trust and reliability (blue)
    - Creativity and innovation (purple)
    - Perfect for AI/tech pet products
@@ -260,10 +260,10 @@ import textLogo from 'figma:asset/94fe960e5888dfb11d640069616da8e885e693aa.png';
 
 ## ✨ Your Brand Identity is Complete!
 
-**Default Primary Color:** #7678EE (Purple-Blue)  
+**Default Primary Color:** #837bf6 (Vibrant Lilac)  
 **Circle Icon:** Dog & Cat Yin-Yang  
 **Text Logo:** PawMe  
-**Secondary Color:** #E8E8FC (Light Purple-Blue)  
+**Secondary Color:** #eef0fe (Light Lilac)  
 
 Everything is now consistently branded with your beautiful purple-blue color and memorable pet icon! 🐾
 
@@ -274,6 +274,6 @@ Everything is now consistently branded with your beautiful purple-blue color and
 - `/src/app/components/footer.tsx` - Updated logo imports
 - `/src/app/components/favicon-handler.tsx` - NEW - Sets favicon dynamically
 - `/src/app/App.tsx` - Added FaviconHandler component
-- `/src/styles/theme.css` - Updated brand color to #7678EE
+- `/src/styles/theme.css` - Updated brand color to #837bf6
 
 **Your brand is now consistent, professional, and ready to launch! 🚀**
