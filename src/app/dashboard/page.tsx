@@ -16,7 +16,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
 import { Skeleton } from '@/app/components/ui/skeleton';
 import { toast } from 'sonner';
-import { User, Mail, Send, Truck, Package, PackageCheck, Save, ClipboardList } from 'lucide-react';
+import { User, Mail, Send, Truck, Package, PackageCheck, Save, ClipboardList, Eye } from 'lucide-react';
 import { markRewardShipped } from '@/app/actions/users';
 import { sendAdminBroadcast, sendShippingNotificationEmail } from '@/app/actions/email';
 import type { UserProfile, Reward } from '@/app/context/AuthContext';
@@ -58,6 +58,9 @@ export default function AdminPage() {
   const [loadingTemplate, setLoadingTemplate] = useState(true);
   const [savingTemplate, setSavingTemplate] = useState(false);
   const [emailTemplates, setEmailTemplates] = useState<EmailTemplate[]>([]);
+  
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewContent, setPreviewContent] = useState({ subject: '', html: '' });
 
   useEffect(() => {
     if (!authLoading && (!user || profile?.email !== 'pawme@ayvalabs.com')) {
@@ -92,10 +95,8 @@ export default function AdminPage() {
         setLoadingTemplate(true);
         try {
           const templates: EmailTemplate[] = [];
-          // In a real app, you might fetch these from Firestore
-          // For now, we'll use the defaults
           for (const key in defaultTemplates) {
-              templates.push(defaultTemplates[key]);
+              templates.push(defaultTemplates[key as keyof typeof defaultTemplates]);
           }
           setEmailTemplates(templates);
 
@@ -144,6 +145,48 @@ export default function AdminPage() {
       setSubject(template.subject);
       setBody(template.html);
     }
+  };
+  
+  const handlePreview = () => {
+    if (!subject || !body) {
+      toast.error("Subject and body are required to generate a preview.");
+      return;
+    }
+    
+    const sampleUser = {
+      name: "Alex Doe",
+      referralCode: "ALEXDOE123",
+      referralLink: `${window.location.origin}/?ref=ALEXDOE123`
+    };
+
+    const sampleVipBanner = `
+    <table role="presentation" style="width: 100%; margin: 30px 0; background-color: #fffaf0; border: 2px dashed #F59E0B; border-radius: 8px;">
+      <tr>
+        <td style="padding: 20px; text-align: center;">
+          <h3 style="margin: 0 0 10px; color: #D97706; font-size: 20px;">👑 Join the VIP List!</h3>
+          <p style="margin: 0 0 15px; color: #333; font-size: 16px;">
+            Become a founding member and get <strong style="color: #7678EE;">1.5x points</strong> for every referral!
+          </p>
+          <a href="#" style="display: inline-block; padding: 10px 20px; background-color: #F59E0B; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600;">
+            Claim Your Spot
+          </a>
+          <p style="margin: 15px 0 0; background-color: #7678EE; color: #ffffff; display: inline-block; padding: 5px 15px; border-radius: 9999px; font-weight: bold;">
+            Only 150 spots left!
+          </p>
+        </td>
+      </tr>
+    </table>`;
+
+    let previewHtml = body
+      .replace(/{{userName}}/g, sampleUser.name)
+      .replace(/{{referralCode}}/g, sampleUser.referralCode)
+      .replace(/{{referralLink}}/g, sampleUser.referralLink)
+      .replace(/{{vipBanner}}/g, sampleVipBanner);
+      
+    const previewSubject = subject.replace(/{{userName}}/g, sampleUser.name);
+
+    setPreviewContent({ subject: previewSubject, html: previewHtml });
+    setPreviewOpen(true);
   };
 
   const filteredUsers = useMemo(() => {
@@ -365,10 +408,16 @@ export default function AdminPage() {
                     </div>
                   </div>
 
-                  <Button onClick={handleSendBroadcast} disabled={sendingBroadcast || selectedUserIds.size === 0}>
-                    <Send className="w-4 h-4 mr-2"/>
-                    {sendingBroadcast ? 'Sending...' : `Send to ${selectedUserIds.size} users`}
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" onClick={handlePreview} disabled={!subject || !body}>
+                      <Eye className="w-4 h-4 mr-2"/>
+                      Preview
+                    </Button>
+                    <Button onClick={handleSendBroadcast} disabled={sendingBroadcast || selectedUserIds.size === 0}>
+                      <Send className="w-4 h-4 mr-2"/>
+                      {sendingBroadcast ? 'Sending...' : `Send to ${selectedUserIds.size} users`}
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -584,8 +633,34 @@ export default function AdminPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="sm:max-w-2xl h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Email Preview</DialogTitle>
+            <DialogDescription>
+              This is a preview of how the email will look. Placeholders are filled with sample data.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-grow border rounded-md overflow-hidden flex flex-col">
+            <div className="p-3 border-b bg-muted text-sm">
+              <strong>Subject:</strong> {previewContent.subject}
+            </div>
+            <iframe
+              srcDoc={previewContent.html}
+              className="w-full flex-grow border-0"
+              title="Email Preview"
+            />
+          </div>
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => setPreviewOpen(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
+
+    
 
     
