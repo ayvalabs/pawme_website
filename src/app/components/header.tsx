@@ -7,6 +7,7 @@ import { User, LogOut, Trophy, Palette } from 'lucide-react';
 import { useAuth } from '@/app/context/AuthContext';
 import { AuthDialog } from '@/app/components/auth-dialog';
 import { ImageWithFallback } from '@/app/components/figma/ImageWithFallback';
+import imageData from '@/app/lib/placeholder-images.json';
 
 interface HeaderProps {
   onShowLeaderboard?: () => void;
@@ -34,24 +35,24 @@ export function Header({ onShowLeaderboard }: HeaderProps) {
   const themes = [
     { name: 'Green', value: 'green', color: '#10b981' },
     { name: 'Blue', value: 'blue', color: '#3b82f6' },
-    { name: 'Purple', value: 'purple', color: '#7678EE' },
+    { name: 'Purple', value: 'purple', color: '#837bf6' },
     { name: 'Orange', value: 'orange', color: '#f97316' },
     { name: 'Pink', value: 'pink', color: '#ec4899' },
   ];
 
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 z-50 bg-transparent ">
+      <header className="bg-background border-b">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <ImageWithFallback
-              src="/favicon.png"
-              alt="PawMe - AI Campanion robot for your pets"
+              src={imageData.circleIcon.src}
+              alt={imageData.circleIcon.alt}
               className="h-10 w-10"
             />
             <ImageWithFallback
-              src="/text_logo.png"
-              alt="PawMe - AI Campanion robot for your pets"
+              src={imageData.textLogo.src}
+              alt={imageData.textLogo.alt}
               className="h-8 w-auto"
             />
           </div>
@@ -61,7 +62,6 @@ export function Header({ onShowLeaderboard }: HeaderProps) {
               <Button
                 onClick={() => setAuthDialogOpen(true)}
                 variant="outline"
-                className="border-white/30 hover:bg-white/10 text-white hover:text-white bg-white/5"
               >
                 Sign In
               </Button>
@@ -72,7 +72,7 @@ export function Header({ onShowLeaderboard }: HeaderProps) {
                     onClick={onShowLeaderboard}
                     variant="ghost"
                     size="sm"
-                    className="gap-2 text-white hover:bg-white/10"
+                    className="gap-2"
                   >
                     <Trophy className="w-4 h-4" />
                     Leaderboard
@@ -81,7 +81,7 @@ export function Header({ onShowLeaderboard }: HeaderProps) {
                 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="gap-2 border-white/30 hover:bg-white/10 text-white bg-white/5">
+                    <Button variant="outline" size="sm" className="gap-2">
                       <User className="w-4 h-4" />
                       <span className="hidden sm:inline">{profile?.name}</span>
                     </Button>

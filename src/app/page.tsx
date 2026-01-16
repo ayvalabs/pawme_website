@@ -56,7 +56,7 @@ export default function HomePage() {
     return (
       <div className="flex flex-col min-h-screen bg-background">
         <Header />
-        <main className="flex-grow pt-24">
+        <main className="flex-grow">
           <ReferralDashboard 
             email={profile.email} 
             referralCode={profile.referralCode} 
