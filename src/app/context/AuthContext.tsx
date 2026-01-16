@@ -249,6 +249,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     await firebaseSignOut(auth);
+    document.documentElement.setAttribute('data-theme', 'purple');
   };
 
   const refreshProfile = async () => {

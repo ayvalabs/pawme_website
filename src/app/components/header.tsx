@@ -13,17 +13,32 @@ interface HeaderProps {
   variant?: 'transparent' | 'solid';
 }
 
-export function Header({ variant = 'solid' }: HeaderProps) {
+export function Header({ variant: initialVariant = 'solid' }: HeaderProps) {
   const [authDialogOpen, setAuthDialogOpen] = useState(false);
   const { user, profile, signOut, updateTheme } = useAuth();
+  
+  const [headerVariant, setHeaderVariant] = useState(initialVariant);
 
-  const headerClasses = variant === 'transparent'
+  useEffect(() => {
+    // If on the dashboard, always use 'solid'.
+    // Otherwise, determine based on whether a user is logged in.
+    if (window.location.pathname.includes('/dashboard')) {
+        setHeaderVariant('solid');
+        return;
+    }
+    
+    setHeaderVariant(user ? 'solid' : 'transparent');
+  }, [user]);
+
+  const headerClasses = headerVariant === 'transparent'
     ? 'absolute top-0 left-0 right-0 z-40'
     : 'border-b bg-background';
 
   useEffect(() => {
     if (profile?.theme) {
       document.documentElement.setAttribute('data-theme', profile.theme);
+    } else {
+      document.documentElement.setAttribute('data-theme', 'purple');
     }
   }, [profile?.theme]);
 
@@ -40,7 +55,7 @@ export function Header({ variant = 'solid' }: HeaderProps) {
   const themes = [
     { name: 'Green', value: 'green', color: '#10b981' },
     { name: 'Blue', value: 'blue', color: '#3b82f6' },
-    { name: 'Purple', value: 'purple', color: '#837bf6' },
+    { name: 'Purple', value: 'purple', color: '#7678EE' },
     { name: 'Orange', value: 'orange', color: '#f97316' },
     { name: 'Pink', value: 'pink', color: '#ec4899' },
   ];
@@ -72,13 +87,15 @@ export function Header({ variant = 'solid' }: HeaderProps) {
             ) : (
               <>
                 <Button
-                  onClick={() => window.location.href = '/dashboard'}
+                  asChild
                   variant="ghost"
                   size="sm"
                   className="gap-2"
                 >
-                  <Trophy className="w-4 h-4" />
-                  Dashboard
+                  <Link href="/dashboard">
+                    <Trophy className="w-4 h-4" />
+                    Dashboard
+                  </Link>
                 </Button>
                 
                 <DropdownMenu>

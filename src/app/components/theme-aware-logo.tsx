@@ -20,7 +20,10 @@ const themeColors: Record<string, string> = {
 export function ThemeAwareLogo({ type, className = '', alt = 'PawMe Logo' }: ThemeAwareLogoProps) {
   const { profile } = useAuth();
   const [svgContent, setSvgContent] = useState<string>('');
-  const currentColor = themeColors[profile?.theme || 'purple'];
+  
+  // When logged out, profile is null, so default to 'purple'
+  const currentThemeKey = profile?.theme || 'purple';
+  const currentColor = themeColors[currentThemeKey];
 
   useEffect(() => {
     const loadSvg = async () => {
@@ -30,7 +33,7 @@ export function ThemeAwareLogo({ type, className = '', alt = 'PawMe Logo' }: The
         const response = await fetch(`/${filename}`);
         let svg = await response.text();
         
-        // Replace all instances of the hardcoded blue color with current theme color
+        // The base color in the SVG is #7678EE, which corresponds to the 'purple' theme
         svg = svg.replace(/#7678EE/g, currentColor);
         
         setSvgContent(svg);

@@ -8,7 +8,7 @@ const fromEmail = process.env.NODE_ENV === 'production'
   : 'PawMe <onboarding@resend.dev>';
 
 function getWelcomeEmailHtml(name: string, referralLink: string, referralCode: string) {
-  const brandColor = '#837bf6';
+  const brandColor = '#7678EE';
   return `
     <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; color: #333;">
       <h2 style="color: ${brandColor};">🐾 Welcome to PawMe, ${name}!</h2>
@@ -56,7 +56,7 @@ export async function sendWelcomeEmail({ to, name, referralCode }: { to: string,
 }
 
 function getReferralSuccessEmailHtml(referrerName: string, newReferralCount: number, newPoints: number) {
-  const brandColor = '#837bf6';
+  const brandColor = '#7678EE';
   return `
     <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; color: #333;">
       <h2 style="color: ${brandColor};">🎉 You've earned points, ${referrerName}!</h2>
