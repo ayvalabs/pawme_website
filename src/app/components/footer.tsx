@@ -1,6 +1,5 @@
 import { Twitter, Facebook, Instagram, Linkedin } from 'lucide-react';
-import { ImageWithFallback } from '@/app/components/figma/ImageWithFallback';
-import imageData from '@/app/lib/placeholder-images.json';
+import { ThemeAwareLogo } from '@/app/components/theme-aware-logo';
 
 export function Footer() {
   const socialLinks = [
@@ -17,14 +16,14 @@ export function Footer() {
           {/* Brand */}
           <div>
             <div className="flex items-center gap-3 mb-4">
-              <ImageWithFallback
-                src={imageData.circleIcon.src}
-                alt={imageData.circleIcon.alt}
+              <ThemeAwareLogo
+                type="circle"
+                alt="PawMe Circle Logo"
                 className="h-10 w-10"
               />
-              <ImageWithFallback
-                src={imageData.textLogo.src}
-                alt={imageData.textLogo.alt}
+              <ThemeAwareLogo
+                type="text"
+                alt="PawMe Text Logo"
                 className="h-6 w-auto"
               />
             </div>

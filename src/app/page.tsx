@@ -54,26 +54,9 @@ export default function HomePage() {
     );
   }
 
-  if (user && profile) {
-    return (
-      <div className="flex flex-col min-h-screen bg-background">
-        <Header onShowLeaderboard={() => setShowLeaderboard(true)} />
-        <main className="flex-grow">
-          <ReferralDashboard 
-            profile={profile}
-            showLeaderboard={showLeaderboard}
-            onLeaderboardClose={() => setShowLeaderboard(false)}
-          />
-        </main>
-        <Footer />
-        <FloatingActions />
-      </div>
-    );
-  }
-
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      <Header />
+      <Header onShowLeaderboard={() => setShowLeaderboard(true)} />
       <main className="flex-grow">
         <Hero />
         <Features />
@@ -85,13 +68,20 @@ export default function HomePage() {
       </main>
       <Footer />
       <FloatingActions />
-      <BottomFloatingCTA />
+      {!user && <BottomFloatingCTA />}
       <AuthDialog
         open={authDialogOpen}
         onOpenChange={setAuthDialogOpen}
         defaultTab={authDefaultTab}
         referralCode={referralCodeFromUrl}
       />
+      {user && profile && showLeaderboard && (
+        <ReferralDashboard 
+          email={profile.email}
+          referralCode={profile.referralCode}
+          referralCount={profile.referralCount}
+        />
+      )}
     </div>
   );
 }

@@ -33,6 +33,32 @@
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
   }
+
+  /* Theme Colors */
+  [data-theme="purple"] {
+    --primary: 244 89% 72%;
+    --ring: 244 89% 72%;
+  }
+
+  [data-theme="green"] {
+    --primary: 142 76% 36%;
+    --ring: 142 76% 36%;
+  }
+
+  [data-theme="blue"] {
+    --primary: 217 91% 60%;
+    --ring: 217 91% 60%;
+  }
+
+  [data-theme="orange"] {
+    --primary: 25 95% 53%;
+    --ring: 25 95% 53%;
+  }
+
+  [data-theme="pink"] {
+    --primary: 330 81% 60%;
+    --ring: 330 81% 60%;
+  }
  
   .dark {
     --background: 240 10% 3.9%;

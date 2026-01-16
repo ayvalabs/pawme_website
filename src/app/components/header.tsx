@@ -6,8 +6,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { User, LogOut, Trophy, Palette } from 'lucide-react';
 import { useAuth } from '@/app/context/AuthContext';
 import { AuthDialog } from '@/app/components/auth-dialog';
-import { ImageWithFallback } from '@/app/components/figma/ImageWithFallback';
-import imageData from '@/app/lib/placeholder-images.json';
+import { ThemeAwareLogo } from '@/app/components/theme-aware-logo';
 
 interface HeaderProps {
   onShowLeaderboard?: () => void;
@@ -59,14 +58,14 @@ export function Header({ onShowLeaderboard }: HeaderProps) {
       <header className={headerClasses}>
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <ImageWithFallback
-              src={imageData.circleIcon.src}
-              alt={imageData.circleIcon.alt}
+            <ThemeAwareLogo
+              type="circle"
+              alt="PawMe Circle Logo"
               className="h-10 w-10"
             />
-            <ImageWithFallback
-              src={imageData.textLogo.src}
-              alt={imageData.textLogo.alt}
+            <ThemeAwareLogo
+              type="text"
+              alt="PawMe Text Logo"
               className="h-8 w-auto"
             />
           </div>
@@ -80,17 +79,15 @@ export function Header({ onShowLeaderboard }: HeaderProps) {
               </Button>
             ) : (
               <>
-                {onShowLeaderboard && (
-                  <Button
-                    onClick={onShowLeaderboard}
-                    variant="ghost"
-                    size="sm"
-                    className="gap-2"
-                  >
-                    <Trophy className="w-4 h-4" />
-                    Leaderboard
-                  </Button>
-                )}
+                <Button
+                  onClick={() => window.location.href = '/dashboard'}
+                  variant="ghost"
+                  size="sm"
+                  className="gap-2"
+                >
+                  <Trophy className="w-4 h-4" />
+                  Dashboard
+                </Button>
                 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>

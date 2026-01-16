@@ -1,14 +1,14 @@
 {
   "circleIcon": {
-    "src": "/favicon.png",
+    "src": "/favicon.svg",
     "alt": "PawMe Circle Logo"
   },
   "textLogo": {
-    "src": "/text_logo.png",
+    "src": "/text_logo.svg",
     "alt": "PawMe Text Logo"
   },
   "fullLogo": {
-    "src": "/full_logo.png",
+    "src": "/full_logo.svg",
     "alt": "PawMe Full Logo",
     "data-ai-hint": "logo"
   }

@@ -57,10 +57,28 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-function generateReferralCode(email: string): string {
-  const namePart = email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '');
-  const randomPart = Math.random().toString(36).substring(2, 6);
-  return `${namePart}${randomPart}`.toUpperCase().slice(0, 10);
+async function generateReferralCode(email: string, uid: string): Promise<string> {
+  // Use first part of email and first 6 chars of UID for uniqueness
+  const namePart = email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+  const uidPart = uid.substring(0, 6).toUpperCase();
+  let referralCode = `${namePart}${uidPart}`.slice(0, 10);
+  
+  // Ensure it's at least 6 characters by padding with UID if needed
+  if (referralCode.length < 6) {
+    referralCode = (referralCode + uid.toUpperCase()).slice(0, 10);
+  }
+  
+  // Check if code already exists (extremely unlikely with UID, but safety check)
+  const usersRef = collection(db, 'users');
+  const q = query(usersRef, where('referralCode', '==', referralCode));
+  const querySnapshot = await getDocs(q);
+  
+  // If duplicate found (should never happen), append more UID characters
+  if (!querySnapshot.empty) {
+    referralCode = (namePart + uid.substring(0, 8)).toUpperCase().slice(0, 10);
+  }
+  
+  return referralCode;
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -125,7 +143,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     await updateUserProfile(newUser, { displayName: name });
 
-    const referralCode = generateReferralCode(email);
+    const referralCode = await generateReferralCode(email, newUser.uid);
     const userProfile: UserProfile = {
       id: newUser.uid,
       email: newUser.email!,
@@ -171,10 +189,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       console.log('Email API response status:', response.status);
       const responseData = await response.json();
-      console.log('Email API response data:', responseData);
+      console.log('Email API response data:', JSON.stringify(responseData, null, 2));
       
       if (response.ok) {
         console.log('✅ Welcome email sent successfully!');
+        console.log('Resend email ID:', responseData.data?.id);
+        console.log('Check your email inbox for:', email);
+        console.log('Email sent from: pawme@ayvalabs.com');
       } else {
         console.error('❌ Email API returned error:', responseData);
       }
@@ -206,7 +227,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (!userDoc.exists()) {
       // Create profile for new Google user
-      const referralCode = generateReferralCode(user.email!);
+      const referralCode = await generateReferralCode(user.email!, user.uid);
       const userProfile: UserProfile = {
         id: user.uid,
         email: user.email!,

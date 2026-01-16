@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
     console.log('RESEND_API_KEY exists:', !!process.env.RESEND_API_KEY);
     
     const { data, error } = await resend.emails.send({
-      from: 'Acme <onboarding@resend.dev>',
+      from: 'PawMe <pawme@ayvalabs.com>',
       to: [to],
       subject: emailSubject,
       html: emailHtml,
