@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -31,6 +32,8 @@ export default function AdminPage() {
   const handleSaveTemplate = () => {
     if (!editedTemplate) return;
     
+    // Here you would typically save to a database or a file
+    // For this example, we'll just update the local state
     setTemplates(prev => ({
       ...prev,
       [editedTemplate.id]: editedTemplate,
@@ -95,13 +98,13 @@ export default function AdminPage() {
     return html;
   };
 
-  if (!user) {
+  if (!user || profile?.email !== 'pawme@ayvalabs.com') {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Card className="w-96">
           <CardHeader>
             <CardTitle>Access Denied</CardTitle>
-            <CardDescription>Please sign in to access the admin panel</CardDescription>
+            <CardDescription>You do not have permission to access this page.</CardDescription>
           </CardHeader>
         </Card>
       </div>
@@ -112,114 +115,146 @@ export default function AdminPage() {
     <div className="min-h-screen bg-background p-8">
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">Email Template Manager</h1>
-          <p className="text-muted-foreground">Manage and customize email templates for your application</p>
+          <h1 className="text-4xl font-bold mb-2">Admin Dashboard</h1>
+          <p className="text-muted-foreground">Manage users, rewards, and email templates.</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Template List */}
-          <Card className="lg:col-span-1">
-            <CardHeader>
-              <CardTitle>Templates</CardTitle>
-              <CardDescription>Select a template to edit</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {Object.values(templates).map((template) => (
-                <Button
-                  key={template.id}
-                  variant={selectedTemplate === template.id ? 'default' : 'outline'}
-                  className="w-full justify-start"
-                  onClick={() => setSelectedTemplate(template.id)}
-                >
-                  <Mail className="mr-2 h-4 w-4" />
-                  {template.name}
-                </Button>
-              ))}
-            </CardContent>
-          </Card>
-
-          {/* Template Editor */}
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle>Edit Template: {editedTemplate?.name}</CardTitle>
-              <CardDescription>
-                Available variables: {editedTemplate?.variables.map(v => `{{${v}}}`).join(', ')}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Tabs defaultValue="content" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="content">Content</TabsTrigger>
-                  <TabsTrigger value="test">Test & Send</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="content" className="space-y-4 mt-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="subject">Subject Line</Label>
-                    <Input
-                      id="subject"
-                      value={editedTemplate?.subject || ''}
-                      onChange={(e) => setEditedTemplate(prev => prev ? { ...prev, subject: e.target.value } : null)}
-                      placeholder="Email subject..."
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="html">HTML Content</Label>
-                    <Textarea
-                      id="html"
-                      value={editedTemplate?.html || ''}
-                      onChange={(e) => setEditedTemplate(prev => prev ? { ...prev, html: e.target.value } : null)}
-                      placeholder="HTML content..."
-                      className="font-mono text-sm min-h-[400px]"
-                    />
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Button onClick={handleSaveTemplate} className="gap-2">
-                      <Save className="h-4 w-4" />
-                      Save Template
+        <Tabs defaultValue="email-templates">
+          <TabsList>
+            <TabsTrigger value="users">Users</TabsTrigger>
+            <TabsTrigger value="rewards">Rewards</TabsTrigger>
+            <TabsTrigger value="email-templates">Email Templates</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="users" className="mt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>User Management</CardTitle>
+                <CardDescription>Feature coming soon.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">A table of all users will be displayed here, with options to select and email them.</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="rewards" className="mt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Reward & Shipping Management</CardTitle>
+                <CardDescription>Feature coming soon.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">A table of redeemed rewards and shipping statuses will be displayed here.</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="email-templates" className="mt-4">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Template List */}
+              <Card className="lg:col-span-1">
+                <CardHeader>
+                  <CardTitle>Templates</CardTitle>
+                  <CardDescription>Select a template to edit</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {Object.values(templates).map((template) => (
+                    <Button
+                      key={template.id}
+                      variant={selectedTemplate === template.id ? 'default' : 'outline'}
+                      className="w-full justify-start"
+                      onClick={() => setSelectedTemplate(template.id)}
+                    >
+                      <Mail className="mr-2 h-4 w-4" />
+                      {template.name}
                     </Button>
-                    <Button variant="outline" onClick={() => setPreviewOpen(true)} className="gap-2">
-                      <Eye className="h-4 w-4" />
-                      Preview
-                    </Button>
-                  </div>
-                </TabsContent>
+                  ))}
+                </CardContent>
+              </Card>
 
-                <TabsContent value="test" className="space-y-4 mt-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="testEmail">Test Email Address</Label>
-                    <Input
-                      id="testEmail"
-                      type="email"
-                      value={testEmail}
-                      onChange={(e) => setTestEmail(e.target.value)}
-                      placeholder="your@email.com"
-                    />
-                  </div>
+              {/* Template Editor */}
+              <Card className="lg:col-span-2">
+                <CardHeader>
+                  <CardTitle>Edit Template: {editedTemplate?.name}</CardTitle>
+                  <CardDescription>
+                    Available variables: {editedTemplate?.variables.map(v => `{{${v}}}`).join(', ')}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Tabs defaultValue="content" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="content">Content</TabsTrigger>
+                      <TabsTrigger value="test">Test & Send</TabsTrigger>
+                    </TabsList>
 
-                  <div className="p-4 bg-muted rounded-lg">
-                    <h4 className="font-medium mb-2">Test Data</h4>
-                    <ul className="text-sm space-y-1 text-muted-foreground">
-                      <li>• userName: "Test User"</li>
-                      <li>• referralCode: "TEST123"</li>
-                    </ul>
-                  </div>
+                    <TabsContent value="content" className="space-y-4 mt-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="subject">Subject Line</Label>
+                        <Input
+                          id="subject"
+                          value={editedTemplate?.subject || ''}
+                          onChange={(e) => setEditedTemplate(prev => prev ? { ...prev, subject: e.target.value } : null)}
+                          placeholder="Email subject..."
+                        />
+                      </div>
 
-                  <Button 
-                    onClick={handleSendTestEmail} 
-                    disabled={sending || !testEmail}
-                    className="gap-2"
-                  >
-                    <Send className="h-4 w-4" />
-                    {sending ? 'Sending...' : 'Send Test Email'}
-                  </Button>
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
-        </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="html">HTML Content</Label>
+                        <Textarea
+                          id="html"
+                          value={editedTemplate?.html || ''}
+                          onChange={(e) => setEditedTemplate(prev => prev ? { ...prev, html: e.target.value } : null)}
+                          placeholder="HTML content..."
+                          className="font-mono text-sm min-h-[400px]"
+                        />
+                      </div>
+
+                      <div className="flex gap-2">
+                        <Button onClick={handleSaveTemplate} className="gap-2">
+                          <Save className="h-4 w-4" />
+                          Save Template
+                        </Button>
+                        <Button variant="outline" onClick={() => setPreviewOpen(true)} className="gap-2">
+                          <Eye className="h-4 w-4" />
+                          Preview
+                        </Button>
+                      </div>
+                    </TabsContent>
+
+                    <TabsContent value="test" className="space-y-4 mt-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="testEmail">Test Email Address</Label>
+                        <Input
+                          id="testEmail"
+                          type="email"
+                          value={testEmail}
+                          onChange={(e) => setTestEmail(e.target.value)}
+                          placeholder="your@email.com"
+                        />
+                      </div>
+
+                      <div className="p-4 bg-muted rounded-lg">
+                        <h4 className="font-medium mb-2">Test Data</h4>
+                        <ul className="text-sm space-y-1 text-muted-foreground">
+                          <li>• userName: "Test User"</li>
+                          <li>• referralCode: "TEST123"</li>
+                        </ul>
+                      </div>
+
+                      <Button 
+                        onClick={handleSendTestEmail} 
+                        disabled={sending || !testEmail}
+                        className="gap-2"
+                      >
+                        <Send className="h-4 w-4" />
+                        {sending ? 'Sending...' : 'Send Test Email'}
+                      </Button>
+                    </TabsContent>
+                  </Tabs>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Preview Dialog */}

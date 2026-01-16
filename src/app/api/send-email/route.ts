@@ -1,8 +1,13 @@
+
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { renderTemplate } from '@/lib/email-templates';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+const fromEmail = process.env.NODE_ENV === 'production' 
+  ? 'PawMe <pawme@ayvalabs.com>' 
+  : 'PawMe <onboarding@resend.dev>';
+
 
 export async function POST(request: NextRequest) {
   console.log('📧 Email API route called');
@@ -10,7 +15,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     console.log('Request body:', JSON.stringify(body, null, 2));
     
-    const { to, subject, html, templateType, variables } = body;
+    const { to, subject, html, templateId, variables } = body;
 
     if (!to) {
       console.error('❌ Missing recipient email');
@@ -23,11 +28,11 @@ export async function POST(request: NextRequest) {
     let emailSubject = subject;
     let emailHtml = html;
 
-    // If templateType is provided, render the template
-    if (templateType) {
-      console.log('Rendering template:', templateType);
+    // If templateId is provided, render the template
+    if (templateId) {
+      console.log('Rendering template:', templateId);
       console.log('Template variables:', variables);
-      const rendered = renderTemplate(templateType, variables || {});
+      const rendered = renderTemplate(templateId, variables || {});
       emailSubject = rendered.subject;
       emailHtml = rendered.html;
       console.log('Template rendered successfully');
@@ -48,7 +53,7 @@ export async function POST(request: NextRequest) {
     console.log('RESEND_API_KEY exists:', !!process.env.RESEND_API_KEY);
     
     const { data, error } = await resend.emails.send({
-      from: 'PawMe <pawme@ayvalabs.com>',
+      from: fromEmail,
       to: [to],
       subject: emailSubject,
       html: emailHtml,

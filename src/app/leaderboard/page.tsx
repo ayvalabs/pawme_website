@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -35,7 +36,10 @@ function VipBanner({ totalUsers, loading, userName, onJoinClick }: { totalUsers:
   const spotsLeft = totalUsers !== null ? Math.max(0, vipLimit - totalUsers) : null;
 
   return (
-    <Card className="mb-8 bg-gradient-to-tr from-yellow-300/10 via-primary/10 to-yellow-300/10 border-primary/20 text-center p-6 shadow-lg">
+    <Card 
+      onClick={onJoinClick}
+      className="mb-8 bg-gradient-to-tr from-yellow-300/10 via-primary/10 to-yellow-300/10 border-primary/20 text-center p-6 shadow-lg cursor-pointer hover:shadow-primary/20 transition-shadow"
+    >
       <CardHeader className="p-0 mb-4">
         <CardTitle className="text-3xl font-bold text-primary">
           👑 {userName}, join the {vipLimit} VIP List! 👑
@@ -45,13 +49,6 @@ function VipBanner({ totalUsers, loading, userName, onJoinClick }: { totalUsers:
         </CardDescription>
       </CardHeader>
       <CardContent className="p-0 space-y-4">
-        <div className="flex items-center justify-center gap-4">
-          <span className="text-2xl text-muted-foreground line-through">$199</span>
-          <span className="text-5xl font-extrabold text-foreground">$79</span>
-        </div>
-        <Button onClick={onJoinClick} size="lg" className="h-12 text-lg animate-pulse">
-          <Star className="mr-2 h-5 w-5" /> Join for $1
-        </Button>
         <div className="h-10 flex items-center justify-center">
           {loading ? (
             <Skeleton className="h-6 w-48" />
@@ -153,6 +150,12 @@ const addressSchema = z.object({
   phone: z.string().min(10, 'A valid phone number is required.'),
 });
 
+const paymentSchema = z.object({
+  cardNumber: z.string().length(16, "Card number must be 16 digits."),
+  expiryDate: z.string().regex(/^(0[1-9]|1[0-2])\/\d{2}$/, "Expiry date must be in MM/YY format."),
+  cvc: z.string().length(3, "CVC must be 3 digits."),
+});
+
 export default function LeaderboardPage() {
   const { user, profile, loading: authLoading, joinVip, redeemReward } = useAuth();
   const router = useRouter();
@@ -236,10 +239,17 @@ export default function LeaderboardPage() {
   const [selectedReward, setSelectedReward] = useState<(typeof rewardTiers)[0] | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const form = useForm<z.infer<typeof addressSchema>>({
+  const addressForm = useForm<z.infer<typeof addressSchema>>({
     resolver: zodResolver(addressSchema),
     defaultValues: {
       fullName: '', address1: '', address2: '', city: '', state: '', zip: '', country: '', phone: ''
+    }
+  });
+
+  const paymentForm = useForm<z.infer<typeof paymentSchema>>({
+    resolver: zodResolver(paymentSchema),
+    defaultValues: {
+      cardNumber: '', expiryDate: '', cvc: ''
     }
   });
 
@@ -342,6 +352,7 @@ ${profile.name}`
 
   const handleJoinVip = async () => {
     setIsSubmitting(true);
+    await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate payment processing
     try {
       await joinVip();
       toast.success("Welcome to the VIP list! 👑 You're now a founding member.");
@@ -355,7 +366,7 @@ ${profile.name}`
   
   const handleOpenRedeemDialog = (reward: (typeof rewardTiers)[0]) => {
     setSelectedReward(reward);
-    form.reset({ fullName: profile?.name || '', phone: '' });
+    addressForm.reset({ fullName: profile?.name || '', phone: '' });
     setRedeemDialogOpen(true);
   };
   
@@ -579,19 +590,58 @@ ${profile.name}`
       </div>
       
       <Dialog open={isVipDialogOpen} onOpenChange={setVipDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Confirm VIP Membership</DialogTitle>
+            <DialogTitle>Join the VIP List</DialogTitle>
             <DialogDescription>
-              Become a founding member of PawMe for a one-time payment of $1. You'll get exclusive early-bird pricing and a special badge.
+              Become a founding member for a one-time payment of $1 to unlock exclusive perks and 1.5x referral points.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setVipDialogOpen(false)} disabled={isSubmitting}>Cancel</Button>
-            <Button onClick={handleJoinVip} disabled={isSubmitting}>
-              {isSubmitting ? 'Processing...' : 'Confirm & Pay $1'}
-            </Button>
-          </DialogFooter>
+          <Form {...paymentForm}>
+            <form onSubmit={paymentForm.handleSubmit(handleJoinVip)} className="space-y-4">
+              <FormField
+                control={paymentForm.control}
+                name="cardNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Card Number</FormLabel>
+                    <FormControl><Input {...field} placeholder="0000 0000 0000 0000" /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={paymentForm.control}
+                  name="expiryDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Expiry (MM/YY)</FormLabel>
+                      <FormControl><Input {...field} placeholder="MM/YY" /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={paymentForm.control}
+                  name="cvc"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>CVC</FormLabel>
+                      <FormControl><Input {...field} placeholder="123" /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setVipDialogOpen(false)} disabled={isSubmitting}>Cancel</Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? 'Processing...' : 'Confirm & Pay $1'}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
         </DialogContent>
       </Dialog>
       
@@ -601,10 +651,10 @@ ${profile.name}`
             <DialogTitle>Redeem: {selectedReward?.title}</DialogTitle>
             <DialogDescription>Please provide your shipping details to receive your reward. We'll be in touch to confirm.</DialogDescription>
           </DialogHeader>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleRedeemSubmit)} className="space-y-4 pt-4">
+          <Form {...addressForm}>
+            <form onSubmit={addressForm.handleSubmit(handleRedeemSubmit)} className="space-y-4 pt-4">
               <FormField
-                control={form.control}
+                control={addressForm.control}
                 name="fullName"
                 render={({ field }) => (
                   <FormItem>
@@ -615,7 +665,7 @@ ${profile.name}`
                 )}
               />
               <FormField
-                control={form.control}
+                control={addressForm.control}
                 name="address1"
                 render={({ field }) => (
                   <FormItem>
@@ -626,7 +676,7 @@ ${profile.name}`
                 )}
               />
               <FormField
-                control={form.control}
+                control={addressForm.control}
                 name="address2"
                 render={({ field }) => (
                   <FormItem>
@@ -636,22 +686,22 @@ ${profile.name}`
                 )}
               />
               <div className="grid grid-cols-2 gap-4">
-                <FormField control={form.control} name="city" render={({ field }) => (
+                <FormField control={addressForm.control} name="city" render={({ field }) => (
                   <FormItem><FormLabel>City</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                 )}/>
-                <FormField control={form.control} name="state" render={({ field }) => (
+                <FormField control={addressForm.control} name="state" render={({ field }) => (
                   <FormItem><FormLabel>State/Province</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                 )}/>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <FormField control={form.control} name="zip" render={({ field }) => (
+                <FormField control={addressForm.control} name="zip" render={({ field }) => (
                   <FormItem><FormLabel>ZIP/Postal</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                 )}/>
-                <FormField control={form.control} name="country" render={({ field }) => (
+                <FormField control={addressForm.control} name="country" render={({ field }) => (
                   <FormItem><FormLabel>Country</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                 )}/>
               </div>
-              <FormField control={form.control} name="phone" render={({ field }) => (
+              <FormField control={addressForm.control} name="phone" render={({ field }) => (
                   <FormItem><FormLabel>Phone</FormLabel><FormControl><Input type="tel" {...field} /></FormControl><FormDescription>In case we need to contact you about shipping.</FormDescription><FormMessage /></FormItem>
               )}/>
               <DialogFooter>

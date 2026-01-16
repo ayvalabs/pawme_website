@@ -26,7 +26,7 @@ import {
 } from 'firebase/firestore';
 import { auth, db } from '@/firebase/config';
 import { getTotalUsers } from '@/app/actions/users';
-import { sendWelcomeEmail } from '@/app/actions/email';
+import { sendWelcomeEmail, sendReferralSuccessEmail } from '@/app/actions/email';
 
 interface UserProfile {
   id: string;

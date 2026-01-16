@@ -1,3 +1,4 @@
+
 export interface EmailTemplate {
   id: string;
   name: string;
@@ -70,7 +71,7 @@ export const defaultTemplates: Record<string, EmailTemplate> = {
                       <table role="presentation" style="margin: 30px 0;">
                         <tr>
                           <td align="center">
-                            <a href="https://pawme.com" style="display: inline-block; padding: 14px 32px; background-color: #7678EE; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: 600;">Visit Your Dashboard</a>
+                            <a href="https://pawme.com/leaderboard" style="display: inline-block; padding: 14px 32px; background-color: #7678EE; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: 600;">Visit Your Dashboard</a>
                           </td>
                         </tr>
                       </table>
