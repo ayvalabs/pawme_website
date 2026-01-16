@@ -1,13 +1,13 @@
 {
   "favicon": {
-    "src": "figma:asset/bdd95d9196437c53040ed91a0ab1509a30e2ba09.png",
+    "src": "favicon.png",
     "width": 40,
     "height": 40,
     "alt": "PawMe circle logo with a dog and cat in a yin-yang style",
     "hint": "cat dog"
   },
   "logoText": {
-    "src": "figma:asset/94fe960e5888dfb11d640069616da8e885e693aa.png",
+    "src": "logo_text.png",
     "width": 120,
     "height": 32,
     "alt": "PawMe text logo",
