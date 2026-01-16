@@ -42,7 +42,7 @@ export async function sendWelcomeEmail({ to, name, referralCode, totalUsers }: {
   let htmlTemplate = '';
 
   try {
-    const templateRef = doc(db, 'email_templates', 'welcome');
+    const templateRef = doc(db, 'emailTemplates', 'welcome');
     const templateSnap = await getDoc(templateRef);
 
     if (templateSnap.exists()) {
