@@ -42,17 +42,17 @@ export function Header({ onShowLeaderboard }: HeaderProps) {
 
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 z-50 bg-transparent backdrop-blur-md border-b ">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-transparent ">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <ImageWithFallback
-              src={imageData.circleIcon.src}
-              alt={imageData.circleIcon.alt}
+              src="favicon.png"
+              alt="PawMe - AI Campanion robot for your pets"
               className="h-10 w-10"
             />
             <ImageWithFallback
-              src={imageData.textLogo.src}
-              alt={imageData.textLogo.alt}
+              src="text_logo.png"
+              alt="PawMe - AI Campanion robot for your pets"
               className="h-8 w-auto"
             />
           </div>
