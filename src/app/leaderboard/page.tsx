@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -13,7 +12,7 @@ import { Label } from '@/app/components/ui/label';
 import { Textarea } from '@/app/components/ui/textarea';
 import { Trophy, Users, Gift, Share2, Copy, Check, Mail, MessageCircle, Sparkles, Star, Lock } from 'lucide-react';
 import { toast } from 'sonner';
-import { getTotalUsers } from '@/app/actions/users';
+import { getTotalUsers, getLeaderboard } from '@/app/actions/users';
 import { Skeleton } from '@/app/components/ui/skeleton';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/app/components/ui/dialog';
 import { useForm } from 'react-hook-form';
@@ -22,9 +21,17 @@ import * as z from 'zod';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/app/components/ui/form';
 import Image from 'next/image';
 import imageData from '@/app/lib/placeholder-images.json';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/ui/table';
+
+interface LeaderboardUser {
+  id: string;
+  name: string;
+  points: number;
+  rank: number;
+}
 
 function VipBanner({ totalUsers, loading, userName, onJoinClick }: { totalUsers: number | null, loading: boolean, userName: string, onJoinClick: () => void }) {
-  const vipLimit = 100;
+  const vipLimit = 250;
   const spotsLeft = totalUsers !== null ? Math.max(0, vipLimit - totalUsers) : null;
 
   return (
@@ -55,6 +62,81 @@ function VipBanner({ totalUsers, loading, userName, onJoinClick }: { totalUsers:
             </p>
           )}
         </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function LeaderboardDisplay() {
+  const [leaderboard, setLeaderboard] = useState<LeaderboardUser[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchData() {
+      setLoading(true);
+      try {
+        const topUsers = await getLeaderboard();
+        setLeaderboard(topUsers);
+      } catch (error) {
+        console.error("Failed to fetch leaderboard data:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
+
+  const getTierInfo = (rank: number) => {
+    if (rank === 1) return { icon: '💎', name: 'Diamond' };
+    if (rank <= 3) return { icon: '🥇', name: 'Platinum' };
+    if (rank <= 10) return { icon: '🏆', name: 'Gold' };
+    return { icon: '👤', name: 'Participant' };
+  };
+
+  return (
+    <Card className="mb-8">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-2xl">
+          <Trophy className="text-primary w-6 h-6" />
+          Leaderboard
+        </CardTitle>
+        <CardDescription>See how you stack up against other top referrers.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-16 text-center">Rank</TableHead>
+              <TableHead>User</TableHead>
+              <TableHead className="text-right">Points</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <TableRow key={i}>
+                  <TableCell className="text-center"><Skeleton className="h-5 w-5 rounded-full mx-auto" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-3/4" /></TableCell>
+                  <TableCell className="text-right"><Skeleton className="h-5 w-12 ml-auto" /></TableCell>
+                </TableRow>
+              ))
+            ) : (
+              leaderboard.map((user) => {
+                const tier = getTierInfo(user.rank);
+                return (
+                  <TableRow key={user.id}>
+                    <TableCell className="text-center font-bold text-lg">{user.rank}</TableCell>
+                    <TableCell className="font-medium flex items-center gap-3">
+                      <span className="text-xl" title={tier.name}>{tier.icon}</span>
+                      {user.name}
+                    </TableCell>
+                    <TableCell className="text-right font-semibold">{user.points}</TableCell>
+                  </TableRow>
+                );
+              })
+            )}
+          </TableBody>
+        </Table>
       </CardContent>
     </Card>
   );
@@ -307,10 +389,7 @@ ${profile.name}`
             />
           )}
           
-          <div className="mb-8">
-            <h1 className="text-4xl font-bold mb-2">Referral Dashboard</h1>
-            <p className="text-muted-foreground">Share your referral link to earn points and climb the leaderboard.</p>
-          </div>
+          <LeaderboardDisplay />
 
           <Card className="mb-8">
             <CardHeader>
