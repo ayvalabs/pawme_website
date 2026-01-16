@@ -25,6 +25,14 @@ import { Footer } from '@/app/components/footer';
 type UserWithId = UserProfile & { id: string };
 type RewardWithUser = Reward & { user: { id: string; name: string; email: string }, rewardTitle: string };
 
+const getReferralTierIcon = (referralCount: number) => {
+  if (referralCount >= 25) return '💎'; // Platinum
+  if (referralCount >= 10) return '🥇'; // Gold
+  if (referralCount >= 5) return '🥈'; // Silver
+  if (referralCount >= 1) return '🥉'; // Bronze
+  return '';
+};
+
 export default function AdminPage() {
   const { user, profile, loading: authLoading } = useAuth();
   const router = useRouter();
@@ -65,6 +73,10 @@ export default function AdminPage() {
     }
   }, [user, profile]);
 
+  const filteredUsers = useMemo(() => {
+    return allUsers.filter(u => u.email !== 'pawme@ayvalabs.com');
+  }, [allUsers]);
+
   const handleSelectUser = (userId: string) => {
     setSelectedUserIds(prev => {
       const newSet = new Set(prev);
@@ -78,10 +90,10 @@ export default function AdminPage() {
   };
 
   const handleSelectAll = () => {
-    if (selectedUserIds.size === allUsers.length) {
+    if (selectedUserIds.size === filteredUsers.length && filteredUsers.length > 0) {
       setSelectedUserIds(new Set());
     } else {
-      setSelectedUserIds(new Set(allUsers.map(u => u.id)));
+      setSelectedUserIds(new Set(filteredUsers.map(u => u.id)));
     }
   };
 
@@ -188,7 +200,7 @@ export default function AdminPage() {
 
           <Tabs defaultValue="users" className="w-full">
             <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="users">Users ({allUsers.length})</TabsTrigger>
+              <TabsTrigger value="users">Users ({filteredUsers.length})</TabsTrigger>
               <TabsTrigger value="rewards">Reward Fulfillment ({pendingRewards.length})</TabsTrigger>
               <TabsTrigger value="email">Email Broadcast</TabsTrigger>
             </TabsList>
@@ -205,14 +217,15 @@ export default function AdminPage() {
                         <TableRow>
                           <TableHead className="w-12">
                             <Checkbox 
-                              checked={selectedUserIds.size === allUsers.length && allUsers.length > 0}
+                              checked={selectedUserIds.size === filteredUsers.length && filteredUsers.length > 0}
                               onCheckedChange={handleSelectAll}
                             />
                           </TableHead>
                           <TableHead>User</TableHead>
                           <TableHead>Email</TableHead>
                           <TableHead className="text-center">Points</TableHead>
-                          <TableHead className="text-center">Redeemed</TableHead>
+                          <TableHead className="text-center">Referrals</TableHead>
+                          <TableHead className="text-center">Tier</TableHead>
                           <TableHead className="text-center">VIP</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -225,11 +238,12 @@ export default function AdminPage() {
                               <TableCell><Skeleton className="h-5 w-48" /></TableCell>
                               <TableCell><Skeleton className="h-5 w-12 mx-auto" /></TableCell>
                               <TableCell><Skeleton className="h-5 w-12 mx-auto" /></TableCell>
+                              <TableCell><Skeleton className="h-5 w-8 mx-auto" /></TableCell>
                               <TableCell><Skeleton className="h-5 w-5 mx-auto" /></TableCell>
                             </TableRow>
                           ))
                         ) : (
-                          allUsers.map(u => (
+                          filteredUsers.map(u => (
                             <TableRow key={u.id} data-state={selectedUserIds.has(u.id) ? 'selected' : ''}>
                               <TableCell>
                                 <Checkbox checked={selectedUserIds.has(u.id)} onCheckedChange={() => handleSelectUser(u.id)} />
@@ -237,10 +251,18 @@ export default function AdminPage() {
                               <TableCell className="font-medium">{u.name}</TableCell>
                               <TableCell className="text-muted-foreground">{u.email}</TableCell>
                               <TableCell className="text-center">{u.points}</TableCell>
-                              <TableCell className="text-center">{u.rewards?.length || 0}</TableCell>
+                              <TableCell className="text-center">{u.referralCount || 0}</TableCell>
+                              <TableCell className="text-center text-xl" title={getReferralTierIcon(u.referralCount || 0) ? "Referral Tier" : ""}>
+                                {getReferralTierIcon(u.referralCount || 0)}
+                              </TableCell>
                               <TableCell className="text-center">{u.isVip ? '👑' : ''}</TableCell>
                             </TableRow>
                           ))
+                        )}
+                        {filteredUsers.length === 0 && !loadingUsers && (
+                          <TableRow>
+                            <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">No referral members yet.</TableCell>
+                          </TableRow>
                         )}
                       </TableBody>
                     </Table>
