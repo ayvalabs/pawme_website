@@ -9,8 +9,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/ta
 import { Mail, Lock, User } from 'lucide-react';
 import { useAuth } from '@/app/context/AuthContext';
 import { toast } from 'sonner';
-import { ImageWithFallback } from '@/app/components/figma/ImageWithFallback';
-import imageData from '@/app/lib/placeholder-images.json';
 import { Checkbox } from '@/app/components/ui/checkbox';
 
 interface AuthDialogProps {
@@ -121,12 +119,6 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader className="text-center items-center">
-            <ImageWithFallback
-                src={imageData.fullLogo.src}
-                alt={imageData.fullLogo.alt}
-                className="h-12 w-auto mb-4"
-                data-ai-hint={imageData.fullLogo['data-ai-hint']}
-            />
           <DialogTitle className="text-2xl">Welcome to PawMe</DialogTitle>
           <DialogDescription>
             {referralCode ? "You've been referred! Sign up to claim your reward." : 'Sign in to access your referral dashboard and track your rewards.'}
