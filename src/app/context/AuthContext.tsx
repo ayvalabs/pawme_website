@@ -35,9 +35,9 @@ interface UserProfile {
   referralCount: number;
   referredBy: string | null;
   theme: string;
-  rewards: any[];
+  rewards: { rewardId: string; redeemedAt: string }[];
   createdAt: string;
-  isPriority?: boolean;
+  isVip?: boolean;
   privacyPolicyAgreed: boolean;
   marketingOptIn: boolean;
 }
@@ -53,27 +53,25 @@ interface AuthContextType {
   refreshProfile: () => Promise<void>;
   updateTheme: (theme: string) => Promise<void>;
   sendPasswordReset: (email: string) => Promise<void>;
+  joinVip: () => Promise<void>;
+  redeemReward: (rewardId: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 async function generateReferralCode(email: string, uid: string): Promise<string> {
-  // Use first part of email and first 6 chars of UID for uniqueness
   const namePart = email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
   const uidPart = uid.substring(0, 6).toUpperCase();
   let referralCode = `${namePart}${uidPart}`.slice(0, 10);
   
-  // Ensure it's at least 6 characters by padding with UID if needed
   if (referralCode.length < 6) {
     referralCode = (referralCode + uid.toUpperCase()).slice(0, 10);
   }
   
-  // Check if code already exists (extremely unlikely with UID, but safety check)
   const usersRef = collection(db, 'users');
   const q = query(usersRef, where('referralCode', '==', referralCode));
   const querySnapshot = await getDocs(q);
   
-  // If duplicate found (should never happen), append more UID characters
   if (!querySnapshot.empty) {
     referralCode = (namePart + uid.substring(0, 8)).toUpperCase().slice(0, 10);
   }
@@ -149,12 +147,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email: newUser.email!,
       name: name || newUser.email!.split('@')[0],
       referralCode,
-      points: 100, // Initial points for signing up
+      points: 100,
       referralCount: 0,
       referredBy: referredByCode || null,
       theme: 'purple',
       rewards: [],
       createdAt: new Date().toISOString(),
+      isVip: false,
       privacyPolicyAgreed,
       marketingOptIn,
     };
@@ -164,46 +163,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (referredByCode) {
       await creditReferrer(referredByCode);
     }
-
-    // Send welcome email
-    console.log('=== SENDING WELCOME EMAIL ===');
-    console.log('Email recipient:', email);
-    console.log('User name:', name);
-    console.log('Referral code:', referralCode);
-    try {
-      const emailPayload = {
-        to: email,
-        templateType: 'welcome',
-        variables: {
-          userName: name,
-          referralCode: referralCode,
-        },
-      };
-      console.log('Email payload:', JSON.stringify(emailPayload, null, 2));
-      
-      const response = await fetch('/api/send-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(emailPayload),
-      });
-      
-      console.log('Email API response status:', response.status);
-      const responseData = await response.json();
-      console.log('Email API response data:', JSON.stringify(responseData, null, 2));
-      
-      if (response.ok) {
-        console.log('✅ Welcome email sent successfully!');
-        console.log('Resend email ID:', responseData.data?.id);
-        console.log('Check your email inbox for:', email);
-        console.log('Email sent from: pawme@ayvalabs.com');
-      } else {
-        console.error('❌ Email API returned error:', responseData);
-      }
-    } catch (error) {
-      console.error('❌ Failed to send welcome email:', error);
-      // Don't fail signup if email fails
-    }
-    console.log('=== EMAIL SENDING COMPLETE ===');
+    
+    await sendWelcomeEmail({ to: email, name, referralCode });
 
     setUser(newUser);
     setProfile(userProfile);
@@ -226,7 +187,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const userDoc = await getDoc(userDocRef);
 
     if (!userDoc.exists()) {
-      // Create profile for new Google user
       const referralCode = await generateReferralCode(user.email!, user.uid);
       const userProfile: UserProfile = {
         id: user.uid,
@@ -239,8 +199,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         theme: 'purple',
         rewards: [],
         createdAt: new Date().toISOString(),
-        privacyPolicyAgreed: true, // Implied agreement for social sign-in
-        marketingOptIn: false, // Default to not opted-in
+        isVip: false,
+        privacyPolicyAgreed: true,
+        marketingOptIn: false,
       };
       await setDoc(userDocRef, userProfile);
       setProfile(userProfile);
@@ -259,20 +220,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const updateTheme = async (theme: string) => {
-    console.log('updateTheme called with theme:', theme);
     if (user) {
-      console.log('User exists, updating theme for user:', user.uid);
       const userDocRef = doc(db, 'users', user.uid);
       try {
         await updateDoc(userDocRef, { theme });
-        console.log('Theme updated successfully in Firestore');
-        await fetchProfile(user.uid); // Refresh profile after update
-        console.log('Profile refreshed, new theme should be:', theme);
+        await fetchProfile(user.uid);
       } catch (error) {
         console.error('Error updating theme:', error);
       }
-    } else {
-      console.log('No user found, cannot update theme');
+    }
+  };
+
+  const joinVip = async () => {
+    if (user) {
+      const userDocRef = doc(db, 'users', user.uid);
+      try {
+        await updateDoc(userDocRef, { isVip: true });
+        await fetchProfile(user.uid);
+      } catch (error) {
+        console.error('Error joining VIP:', error);
+        throw error;
+      }
+    }
+  };
+
+  const redeemReward = async (rewardId: string) => {
+    if (user && profile) {
+      const userDocRef = doc(db, 'users', user.uid);
+      const newReward = { rewardId, redeemedAt: new Date().toISOString() };
+      const updatedRewards = [...profile.rewards, newReward];
+      try {
+        await updateDoc(userDocRef, { rewards: updatedRewards });
+        await fetchProfile(user.uid);
+      } catch (error) {
+        console.error('Error redeeming reward:', error);
+        throw error;
+      }
     }
   };
 
@@ -289,6 +272,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         refreshProfile,
         updateTheme,
         sendPasswordReset,
+        joinVip,
+        redeemReward,
       }}
     >
       {children}
