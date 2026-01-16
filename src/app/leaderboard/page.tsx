@@ -60,54 +60,6 @@ function VipBanner({ totalUsers, loading, userName, onJoinClick }: { totalUsers:
   );
 }
 
-const rewardTiers = [
-  { 
-    id: 'treats', 
-    title: 'Premium Treats Sampler', 
-    requiredPoints: 1000, 
-    reward: 'A delicious pack of high-quality, natural pet treats.',
-    image: imageData.rewardTreats.src,
-    alt: 'Premium pet treats',
-    'data-ai-hint': imageData.rewardTreats['data-ai-hint'],
-  },
-  { 
-    id: 'toy', 
-    title: 'Interactive Puzzle Toy', 
-    requiredPoints: 2500, 
-    reward: 'A treat-dispensing ball or puzzle to keep your pet engaged.',
-    image: imageData.rewardToy.src,
-    alt: 'Interactive pet toy',
-    'data-ai-hint': imageData.rewardToy['data-ai-hint'],
-  },
-  { 
-    id: 'accessory', 
-    title: 'Personalized Pet Accessory', 
-    requiredPoints: 5000, 
-    reward: 'A custom engraved collar or a stylish harness in brand colors.',
-    image: imageData.rewardAccessory.src,
-    alt: 'Personalized pet collar',
-    'data-ai-hint': imageData.rewardAccessory['data-ai-hint'],
-  },
-  { 
-    id: 'bundle', 
-    title: 'Comfort Bundle', 
-    requiredPoints: 7500, 
-    reward: 'A gift set with a plush toy, grooming wipes, and a travel bowl.',
-    image: imageData.rewardBundle.src,
-    alt: 'Pet comfort bundle',
-    'data-ai-hint': imageData.rewardBundle['data-ai-hint'],
-  },
-  { 
-    id: 'bed', 
-    title: 'Premium Pet Bed', 
-    requiredPoints: 10000, 
-    reward: 'A cozy, high-quality pet bed for ultimate comfort.',
-    image: imageData.rewardBed.src,
-    alt: 'Premium pet bed',
-    'data-ai-hint': imageData.rewardBed['data-ai-hint'],
-  },
-];
-
 const addressSchema = z.object({
   fullName: z.string().min(2, 'Full name is required.'),
   address1: z.string().min(5, 'Address is required.'),
@@ -122,6 +74,54 @@ const addressSchema = z.object({
 export default function LeaderboardPage() {
   const { user, profile, loading: authLoading, joinVip, redeemReward } = useAuth();
   const router = useRouter();
+
+  const rewardTiers = [
+    { 
+      id: 'treats', 
+      title: 'Premium Treats Sampler', 
+      requiredPoints: 1000, 
+      reward: 'A delicious pack of high-quality, natural pet treats.',
+      image: imageData.rewardTreats.src,
+      alt: 'Premium pet treats',
+      'data-ai-hint': imageData.rewardTreats['data-ai-hint'],
+    },
+    { 
+      id: 'toy', 
+      title: 'Interactive Puzzle Toy', 
+      requiredPoints: 2500, 
+      reward: 'A treat-dispensing ball or puzzle to keep your pet engaged.',
+      image: imageData.rewardToy.src,
+      alt: 'Interactive pet toy',
+      'data-ai-hint': imageData.rewardToy['data-ai-hint'],
+    },
+    { 
+      id: 'accessory', 
+      title: 'Personalized Pet Accessory', 
+      requiredPoints: 5000, 
+      reward: 'A custom engraved collar or a stylish harness in brand colors.',
+      image: imageData.rewardAccessory.src,
+      alt: 'Personalized pet collar',
+      'data-ai-hint': imageData.rewardAccessory['data-ai-hint'],
+    },
+    { 
+      id: 'bundle', 
+      title: 'Comfort Bundle', 
+      requiredPoints: 7500, 
+      reward: 'A gift set with a plush toy, grooming wipes, and a travel bowl.',
+      image: imageData.rewardBundle.src,
+      alt: 'Pet comfort bundle',
+      'data-ai-hint': imageData.rewardBundle['data-ai-hint'],
+    },
+    { 
+      id: 'bed', 
+      title: 'Premium Pet Bed', 
+      requiredPoints: 10000, 
+      reward: 'A cozy, high-quality pet bed for ultimate comfort.',
+      image: imageData.rewardBed.src,
+      alt: 'Premium pet bed',
+      'data-ai-hint': imageData.rewardBed['data-ai-hint'],
+    },
+  ];
   
   const [copied, setCopied] = useState(false);
   const referralUrl = typeof window !== 'undefined' ? `${window.location.origin}/?ref=${profile?.referralCode}` : '';
