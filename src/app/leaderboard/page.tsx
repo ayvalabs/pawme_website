@@ -11,7 +11,7 @@ import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
 import { Label } from '@/app/components/ui/label';
 import { Textarea } from '@/app/components/ui/textarea';
-import { Trophy, Users, Gift, Share2, Copy, Check, Mail, MessageCircle, Sparkles, Star } from 'lucide-react';
+import { Trophy, Users, Gift, Share2, Copy, Check, Mail, MessageCircle, Sparkles, Star, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import { getTotalUsers } from '@/app/actions/users';
 import { Skeleton } from '@/app/components/ui/skeleton';
@@ -20,6 +20,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/app/components/ui/form';
+import Image from 'next/image';
+import imageData from '@/app/lib/placeholder-images.json';
 
 function VipBanner({ totalUsers, loading, userName, onJoinClick }: { totalUsers: number | null, loading: boolean, userName: string, onJoinClick: () => void }) {
   const vipLimit = 100;
@@ -32,7 +34,7 @@ function VipBanner({ totalUsers, loading, userName, onJoinClick }: { totalUsers:
           👑 {userName}, join the {vipLimit} VIP List! 👑
         </CardTitle>
         <CardDescription className="text-lg text-foreground/80">
-          Become a founding member and get exclusive early bird pricing.
+          Become a founding member, get exclusive early bird pricing, and earn <span className="font-bold text-primary">1.5x points</span> for every referral!
         </CardDescription>
       </CardHeader>
       <CardContent className="p-0 space-y-4">
@@ -59,10 +61,51 @@ function VipBanner({ totalUsers, loading, userName, onJoinClick }: { totalUsers:
 }
 
 const rewardTiers = [
-  { id: 'bronze', title: '🥉 Bronze Tier', requiredReferrals: 1, reward: '15% OFF Early Bird Discount' },
-  { id: 'silver', title: '🥈 Silver Tier', requiredReferrals: 5, reward: '30% OFF Early Bird Discount' },
-  { id: 'gold', title: '🥇 Gold Tier', requiredReferrals: 10, reward: '50% OFF Early Bird Discount' },
-  { id: 'platinum', title: '💎 Platinum Tier', requiredReferrals: 25, reward: 'Limited Edition PawMe' },
+  { 
+    id: 'treats', 
+    title: 'Premium Treats Sampler', 
+    requiredPoints: 1000, 
+    reward: 'A delicious pack of high-quality, natural pet treats.',
+    image: imageData.rewardTreats.src,
+    alt: 'Premium pet treats',
+    'data-ai-hint': imageData.rewardTreats['data-ai-hint'],
+  },
+  { 
+    id: 'toy', 
+    title: 'Interactive Puzzle Toy', 
+    requiredPoints: 2500, 
+    reward: 'A treat-dispensing ball or puzzle to keep your pet engaged.',
+    image: imageData.rewardToy.src,
+    alt: 'Interactive pet toy',
+    'data-ai-hint': imageData.rewardToy['data-ai-hint'],
+  },
+  { 
+    id: 'accessory', 
+    title: 'Personalized Pet Accessory', 
+    requiredPoints: 5000, 
+    reward: 'A custom engraved collar or a stylish harness in brand colors.',
+    image: imageData.rewardAccessory.src,
+    alt: 'Personalized pet collar',
+    'data-ai-hint': imageData.rewardAccessory['data-ai-hint'],
+  },
+  { 
+    id: 'bundle', 
+    title: 'Comfort Bundle', 
+    requiredPoints: 7500, 
+    reward: 'A gift set with a plush toy, grooming wipes, and a travel bowl.',
+    image: imageData.rewardBundle.src,
+    alt: 'Pet comfort bundle',
+    'data-ai-hint': imageData.rewardBundle['data-ai-hint'],
+  },
+  { 
+    id: 'bed', 
+    title: 'Premium Pet Bed', 
+    requiredPoints: 10000, 
+    reward: 'A cozy, high-quality pet bed for ultimate comfort.',
+    image: imageData.rewardBed.src,
+    alt: 'Premium pet bed',
+    'data-ai-hint': imageData.rewardBed['data-ai-hint'],
+  },
 ];
 
 const addressSchema = z.object({
@@ -214,7 +257,7 @@ ${profile.name}`
   
   const handleOpenRedeemDialog = (reward: (typeof rewardTiers)[0]) => {
     setSelectedReward(reward);
-    form.reset({ fullName: profile?.name, phone: '' });
+    form.reset({ fullName: profile?.name || '', phone: '' });
     setRedeemDialogOpen(true);
   };
   
@@ -269,49 +312,10 @@ ${profile.name}`
             <p className="text-muted-foreground">Share your referral link to earn points and climb the leaderboard.</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Points</CardTitle>
-                <Trophy className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-primary">{profile.points || 0}</div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Keep referring to earn more!
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Referrals</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">{profile.referralCount || 0}</div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Friends joined through your link
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Rewards</CardTitle>
-                <Gift className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">{profile.rewards?.length || 0}</div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Unlocked rewards
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-
           <Card className="mb-8">
             <CardHeader>
               <CardTitle>Share Your Referral Link</CardTitle>
-              <CardDescription>Share your unique link and earn 100 points for every friend who signs up.</CardDescription>
+              <CardDescription>Share your unique link and earn points for every friend who signs up.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div>
@@ -361,44 +365,89 @@ ${profile.name}`
               </div>
             </CardContent>
           </Card>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Points</CardTitle>
+                <Trophy className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-primary">{profile.points || 0}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Keep referring to earn more!
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Referrals</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{profile.referralCount || 0}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Friends joined through your link
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Rewards</CardTitle>
+                <Gift className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{profile.rewards?.length || 0}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Unlocked rewards
+                </p>
+              </CardContent>
+            </Card>
+          </div>
           
           <Card className="mt-8">
             <CardHeader>
-              <CardTitle>Your Rewards</CardTitle>
-              <CardDescription>Unlock rewards by referring more friends.</CardDescription>
+              <CardTitle>Redeem Your Points</CardTitle>
+              <CardDescription>Use your points to claim exclusive rewards. The more you refer, the better the rewards!</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {rewardTiers.map(tier => {
-                const isUnlocked = profile.referralCount >= tier.requiredReferrals;
+                const isUnlocked = profile.points >= tier.requiredPoints;
                 const isRedeemed = profile.rewards.some(r => r.rewardId === tier.id);
                 return (
-                  <div key={tier.id} className={`flex items-center gap-4 p-4 rounded-lg border-2 transition-all ${
-                      isUnlocked
-                        ? 'border-primary/30 bg-primary/5'
-                        : 'border-border bg-muted/30 opacity-70'
-                    }`}>
-                    <div className="text-4xl">{tier.title.split(' ')[0]}</div>
-                    <div className="flex-1">
-                      <h4 className="font-semibold">{tier.title}</h4>
-                      <p className="text-sm text-muted-foreground">{tier.reward}</p>
-                    </div>
-                    <div>
-                      {isRedeemed ? (
-                        <Button variant="outline" disabled>Redeemed</Button>
-                      ) : isUnlocked ? (
-                        <Button onClick={() => handleOpenRedeemDialog(tier)}>Redeem</Button>
-                      ) : (
-                        <Button variant="secondary" disabled>
-                          {tier.requiredReferrals - profile.referralCount} more
-                        </Button>
+                  <Card key={tier.id} className={`flex flex-col overflow-hidden transition-all ${!isUnlocked && 'opacity-60'}`}>
+                     <div className="relative">
+                      <Image 
+                        src={tier.image}
+                        alt={tier.alt}
+                        width={600}
+                        height={400}
+                        data-ai-hint={tier['data-ai-hint']}
+                        className="object-cover aspect-[3/2]"
+                      />
+                      {!isUnlocked && (
+                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                          <Lock className="h-12 w-12 text-white/70" />
+                        </div>
                       )}
                     </div>
-                  </div>
+                    <div className="p-4 flex flex-col flex-grow">
+                      <h4 className="font-semibold text-lg">{tier.title}</h4>
+                      <p className="text-sm text-muted-foreground mt-1 mb-4 flex-grow">{tier.reward}</p>
+                      <div className="flex justify-between items-center mt-auto">
+                        <span className="font-bold text-primary">{tier.requiredPoints.toLocaleString()} points</span>
+                        {isRedeemed ? (
+                          <Button variant="outline" size="sm" disabled>Redeemed</Button>
+                        ) : (
+                          <Button size="sm" onClick={() => handleOpenRedeemDialog(tier)} disabled={!isUnlocked}>Redeem</Button>
+                        )}
+                      </div>
+                    </div>
+                  </Card>
                 );
               })}
             </CardContent>
           </Card>
-
         </div>
         
         <Footer />

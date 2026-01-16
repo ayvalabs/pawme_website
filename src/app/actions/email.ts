@@ -1,3 +1,4 @@
+
 'use server';
 
 import { Resend } from 'resend';
@@ -7,12 +8,44 @@ const fromEmail = process.env.NODE_ENV === 'production'
   ? 'PawMe <pawme@ayvalabs.com>' 
   : 'PawMe <onboarding@resend.dev>';
 
-function getWelcomeEmailHtml(name: string, referralLink: string, referralCode: string) {
+function getVipBannerHtml(totalUsers: number) {
+  const vipLimit = 100;
+  const spotsLeft = Math.max(0, vipLimit - totalUsers);
+  return `
+    <table role="presentation" style="width: 100%; margin: 30px 0; background-color: #fffaf0; border: 2px dashed #F59E0B; border-radius: 8px;">
+      <tr>
+        <td style="padding: 20px; text-align: center;">
+          <h3 style="margin: 0 0 10px; color: #D97706; font-size: 20px;">👑 Join the VIP List!</h3>
+          <p style="margin: 0 0 15px; color: #333; font-size: 16px;">
+            Become a founding member and get <strong style="color: #7678EE;">1.5x points</strong> for every referral!
+          </p>
+          <p style="margin: 0 0 15px;">
+            <span style="font-size: 18px; color: #999; text-decoration: line-through;">$199</span>
+            <strong style="font-size: 32px; color: #111; margin: 0 10px;">$79</strong>
+          </p>
+          <a href="https://pawme.com/leaderboard" style="display: inline-block; padding: 10px 20px; background-color: #F59E0B; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600;">
+            Join for $1
+          </a>
+          <p style="margin: 15px 0 0; background-color: #7678EE; color: #ffffff; display: inline-block; padding: 5px 15px; border-radius: 9999px; font-weight: bold;">
+            Only ${spotsLeft} spots left!
+          </p>
+        </td>
+      </tr>
+    </table>
+  `;
+}
+
+function getWelcomeEmailHtml(name: string, referralLink: string, referralCode: string, totalUsers: number | null) {
   const brandColor = '#7678EE';
+  const vipBanner = totalUsers !== null && totalUsers < 100 ? getVipBannerHtml(totalUsers) : '';
+  
   return `
     <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; color: #333;">
       <h2 style="color: ${brandColor};">🐾 Welcome to PawMe, ${name}!</h2>
       <p>We're thrilled to have you on the waitlist. You're one step closer to giving your pet the ultimate AI companion.</p>
+      
+      ${vipBanner}
+
       <h3>Your Unique Referral Link</h3>
       <p>Share this link with friends and family to earn points and climb the leaderboard:</p>
       <p style="background-color: #f0f2fe; padding: 12px; border-radius: 5px; border: 1px dashed ${brandColor};">
@@ -34,11 +67,11 @@ function getWelcomeEmailHtml(name: string, referralLink: string, referralCode: s
   `;
 }
 
-export async function sendWelcomeEmail({ to, name, referralCode }: { to: string, name: string, referralCode: string }) {
+export async function sendWelcomeEmail({ to, name, referralCode, totalUsers }: { to: string, name: string, referralCode: string, totalUsers: number | null }) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9008';
   const referralLink = `${appUrl}/?ref=${referralCode}`;
   const subject = '🐾 Welcome to PawMe! Your referral link is ready';
-  const html = getWelcomeEmailHtml(name, referralLink, referralCode);
+  const html = getWelcomeEmailHtml(name, referralLink, referralCode, totalUsers);
 
   try {
     const { error } = await resend.emails.send({

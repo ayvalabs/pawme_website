@@ -25,6 +25,8 @@ import {
   runTransaction,
 } from 'firebase/firestore';
 import { auth, db } from '@/firebase/config';
+import { getTotalUsers } from '@/app/actions/users';
+import { sendWelcomeEmail } from '@/app/actions/email';
 
 interface UserProfile {
   id: string;
@@ -114,8 +116,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const querySnapshot = await getDocs(q);
 
     if (!querySnapshot.empty) {
-      const referrerDoc = querySnapshot.docs[0];
-      const referrerRef = doc(db, 'users', referrerDoc.id);
+      const referrerDocSnapshot = querySnapshot.docs[0];
+      const referrerRef = doc(db, 'users', referrerDocSnapshot.id);
 
       await runTransaction(db, async (transaction) => {
         const referrerDoc = await transaction.get(referrerRef);
@@ -123,13 +125,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           throw "Referrer document does not exist!";
         }
         const newReferralCount = (referrerDoc.data().referralCount || 0) + 1;
-        const newPoints = (referrerDoc.data().points || 0) + 100;
+        const pointsToAdd = referrerDoc.data().isVip ? 150 : 100;
+        const newPoints = (referrerDoc.data().points || 0) + pointsToAdd;
+        
         transaction.update(referrerRef, { 
           referralCount: newReferralCount,
           points: newPoints
         });
+
+        const referrerData = referrerDoc.data();
+        if (referrerData.email) {
+          await sendReferralSuccessEmail({
+            to: referrerData.email,
+            referrerName: referrerData.name,
+            newReferralCount: newReferralCount,
+            newPoints: newPoints
+          });
+        }
       });
-      console.log(`Credited referrer ${referrerDoc.id}`);
+      console.log(`Credited referrer ${referrerDocSnapshot.id}`);
     } else {
       console.log(`Referral code ${referralCode} not found.`);
     }
@@ -164,7 +178,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await creditReferrer(referredByCode);
     }
     
-    await sendWelcomeEmail({ to: email, name, referralCode });
+    const totalUsers = await getTotalUsers();
+    await sendWelcomeEmail({ to: email, name, referralCode, totalUsers });
 
     setUser(newUser);
     setProfile(userProfile);

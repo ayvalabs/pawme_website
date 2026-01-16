@@ -1,5 +1,24 @@
+
 import { Twitter, Facebook, Instagram, Linkedin } from 'lucide-react';
 import { ThemeAwareLogo } from '@/app/components/theme-aware-logo';
+
+const TikTokIcon = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg 
+      xmlns="http://www.w3.org/2000/svg" 
+      width="24" 
+      height="24" 
+      viewBox="0 0 24 24" 
+      fill="none" 
+      stroke="currentColor" 
+      strokeWidth="2" 
+      strokeLinecap="round" 
+      strokeLinejoin="round"
+      {...props}
+    >
+      <path d="M16 4.99a5 5 0 0 1-5 5V16a3 3 0 1 0 3 3V12a8 8 0 1 0-8 8h1"/>
+    </svg>
+);
+
 
 export function Footer() {
   const socialLinks = [
@@ -7,6 +26,7 @@ export function Footer() {
     { icon: Facebook, href: 'https://facebook.com/pawme', label: 'Facebook' },
     { icon: Instagram, href: 'https://instagram.com/pawme', label: 'Instagram' },
     { icon: Linkedin, href: 'https://linkedin.com/company/pawme', label: 'LinkedIn' },
+    { icon: TikTokIcon, href: 'https://tiktok.com/@pawme', label: 'TikTok' },
   ];
 
   return (
