@@ -1,3 +1,4 @@
+
 rules_version = '2';
 
 service cloud.firestore {
@@ -39,6 +40,11 @@ service cloud.firestore {
             request.resource.data.points == resource.data.points + 150
           )
         );
+    }
+    
+    // Rules for email templates
+    match /email_templates/{templateId} {
+      allow read, write: if isAdmin();
     }
   }
 }

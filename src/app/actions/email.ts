@@ -2,6 +2,9 @@
 'use server';
 
 import { Resend } from 'resend';
+import { db } from '@/firebase/config';
+import { doc, getDoc } from 'firebase/firestore';
+import { defaultTemplates } from '@/lib/email-templates';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const fromEmail = process.env.NODE_ENV === 'production' 
@@ -31,43 +34,42 @@ function getVipBannerHtml(totalUsers: number) {
   `;
 }
 
-function getWelcomeEmailHtml(name: string, referralLink: string, referralCode: string, totalUsers: number | null) {
-  const brandColor = '#7678EE';
-  const vipBanner = totalUsers !== null && totalUsers < 250 ? getVipBannerHtml(totalUsers) : '';
-  
-  return `
-    <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; color: #333;">
-      <h2 style="color: ${brandColor};">🐾 Welcome to PawMe, ${name}!</h2>
-      <p>We're thrilled to have you on the waitlist. You're one step closer to giving your pet the ultimate AI companion.</p>
-      
-      ${vipBanner}
-
-      <h3>Your Unique Referral Link</h3>
-      <p>Share this link with friends and family to earn points and climb the leaderboard:</p>
-      <p style="background-color: #f0f2fe; padding: 12px; border-radius: 5px; border: 1px dashed ${brandColor};">
-        <a href="${referralLink}" style="color: ${brandColor}; font-weight: bold; text-decoration: none;">${referralLink}</a>
-      </p>
-      <p>Your personal code is: <strong style="color: ${brandColor};">${referralCode}</strong></p>
-      <h3>Earn Rewards</h3>
-      <ul>
-        <li><strong>100 points</strong> per successful referral</li>
-        <li>Exclusive <strong>early bird perks</strong></li>
-        <li>Move up the leaderboard for <strong>top prizes</strong></li>
-      </ul>
-      <p>PawMe launches on Kickstarter in <strong>March 2026</strong>!</p>
-      <br/>
-      <p>Best regards,</p>
-      <p><strong>The PawMe Team @ Ayva Labs Limited</strong></p>
-      <p style="font-size: 0.8em; color: #777;">Follow us @pawme on all social media.</p>
-    </div>
-  `;
-}
-
 export async function sendWelcomeEmail({ to, name, referralCode, totalUsers }: { to: string, name: string, referralCode: string, totalUsers: number | null }) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9008';
   const referralLink = `${appUrl}/?ref=${referralCode}`;
-  const subject = '🐾 Welcome to PawMe! Your referral link is ready';
-  const html = getWelcomeEmailHtml(name, referralLink, referralCode, totalUsers);
+  
+  let subjectTemplate = '';
+  let htmlTemplate = '';
+
+  try {
+    const templateRef = doc(db, 'email_templates', 'welcome');
+    const templateSnap = await getDoc(templateRef);
+
+    if (templateSnap.exists()) {
+      const templateData = templateSnap.data();
+      subjectTemplate = templateData.subject;
+      htmlTemplate = templateData.html;
+    } else {
+      console.warn("Welcome email template not found in Firestore, using default.");
+      const defaultTemplate = defaultTemplates.welcome;
+      subjectTemplate = defaultTemplate.subject;
+      htmlTemplate = defaultTemplate.html;
+    }
+  } catch (error) {
+    console.error("Error fetching email template from Firestore, using default fallback.", error);
+    const defaultTemplate = defaultTemplates.welcome;
+    subjectTemplate = defaultTemplate.subject;
+    htmlTemplate = defaultTemplate.html;
+  }
+
+  const subject = subjectTemplate.replace(/{{userName}}/g, name);
+  const vipBannerHtml = totalUsers !== null && totalUsers < 250 ? getVipBannerHtml(totalUsers) : '';
+  
+  const html = htmlTemplate
+    .replace(/{{userName}}/g, name)
+    .replace(/{{referralLink}}/g, referralLink)
+    .replace(/{{referralCode}}/g, referralCode)
+    .replace(/{{vipBanner}}/g, vipBannerHtml);
 
   try {
     const { error } = await resend.emails.send({

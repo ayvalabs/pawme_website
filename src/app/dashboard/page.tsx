@@ -15,14 +15,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/ta
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/app/components/ui/dialog';
 import { Skeleton } from '@/app/components/ui/skeleton';
 import { toast } from 'sonner';
-import { User, Mail, Send, Truck, Package, PackageCheck } from 'lucide-react';
+import { User, Mail, Send, Truck, Package, PackageCheck, Save, ClipboardList } from 'lucide-react';
 import { markRewardShipped } from '@/app/actions/users';
 import { sendAdminBroadcast, sendShippingNotificationEmail } from '@/app/actions/email';
 import type { UserProfile, Reward } from '@/app/context/AuthContext';
 import { Header } from '@/app/components/header';
 import { Footer } from '@/app/components/footer';
 import { db } from '@/firebase/config';
-import { collection, query, orderBy, getDocs } from 'firebase/firestore';
+import { collection, query, orderBy, getDocs, doc, getDoc, setDoc } from 'firebase/firestore';
+import { defaultTemplates } from '@/lib/email-templates';
 
 type UserWithId = UserProfile & { id: string };
 type RewardWithUser = Reward & { user: { id: string; name: string; email: string }, rewardTitle: string };
@@ -52,6 +53,10 @@ export default function AdminPage() {
   const [trackingCode, setTrackingCode] = useState('');
   const [sendingShipping, setSendingShipping] = useState(false);
 
+  const [welcomeTemplate, setWelcomeTemplate] = useState({ subject: '', html: '' });
+  const [loadingTemplate, setLoadingTemplate] = useState(true);
+  const [savingTemplate, setSavingTemplate] = useState(false);
+
   useEffect(() => {
     if (!authLoading && (!user || profile?.email !== 'pawme@ayvalabs.com')) {
       router.push('/');
@@ -80,9 +85,45 @@ export default function AdminPage() {
           setLoadingUsers(false);
         }
       };
+      
+      const fetchTemplate = async () => {
+        setLoadingTemplate(true);
+        try {
+          const templateRef = doc(db, 'email_templates', 'welcome');
+          const templateSnap = await getDoc(templateRef);
+          if (templateSnap.exists()) {
+              setWelcomeTemplate(templateSnap.data() as { subject: string, html: string });
+          } else {
+              const defaultWelcome = defaultTemplates.welcome;
+              setWelcomeTemplate({ subject: defaultWelcome.subject, html: defaultWelcome.html });
+          }
+        } catch (error) {
+          console.error("Error fetching welcome template", error);
+          const defaultWelcome = defaultTemplates.welcome;
+          setWelcomeTemplate({ subject: defaultWelcome.subject, html: defaultWelcome.html });
+          toast.error("Could not load email template from database.");
+        } finally {
+          setLoadingTemplate(false);
+        }
+      };
+
       fetchUsers();
+      fetchTemplate();
     }
   }, [user, profile]);
+
+  const handleSaveTemplate = async () => {
+    setSavingTemplate(true);
+    try {
+        const templateRef = doc(db, 'email_templates', 'welcome');
+        await setDoc(templateRef, welcomeTemplate);
+        toast.success('Welcome email template saved!');
+    } catch (e) {
+        toast.error('Failed to save template.');
+    } finally {
+        setSavingTemplate(false);
+    }
+  };
 
   const filteredUsers = useMemo(() => {
     return allUsers.filter(u => u.email !== 'pawme@ayvalabs.com');
@@ -180,7 +221,7 @@ export default function AdminPage() {
         trackingCode: trackingCode
       });
       toast.success(`Reward marked as shipped for ${shippingReward.user.name}.`);
-      // Refetch users to update the list
+      
       const usersRef = collection(db, 'users');
       const q = query(usersRef, orderBy('createdAt', 'desc'));
       const querySnapshot = await getDocs(q);
@@ -218,10 +259,11 @@ export default function AdminPage() {
           </div>
 
           <Tabs defaultValue="users" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="users">Users ({filteredUsers.length})</TabsTrigger>
               <TabsTrigger value="rewards">Reward Fulfillment ({pendingRewards.length})</TabsTrigger>
               <TabsTrigger value="email">Email Broadcast</TabsTrigger>
+              <TabsTrigger value="templates">Templates</TabsTrigger>
             </TabsList>
             <TabsContent value="users" className="mt-4">
               <Card>
@@ -383,6 +425,51 @@ export default function AdminPage() {
                     <Send className="w-4 h-4 mr-2"/>
                     {sendingBroadcast ? 'Sending...' : `Send to ${selectedUserIds.size} users`}
                   </Button>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            <TabsContent value="templates" className="mt-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <ClipboardList />
+                    Welcome Email Template
+                  </CardTitle>
+                  <CardDescription>
+                    Edit the template for the automated welcome email sent to new users. Use placeholders like {"{{userName}}"}, {"{{referralCode}}"}, {"{{referralLink}}"}, and {"{{vipBanner}}"}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {loadingTemplate ? (
+                    <div className="space-y-4">
+                      <Skeleton className="h-10 w-full" />
+                      <Skeleton className="h-64 w-full" />
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="template-subject">Subject</Label>
+                        <Input 
+                          id="template-subject" 
+                          value={welcomeTemplate.subject} 
+                          onChange={e => setWelcomeTemplate(prev => ({ ...prev, subject: e.target.value }))}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="template-body">Body (HTML)</Label>
+                        <Textarea 
+                          id="template-body"
+                          value={welcomeTemplate.html}
+                          onChange={e => setWelcomeTemplate(prev => ({...prev, html: e.target.value}))}
+                          className="min-h-[400px] font-mono text-xs"
+                        />
+                      </div>
+                      <Button onClick={handleSaveTemplate} disabled={savingTemplate}>
+                        <Save className="w-4 h-4 mr-2" />
+                        {savingTemplate ? 'Saving...' : 'Save Template'}
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
