@@ -68,8 +68,6 @@ export default function AdminPage() {
   const [loadingTemplates, setLoadingTemplates] = useState(true);
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<EmailTemplate | null>(null);
-  const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
-  const [previewTemplate, setPreviewTemplate] = useState<EmailTemplate | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewContent, setPreviewContent] = useState({ subject: '', html: '' });
   
@@ -123,6 +121,41 @@ export default function AdminPage() {
       fetchData();
     }
   }, [user, profile]);
+  
+  const previewHtml = useMemo(() => {
+    let html = templateHtml;
+    const sampleData: Record<string, string> = {
+        userName: 'Alex Doe',
+        referralCode: 'ALEX123',
+        referralLink: 'https://pawme.com/?ref=ALEX123',
+        rewardTitle: 'Premium Pet Bed',
+        trackingCode: '1Z9999W99999999999',
+        vipBanner: `
+        <table role="presentation" style="width: 100%; margin: 30px 0; background-color: #fffaf0; border: 2px dashed #F59E0B; border-radius: 8px;">
+            <tr>
+            <td style="padding: 20px; text-align: center;">
+                <h3 style="margin: 0 0 10px; color: #D97706; font-size: 20px;">👑 Join the VIP List!</h3>
+                <p style="margin: 0 0 15px; color: #333; font-size: 16px;">
+                Become a founding member and get <strong style="color: #7678EE;">1.5x points</strong> for every referral!
+                </p>
+            </td>
+            </tr>
+        </table>
+        `,
+    };
+    
+    const vars = templateVariables.split(',').map(v => v.trim()).filter(v => v);
+    
+    // Add default template vars if not specified
+    const allVars = new Set([...vars, ...['userName', 'referralCode', 'referralLink', 'rewardTitle', 'trackingCode', 'vipBanner']]);
+
+    for (const variable of allVars) {
+        const regex = new RegExp(`{{${variable}}}`, 'g');
+        html = html.replace(regex, sampleData[variable] || `[${variable}]`);
+    }
+
+    return html;
+  }, [templateHtml, templateVariables]);
 
   const filteredUsers = useMemo(() => {
     return allUsers.filter(u => u.email !== 'pawme@ayvalabs.com');
@@ -147,7 +180,7 @@ export default function AdminPage() {
       setSelectedUserIds(new Set(filteredUsers.map(u => u.id)));
     }
   };
-
+  
   const handleTemplateChange = (templateId: string) => {
     if (templateId === 'custom') {
       setSubject('');
@@ -160,7 +193,7 @@ export default function AdminPage() {
       setBody(template.html);
     }
   };
-  
+
   const handlePreview = () => {
     const previewUser = selectedUserIds.size > 0
         ? allUsers.find(u => selectedUserIds.has(u.id))
@@ -351,12 +384,7 @@ export default function AdminPage() {
       toast.error("Failed to delete template.");
     }
   };
-
-  const handlePreviewTemplate = (template: EmailTemplate) => {
-    setPreviewTemplate(template);
-    setPreviewDialogOpen(true);
-  };
-
+  
   if (authLoading || !user || !profile) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -662,9 +690,6 @@ export default function AdminPage() {
                               </TableCell>
                               <TableCell className="text-right">
                                 <div className="flex gap-2 justify-end">
-                                  <Button size="sm" variant="ghost" onClick={() => handlePreviewTemplate(template)}>
-                                    <Eye className="w-4 h-4"/>
-                                  </Button>
                                   <Button size="sm" variant="ghost" onClick={() => handleOpenTemplateDialog(template)}>
                                     <Edit className="w-4 h-4"/>
                                   </Button>
@@ -694,16 +719,16 @@ export default function AdminPage() {
         <Footer />
       </div>
 
-      {/* Template Editor Dialog */}
       <Dialog open={templateDialogOpen} onOpenChange={setTemplateDialogOpen}>
-        <DialogContent className="w-[96vw] max-h-[92vh] overflow-hidden p-6 max-w-4xl">
+        <DialogContent className="max-w-7xl w-full h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>{editingTemplate ? 'Edit Template' : 'Create New Template'}</DialogTitle>
             <DialogDescription>
               {editingTemplate ? 'Update the email template details.' : 'Create a new email template.'}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="grid md:grid-cols-2 gap-6 flex-grow overflow-hidden">
+            <div className="flex flex-col space-y-4 overflow-y-auto pr-4 pb-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="template-id">Template ID *</Label>
@@ -714,7 +739,7 @@ export default function AdminPage() {
                     placeholder="e.g., welcome, shipping"
                     disabled={!!editingTemplate}
                   />
-                  <p className="text-xs text-muted-foreground">Unique identifier</p>
+                  <p className="text-xs text-muted-foreground">Unique identifier, cannot be changed.</p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="template-name">Template Name *</Label>
@@ -743,23 +768,34 @@ export default function AdminPage() {
                   id="template-variables" 
                   value={templateVariables} 
                   onChange={(e) => setTemplateVariables(e.target.value)}
-                  placeholder="e.g., userName, referralCode, totalUsers"
+                  placeholder="e.g., userName, referralCode"
                 />
-                <p className="text-xs text-muted-foreground">Use as {`{{variableName}}`} in HTML</p>
+                <p className="text-xs text-muted-foreground">Use as {`{{variableName}}`} in HTML. Common variables are auto-injected.</p>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-2 flex-grow flex flex-col">
                 <Label htmlFor="template-html">HTML Content *</Label>
                 <Textarea 
                   id="template-html" 
                   value={templateHtml} 
                   onChange={(e) => setTemplateHtml(e.target.value)}
                   placeholder="Enter HTML email content..."
-                  className="font-mono text-sm min-h-[300px]"
+                  className="font-mono text-sm flex-grow"
                 />
               </div>
             </div>
-          <DialogFooter className="mt-4">
+            <div className="flex flex-col overflow-hidden">
+              <Label>Live Preview</Label>
+              <div className="mt-2 border rounded-lg flex-grow bg-white">
+                <iframe 
+                  srcDoc={previewHtml}
+                  className="w-full h-full"
+                  title="Email Live Preview"
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="pt-4 border-t">
             <Button variant="outline" onClick={() => setTemplateDialogOpen(false)}>Cancel</Button>
             <Button onClick={handleSaveTemplate}>
               {editingTemplate ? 'Update Template' : 'Create Template'}
@@ -767,36 +803,7 @@ export default function AdminPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Template Preview Dialog */}
-      <Dialog open={previewDialogOpen} onOpenChange={setPreviewDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle>Preview: {previewTemplate?.name}</DialogTitle>
-            <DialogDescription>
-              Subject: {previewTemplate?.subject}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4 flex-grow overflow-hidden">
-            <iframe 
-              srcDoc={previewTemplate?.html || ''} 
-              className="w-full h-full border rounded-lg"
-              title="Email Preview"
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setPreviewDialogOpen(false)}>Close</Button>
-            <Button onClick={() => {
-              setPreviewDialogOpen(false);
-              if (previewTemplate) handleOpenTemplateDialog(previewTemplate);
-            }}>
-              <Edit className="w-4 h-4 mr-2"/>
-              Edit Template
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
+      
       <Dialog open={shippingDialogOpen} onOpenChange={setShippingDialogOpen}>
         <DialogContent>
           <DialogHeader>
