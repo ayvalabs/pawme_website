@@ -36,5 +36,10 @@
     "src": "https://picsum.photos/seed/reward5/600/400",
     "alt": "A cozy premium pet bed",
     "data-ai-hint": "dog bed"
+  },
+  "rewardFeeder": {
+    "src": "https://picsum.photos/seed/reward6/600/400",
+    "alt": "A smart automated pet feeder",
+    "data-ai-hint": "smart feeder"
   }
 }
