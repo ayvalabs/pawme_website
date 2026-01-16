@@ -42,7 +42,7 @@ export function Header({ onShowLeaderboard }: HeaderProps) {
 
   return (
     <>
-      <header className="bg-background border-b">
+      <header className="bg-background border-b sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <ImageWithFallback
@@ -61,9 +61,8 @@ export function Header({ onShowLeaderboard }: HeaderProps) {
             {!user ? (
               <Button
                 onClick={() => setAuthDialogOpen(true)}
-                variant="outline"
               >
-                Sign In
+                Join Waitlist
               </Button>
             ) : (
               <>

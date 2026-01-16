@@ -23,6 +23,7 @@ export default function HomePage() {
   const [authDialogOpen, setAuthDialogOpen] = useState(false);
   const [authDefaultTab, setAuthDefaultTab] = useState<'signin' | 'signup'>('signup');
   const [referralCodeFromUrl, setReferralCodeFromUrl] = useState<string | undefined>(undefined);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -56,12 +57,12 @@ export default function HomePage() {
   if (user && profile) {
     return (
       <div className="flex flex-col min-h-screen bg-background">
-        <Header />
+        <Header onShowLeaderboard={() => setShowLeaderboard(true)} />
         <main className="flex-grow">
           <ReferralDashboard 
-            email={profile.email} 
-            referralCode={profile.referralCode} 
-            referralCount={profile.referralCount}
+            profile={profile}
+            showLeaderboard={showLeaderboard}
+            onLeaderboardClose={() => setShowLeaderboard(false)}
           />
         </main>
         <Footer />
