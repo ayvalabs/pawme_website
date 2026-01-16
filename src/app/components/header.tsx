@@ -20,11 +20,9 @@ export function Header({ variant: initialVariant = 'solid' }: HeaderProps) {
   const [headerVariant, setHeaderVariant] = useState(initialVariant);
 
   useEffect(() => {
-    // If on the dashboard, always use 'solid'.
-    // Otherwise, determine based on whether a user is logged in.
-    if (window.location.pathname.includes('/dashboard')) {
-        setHeaderVariant('solid');
-        return;
+    if (typeof window !== 'undefined' && window.location.pathname.includes('/leaderboard')) {
+      setHeaderVariant('solid');
+      return;
     }
     
     setHeaderVariant(user ? 'solid' : 'transparent');
@@ -92,9 +90,9 @@ export function Header({ variant: initialVariant = 'solid' }: HeaderProps) {
                   size="sm"
                   className="gap-2"
                 >
-                  <Link href="/dashboard">
+                  <Link href="/leaderboard">
                     <Trophy className="w-4 h-4" />
-                    Dashboard
+                    Leaderboard
                   </Link>
                 </Button>
                 

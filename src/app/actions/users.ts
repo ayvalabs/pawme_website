@@ -35,3 +35,9 @@ export async function getUserRank(userId: string, points: number): Promise<numbe
     const snapshot = await getCountFromServer(q);
     return snapshot.data().count + 1;
 }
+
+export async function getTotalUsers(): Promise<number> {
+  const usersRef = collection(db, 'users');
+  const snapshot = await getCountFromServer(usersRef);
+  return snapshot.data().count;
+}
