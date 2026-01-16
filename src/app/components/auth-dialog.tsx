@@ -46,7 +46,7 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
       toast.success('Welcome back!');
       onOpenChange(false);
       if (user.email === 'pawme@ayvalabs.com') {
-        router.push('/admin');
+        router.push('/dashboard');
       } else {
         router.push('/leaderboard');
       }
@@ -123,7 +123,7 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
       onOpenChange(false);
       toast.success('Signed in with Google!');
       if (user.email === 'pawme@ayvalabs.com') {
-        router.push('/admin');
+        router.push('/dashboard');
       } else {
         router.push('/leaderboard');
       }
