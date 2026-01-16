@@ -27,6 +27,7 @@ import {
 import { auth, db } from '@/firebase/config';
 import { getTotalUsers } from '@/app/actions/users';
 import { sendWelcomeEmail, sendReferralSuccessEmail } from '@/app/actions/email';
+import { isDisposableEmail } from '@/lib/disposable-domains';
 
 export interface Reward {
   rewardId: string;
@@ -127,7 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const creditReferrer = async (referralCode: string) => {
+  const creditReferrer = async (referralCode: string, newSignedUpEmail: string) => {
     const referralsRef = collection(db, 'users');
     const q = query(referralsRef, where('referralCode', '==', referralCode));
     const querySnapshot = await getDocs(q);
@@ -135,6 +136,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!querySnapshot.empty) {
       const referrerDocSnapshot = querySnapshot.docs[0];
       const referrerRef = doc(db, 'users', referrerDocSnapshot.id);
+
+      if (referrerDocSnapshot.data().email === newSignedUpEmail) {
+        console.warn('Self-referral attempt blocked.');
+        return; // Silently fail to prevent giving users feedback on valid emails.
+      }
 
       await runTransaction(db, async (transaction) => {
         const referrerDoc = await transaction.get(referrerRef);
@@ -167,6 +173,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signUp = async (email: string, password: string, name: string, referredByCode: string | undefined, privacyPolicyAgreed: boolean, marketingOptIn: boolean) => {
+    if (isDisposableEmail(email)) {
+      throw new Error("Disposable email addresses are not allowed. Please use a permanent email address.");
+    }
+    
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const newUser = userCredential.user;
     
@@ -192,7 +202,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await setDoc(doc(db, 'users', newUser.uid), userProfile);
     
     if (referredByCode) {
-      await creditReferrer(referredByCode);
+      await creditReferrer(referredByCode, email);
     }
     
     const totalUsers = await getTotalUsers();
