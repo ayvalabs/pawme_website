@@ -16,9 +16,10 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
 import { Skeleton } from '@/app/components/ui/skeleton';
 import { toast } from 'sonner';
-import { User, Mail, Send, Truck, Package, PackageCheck, FileText, Plus, Edit, Trash2, Eye } from 'lucide-react';
+import { User, Mail, Send, Truck, Package, PackageCheck, FileText, Plus, Edit, Trash2, Eye, Sparkles } from 'lucide-react';
 import { markRewardShipped } from '@/app/actions/users';
 import { sendAdminBroadcast, sendShippingNotificationEmail } from '@/app/actions/email';
+import { generateEmail } from '@/app/actions/ai';
 import type { UserProfile, Reward } from '@/app/context/AuthContext';
 import { Header } from '@/app/components/header';
 import { Footer } from '@/app/components/footer';
@@ -77,6 +78,12 @@ export default function AdminPage() {
   const [templateSubject, setTemplateSubject] = useState('');
   const [templateHtml, setTemplateHtml] = useState('');
   const [templateVariables, setTemplateVariables] = useState('');
+
+  // AI Writer state
+  const [aiWriterOpen, setAiWriterOpen] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [generatedHtml, setGeneratedHtml] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
     if (!authLoading && (!user || profile?.email !== 'pawme@ayvalabs.com')) {
@@ -146,7 +153,6 @@ export default function AdminPage() {
     
     const vars = templateVariables.split(',').map(v => v.trim()).filter(v => v);
     
-    // Add default template vars if not specified
     const allVars = new Set([...vars, ...['userName', 'referralCode', 'referralLink', 'rewardTitle', 'trackingCode', 'vipBanner']]);
 
     for (const variable of allVars) {
@@ -313,7 +319,7 @@ export default function AdminPage() {
       setTemplateName('');
       setTemplateSubject('');
       setTemplateHtml('');
-      setTemplateVariables('');
+      setTemplateVariables('userName, referralCode, referralLink');
     }
     setTemplateDialogOpen(true);
   };
@@ -382,6 +388,24 @@ export default function AdminPage() {
     } catch (error) {
       console.error('Error deleting template:', error);
       toast.error("Failed to delete template.");
+    }
+  };
+
+  const handleGenerateEmail = async () => {
+    if (!aiPrompt) {
+      toast.error('Please enter a prompt for the AI.');
+      return;
+    }
+    setIsGenerating(true);
+    setGeneratedHtml('');
+    try {
+      const result = await generateEmail({ prompt: aiPrompt, variables: templateVariables });
+      setGeneratedHtml(result.htmlContent);
+    } catch (error) {
+      toast.error('Failed to generate email content. Please try again.');
+      console.error(error);
+    } finally {
+      setIsGenerating(false);
     }
   };
   
@@ -720,7 +744,7 @@ export default function AdminPage() {
       </div>
 
       <Dialog open={templateDialogOpen} onOpenChange={setTemplateDialogOpen}>
-        <DialogContent className="max-w-7xl w-full h-[90vh] flex flex-col">
+        <DialogContent className="w-[95vw] max-w-none h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>{editingTemplate ? 'Edit Template' : 'Create New Template'}</DialogTitle>
             <DialogDescription>
@@ -774,7 +798,13 @@ export default function AdminPage() {
               </div>
 
               <div className="space-y-2 flex-grow flex flex-col">
-                <Label htmlFor="template-html">HTML Content *</Label>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="template-html">HTML Content *</Label>
+                  <Button variant="ghost" size="sm" onClick={() => setAiWriterOpen(true)} className="gap-1 text-primary hover:text-primary">
+                    <Sparkles className="h-4 w-4" />
+                    Magic Write
+                  </Button>
+                </div>
                 <Textarea 
                   id="template-html" 
                   value={templateHtml} 
@@ -804,6 +834,53 @@ export default function AdminPage() {
         </DialogContent>
       </Dialog>
       
+      <Dialog open={aiWriterOpen} onOpenChange={setAiWriterOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="text-primary"/>
+              Magic Write
+            </DialogTitle>
+            <DialogDescription>
+              Describe the email you want to write, and our AI will generate the HTML for you.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="ai-prompt">Your Prompt</Label>
+              <Textarea 
+                id="ai-prompt"
+                value={aiPrompt}
+                onChange={e => setAiPrompt(e.target.value)}
+                placeholder="e.g., Write a fun and exciting email announcing that a user's reward has shipped."
+                className="min-h-[100px]"
+              />
+            </div>
+            <Button onClick={handleGenerateEmail} disabled={isGenerating || !aiPrompt}>
+              {isGenerating ? "Generating..." : "Generate Email"}
+            </Button>
+            {isGenerating && <Skeleton className="h-24 w-full" />}
+            {generatedHtml && (
+              <div className="space-y-2">
+                <Label>Generated HTML</Label>
+                <div className="border rounded-md p-2 bg-muted h-64 overflow-y-auto">
+                  <pre className="text-xs whitespace-pre-wrap">{generatedHtml}</pre>
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAiWriterOpen(false)}>Cancel</Button>
+            <Button disabled={!generatedHtml || isGenerating} onClick={() => {
+              setTemplateHtml(generatedHtml);
+              setAiWriterOpen(false);
+            }}>
+              Use this content
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={shippingDialogOpen} onOpenChange={setShippingDialogOpen}>
         <DialogContent>
           <DialogHeader>
