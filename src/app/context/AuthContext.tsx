@@ -10,6 +10,7 @@ import {
   signOut as firebaseSignOut,
   User as FirebaseUser,
   updateProfile as updateUserProfile,
+  sendPasswordResetEmail,
 } from 'firebase/auth';
 import {
   doc,
@@ -48,6 +49,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   updateTheme: (theme: string) => Promise<void>;
+  sendPasswordReset: (email: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -148,6 +150,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await signInWithEmailAndPassword(auth, email, password);
   };
 
+  const sendPasswordReset = async (email: string) => {
+    await sendPasswordResetEmail(auth, email);
+  };
+
   const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
     const result = await signInWithPopup(auth, provider);
@@ -206,6 +212,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signOut,
         refreshProfile,
         updateTheme,
+        sendPasswordReset,
       }}
     >
       {children}

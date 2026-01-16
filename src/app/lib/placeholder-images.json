@@ -6,5 +6,10 @@
   "textLogo": {
     "src": "figma:asset/94fe960e5888dfb11d640069616da8e885e693aa.png",
     "alt": "PawMe Text Logo"
+  },
+  "fullLogo": {
+    "src": "https://picsum.photos/seed/pawme-full-logo/250/60",
+    "alt": "PawMe Full Logo",
+    "data-ai-hint": "logo"
   }
 }

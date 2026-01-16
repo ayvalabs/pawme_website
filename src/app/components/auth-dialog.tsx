@@ -8,6 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/ta
 import { Mail, Lock, User } from 'lucide-react';
 import { useAuth } from '@/app/context/AuthContext';
 import { toast } from 'sonner';
+import { ImageWithFallback } from '@/app/components/figma/ImageWithFallback';
+import imageData from '@/app/lib/placeholder-images.json';
 
 interface AuthDialogProps {
   open: boolean;
@@ -17,7 +19,7 @@ interface AuthDialogProps {
 }
 
 export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referralCode }: AuthDialogProps) {
-  const { signIn, signUp, signInWithGoogle } = useAuth();
+  const { signIn, signUp, signInWithGoogle, sendPasswordReset } = useAuth();
   const [loading, setLoading] = useState(false);
   
   // Sign In Form
@@ -37,9 +39,43 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
       await signIn(signInEmail, signInPassword);
       toast.success('Welcome back!');
       onOpenChange(false);
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Sign in failed';
+    } catch (error: any) {
+      let message = 'Sign in failed. Please try again.';
+      switch (error.code) {
+        case 'auth/invalid-credential':
+        case 'auth/user-not-found':
+        case 'auth/wrong-password':
+          message = 'Invalid email or password. Please try again.';
+          break;
+        case 'auth/too-many-requests':
+          message = 'Access to this account has been temporarily disabled due to many failed login attempts. You can try again later or reset your password.';
+          break;
+        default:
+          message = 'An unexpected error occurred. Please try again.';
+      }
       toast.error(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePasswordReset = async () => {
+    if (!signInEmail) {
+      toast.error('Please enter your email to reset your password.');
+      return;
+    }
+    setLoading(true);
+    try {
+      await sendPasswordReset(signInEmail);
+      toast.success('Password reset email sent!', {
+        description: 'Please check your inbox to continue.',
+      });
+    } catch (error: any) {
+      if (error.code === 'auth/user-not-found') {
+        toast.error('No account found with this email address.');
+      } else {
+        toast.error('Failed to send password reset email. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -53,8 +89,10 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
       await signUp(signUpEmail, signUpPassword, signUpName, referralCode);
       toast.success('Account created successfully!');
       onOpenChange(false);
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Sign up failed';
+    } catch (error: any) {
+      const message = error.code === 'auth/email-already-in-use'
+        ? 'This email address is already in use.'
+        : 'Sign up failed. Please try again.';
       toast.error(message);
     } finally {
       setLoading(false);
@@ -64,22 +102,26 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
   const handleGoogleSignIn = async () => {
     try {
       await signInWithGoogle();
-      // Google sign-in closes the popup, so we can close the dialog
       onOpenChange(false);
       toast.success('Signed in with Google!');
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Google sign in failed';
-      toast.error(message);
+    } catch (error: any) {
+      toast.error(error.message || 'Google sign in failed');
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>Welcome to PawMe</DialogTitle>
+        <DialogHeader className="text-center items-center">
+            <ImageWithFallback
+                src={imageData.fullLogo.src}
+                alt={imageData.fullLogo.alt}
+                className="h-12 w-auto mb-4"
+                data-ai-hint={imageData.fullLogo['data-ai-hint']}
+            />
+          <DialogTitle className="text-2xl">Welcome to PawMe</DialogTitle>
           <DialogDescription>
-            Sign in to access your referral dashboard and track your rewards.
+            {referralCode ? "You've been referred! Sign up to claim your reward." : 'Sign in to access your referral dashboard and track your rewards.'}
           </DialogDescription>
         </DialogHeader>
         
@@ -103,6 +145,7 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
                     onChange={(e) => setSignInEmail(e.target.value)}
                     required
                     className="pl-10"
+                    disabled={loading}
                   />
                 </div>
               </div>
@@ -119,7 +162,19 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
                     onChange={(e) => setSignInPassword(e.target.value)}
                     required
                     className="pl-10"
+                    disabled={loading}
                   />
+                </div>
+                <div className="flex items-center justify-end text-sm mt-1">
+                  <Button
+                      type="button"
+                      variant="link"
+                      className="p-0 h-auto font-normal text-primary hover:text-primary/80"
+                      onClick={handlePasswordReset}
+                      disabled={loading}
+                  >
+                      Forgot Password?
+                  </Button>
                 </div>
               </div>
               
@@ -144,6 +199,7 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
               variant="outline"
               className="w-full"
               onClick={handleGoogleSignIn}
+              disabled={loading}
             >
               <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
                 <path
@@ -181,6 +237,7 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
                     onChange={(e) => setSignUpName(e.target.value)}
                     required
                     className="pl-10"
+                    disabled={loading}
                   />
                 </div>
               </div>
@@ -197,6 +254,7 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
                     onChange={(e) => setSignUpEmail(e.target.value)}
                     required
                     className="pl-10"
+                    disabled={loading}
                   />
                 </div>
               </div>
@@ -208,12 +266,13 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
                   <Input
                     id="signup-password"
                     type="password"
-                    placeholder="••••••••"
+                    placeholder="•••••••• (at least 6 characters)"
                     value={signUpPassword}
                     onChange={(e) => setSignUpPassword(e.target.value)}
                     required
                     minLength={6}
                     className="pl-10"
+                    disabled={loading}
                   />
                 </div>
               </div>
@@ -245,6 +304,7 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
               variant="outline"
               className="w-full"
               onClick={handleGoogleSignIn}
+              disabled={loading}
             >
               <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
                 <path
