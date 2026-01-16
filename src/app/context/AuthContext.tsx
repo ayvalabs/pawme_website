@@ -2,6 +2,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   onAuthStateChanged,
   createUserWithEmailAndPassword,
@@ -103,6 +104,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -139,7 +141,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (referrerDocSnapshot.data().email === newSignedUpEmail) {
         console.warn('Self-referral attempt blocked.');
-        return; // Silently fail to prevent giving users feedback on valid emails.
+        return;
       }
 
       await runTransaction(db, async (transaction) => {
@@ -215,6 +217,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = async (email: string, password: string) => {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     await fetchProfile(userCredential.user.uid);
+    if (userCredential.user.email === 'pawme@ayvalabs.com') {
+      router.push('/dashboard');
+    } else {
+      router.push('/leaderboard');
+    }
     return userCredential.user;
   };
 
@@ -252,6 +259,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } else {
       await fetchProfile(user.uid);
     }
+    
+    if (user.email === 'pawme@ayvalabs.com') {
+      router.push('/dashboard');
+    } else {
+      router.push('/leaderboard');
+    }
+
     return user;
   };
 
