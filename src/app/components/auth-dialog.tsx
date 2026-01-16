@@ -21,6 +21,7 @@ interface AuthDialogProps {
 export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referralCode }: AuthDialogProps) {
   const { signIn, signUp, signInWithGoogle, sendPasswordReset } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string>('');
   
   // Sign In Form
   const [signInEmail, setSignInEmail] = useState('');
@@ -36,6 +37,7 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError('');
     
     try {
       await signIn(signInEmail, signInPassword);
@@ -55,7 +57,7 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
         default:
           message = 'An unexpected error occurred. Please try again.';
       }
-      toast.error(message);
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -85,8 +87,9 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
     if (!privacyPolicyAgreed) {
-        toast.error('You must agree to the Privacy Policy to sign up.');
+        setError('You must agree to the Privacy Policy to sign up.');
         return;
     }
     setLoading(true);
@@ -99,19 +102,20 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
       const message = error.code === 'auth/email-already-in-use'
         ? 'This email address is already in use.'
         : 'Sign up failed. Please try again.';
-      toast.error(message);
+      setError(message);
     } finally {
       setLoading(false);
     }
   };
 
   const handleGoogleSignIn = async () => {
+    setError('');
     try {
       await signInWithGoogle();
       onOpenChange(false);
       toast.success('Signed in with Google!');
     } catch (error: any) {
-      toast.error(error.message || 'Google sign in failed');
+      setError(error.message || 'Google sign in failed');
     }
   };
 
@@ -123,6 +127,11 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
           <DialogDescription>
             {referralCode ? "You've been referred! Sign up to claim your reward." : 'Sign in to access your referral dashboard and track your rewards.'}
           </DialogDescription>
+          {error && (
+            <div className="mt-3 p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+              <p className="text-sm text-destructive font-medium">{error}</p>
+            </div>
+          )}
         </DialogHeader>
         
         <Tabs defaultValue={defaultTab} className="w-full">

@@ -147,6 +147,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await creditReferrer(referredByCode);
     }
 
+    // Send welcome email
+    console.log('=== SENDING WELCOME EMAIL ===');
+    console.log('Email recipient:', email);
+    console.log('User name:', name);
+    console.log('Referral code:', referralCode);
+    try {
+      const emailPayload = {
+        to: email,
+        templateType: 'welcome',
+        variables: {
+          userName: name,
+          referralCode: referralCode,
+        },
+      };
+      console.log('Email payload:', JSON.stringify(emailPayload, null, 2));
+      
+      const response = await fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(emailPayload),
+      });
+      
+      console.log('Email API response status:', response.status);
+      const responseData = await response.json();
+      console.log('Email API response data:', responseData);
+      
+      if (response.ok) {
+        console.log('✅ Welcome email sent successfully!');
+      } else {
+        console.error('❌ Email API returned error:', responseData);
+      }
+    } catch (error) {
+      console.error('❌ Failed to send welcome email:', error);
+      // Don't fail signup if email fails
+    }
+    console.log('=== EMAIL SENDING COMPLETE ===');
+
     setUser(newUser);
     setProfile(userProfile);
   };
@@ -200,10 +237,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const updateTheme = async (theme: string) => {
+    console.log('updateTheme called with theme:', theme);
     if (user) {
+      console.log('User exists, updating theme for user:', user.uid);
       const userDocRef = doc(db, 'users', user.uid);
-      await updateDoc(userDocRef, { theme });
-      await fetchProfile(user.uid); // Refresh profile after update
+      try {
+        await updateDoc(userDocRef, { theme });
+        console.log('Theme updated successfully in Firestore');
+        await fetchProfile(user.uid); // Refresh profile after update
+        console.log('Profile refreshed, new theme should be:', theme);
+      } catch (error) {
+        console.error('Error updating theme:', error);
+      }
+    } else {
+      console.log('No user found, cannot update theme');
     }
   };
 

@@ -15,23 +15,35 @@ interface HeaderProps {
 
 export function Header({ onShowLeaderboard }: HeaderProps) {
   const [authDialogOpen, setAuthDialogOpen] = useState(false);
-  const [themeMenuOpen, setThemeMenuOpen] = useState(false);
   const { user, profile, signOut, updateTheme } = useAuth();
 
   const headerClasses = user ? 'border-b' : 'absolute top-0 left-0 right-0 z-40';
 
   useEffect(() => {
     // Apply theme color to CSS variables
+    console.log('Theme effect triggered, profile theme:', profile?.theme);
     if (profile?.theme) {
+      console.log('Setting data-theme attribute to:', profile.theme);
       document.documentElement.setAttribute('data-theme', profile.theme);
+      console.log('Current data-theme attribute:', document.documentElement.getAttribute('data-theme'));
+    } else {
+      console.log('No profile theme available');
     }
   }, [profile?.theme]);
 
   const handleThemeChange = async (theme: string) => {
+    console.log('handleThemeChange called with theme:', theme);
+    console.log('updateTheme function exists:', !!updateTheme);
     if (updateTheme) {
+      try {
         await updateTheme(theme);
+        console.log('Theme change completed');
+      } catch (error) {
+        console.error('Error in handleThemeChange:', error);
+      }
+    } else {
+      console.error('updateTheme function not available');
     }
-    setThemeMenuOpen(false);
   };
 
   const themes = [
@@ -100,32 +112,26 @@ export function Header({ onShowLeaderboard }: HeaderProps) {
                       <span>{profile?.points || 0} Points</span>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenu open={themeMenuOpen} onOpenChange={setThemeMenuOpen}>
-                      <DropdownMenuTrigger asChild>
-                        <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                          <Palette className="mr-2 h-4 w-4" />
-                          <span>Change Theme</span>
-                        </DropdownMenuItem>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent side="left" align="start" className="w-48">
-                        {themes.map((theme) => (
-                          <DropdownMenuItem
-                            key={theme.value}
-                            onClick={() => handleThemeChange(theme.value)}
-                            className="gap-2"
-                          >
-                            <div
-                              className="w-4 h-4 rounded-full border"
-                              style={{ backgroundColor: theme.color }}
-                            />
-                            <span>{theme.name}</span>
-                            {profile?.theme === theme.value && (
-                              <span className="ml-auto text-xs">✓</span>
-                            )}
-                          </DropdownMenuItem>
-                        ))}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
+                      <Palette className="inline mr-2 h-3 w-3" />
+                      Theme Color
+                    </DropdownMenuLabel>
+                    {themes.map((theme) => (
+                      <DropdownMenuItem
+                        key={theme.value}
+                        onClick={() => handleThemeChange(theme.value)}
+                        className="gap-2"
+                      >
+                        <div
+                          className="w-4 h-4 rounded-full border"
+                          style={{ backgroundColor: theme.color }}
+                        />
+                        <span>{theme.name}</span>
+                        {profile?.theme === theme.value && (
+                          <span className="ml-auto text-xs">✓</span>
+                        )}
+                      </DropdownMenuItem>
+                    ))}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={signOut}>
                       <LogOut className="mr-2 h-4 w-4" />

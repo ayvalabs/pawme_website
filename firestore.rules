@@ -10,13 +10,12 @@ service cloud.firestore {
 
       // New users can create their own user document upon signup.
       // The document ID must match the user's UID.
-      allow create: if request.auth.uid == userId;
+      allow create: if request.auth != null && request.auth.uid == userId;
 
-      // Users can update their own theme.
-      // Any authenticated user can also increment points/counts for a referrer.
+      // Users can update their own document or referral updates
       allow update: if
-        // Allow a user to update their own theme
-        (request.auth.uid == userId && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['theme'])) ||
+        // Allow a user to update their own document (theme, profile, etc.)
+        (request.auth != null && request.auth.uid == userId) ||
 
         // Allow a new signup to credit their referrer.
         // This is scoped to only allow incrementing points and referral count by the correct amounts.
