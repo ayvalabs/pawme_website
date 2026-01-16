@@ -1,3 +1,22 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "hero-1",
+      "description": "PawMe robot playing with a dog.",
+      "imageUrl": "https://images.unsplash.com/photo-1757478558169-f09b4bd3918a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8cm9ib3QlMjBkb2d8ZW58MHx8fHwxNzY4NDkxNDEwfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "robot dog"
+    },
+    {
+      "id": "hero-2",
+      "description": "PawMe robot dispensing a treat to a cat.",
+      "imageUrl": "https://images.unsplash.com/photo-1587186648967-709f677fa104?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxyb2JvdCUyMGNhdHxlbnwwfHx8fDE3Njg0NDg1OTF8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "robot cat"
+    },
+    {
+      "id": "hero-3",
+      "description": "A close-up of the PawMe robot's friendly face.",
+      "imageUrl": "https://images.unsplash.com/photo-1768323102304-a06c1cdec8b8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxjb21wYW5pb24lMjByb2JvdHxlbnwwfHx8fDE3Njg1NDExNjl8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "companion robot"
+    }
+  ]
 }
