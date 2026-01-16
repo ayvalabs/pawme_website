@@ -1,3 +1,5 @@
+'use client';
+
 import { useEffect } from 'react';
 import circleIcon from 'figma:asset/bdd95d9196437c53040ed91a0ab1509a30e2ba09.png';
 

@@ -7,7 +7,7 @@ import { Rocket, Crown, CreditCard, X, Check, Sparkles } from 'lucide-react';
 import { useAuth } from '@/app/context/AuthContext';
 import { AuthDialog } from '@/app/components/auth-dialog';
 import { toast } from 'sonner';
-import { projectId, publicAnonKey } from '/utils/supabase/info';
+import { projectId, publicAnonKey } from '../../../utils/supabase/info';
 
 interface PaymentMethod {
   cardNumber: string;
