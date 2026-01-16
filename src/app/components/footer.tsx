@@ -1,5 +1,5 @@
 import { Twitter, Facebook, Instagram, Linkedin } from 'lucide-react';
-import Image from 'next/image';
+import { ImageWithFallback } from '@/app/components/figma/ImageWithFallback';
 import placeholderImages from '@/app/lib/placeholder-images.json';
 
 export function Footer() {
@@ -19,7 +19,7 @@ export function Footer() {
           {/* Brand */}
           <div>
             <div className="flex items-center gap-3 mb-4">
-              <Image
+              <ImageWithFallback
                 src={favicon.src}
                 alt={favicon.alt}
                 width={favicon.width}
@@ -27,7 +27,7 @@ export function Footer() {
                 className="h-10 w-10"
                 data-ai-hint={favicon.hint}
               />
-              <Image
+              <ImageWithFallback
                 src={logoText.src}
                 alt={logoText.alt}
                 width={logoText.width}

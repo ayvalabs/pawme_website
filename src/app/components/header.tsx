@@ -1,10 +1,12 @@
+'use client';
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/app/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/app/components/ui/dropdown-menu';
 import { User, LogOut, Trophy, Palette } from 'lucide-react';
 import { useAuth } from '@/app/context/AuthContext';
 import { AuthDialog } from '@/app/components/auth-dialog';
-import Image from 'next/image';
+import { ImageWithFallback } from '@/app/components/figma/ImageWithFallback';
 import placeholderImages from '@/app/lib/placeholder-images.json';
 
 interface HeaderProps {
@@ -45,7 +47,7 @@ export function Header({ onShowLeaderboard }: HeaderProps) {
       <header className="fixed top-0 left-0 right-0 z-50 bg-transparent backdrop-blur-md border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Image
+            <ImageWithFallback
               src={favicon.src}
               alt={favicon.alt}
               width={favicon.width}
@@ -53,7 +55,7 @@ export function Header({ onShowLeaderboard }: HeaderProps) {
               className="h-10 w-10"
               data-ai-hint={favicon.hint}
             />
-            <Image
+            <ImageWithFallback
               src={logoText.src}
               alt={logoText.alt}
               width={logoText.width}
