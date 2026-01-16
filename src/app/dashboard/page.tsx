@@ -16,15 +16,15 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
 import { Skeleton } from '@/app/components/ui/skeleton';
 import { toast } from 'sonner';
-import { User, Mail, Send, Truck, Package, PackageCheck, Save, ClipboardList, Eye } from 'lucide-react';
+import { User, Mail, Send, Truck, Package, PackageCheck, FileText, Plus, Edit, Trash2, Eye } from 'lucide-react';
 import { markRewardShipped } from '@/app/actions/users';
 import { sendAdminBroadcast, sendShippingNotificationEmail } from '@/app/actions/email';
 import type { UserProfile, Reward } from '@/app/context/AuthContext';
+import type { EmailTemplate } from '@/app/actions/email-templates';
 import { Header } from '@/app/components/header';
 import { Footer } from '@/app/components/footer';
 import { db } from '@/firebase/config';
-import { collection, query, orderBy, getDocs, doc, getDoc, setDoc } from 'firebase/firestore';
-import { defaultTemplates, type EmailTemplate } from '@/lib/email-templates';
+import { collection, query, orderBy, getDocs, doc, setDoc, deleteDoc, updateDoc } from 'firebase/firestore';
 
 type UserWithId = UserProfile & { id: string };
 type RewardWithUser = Reward & { user: { id: string; name: string; email: string }, rewardTitle: string };
@@ -54,13 +54,20 @@ export default function AdminPage() {
   const [trackingCode, setTrackingCode] = useState('');
   const [sendingShipping, setSendingShipping] = useState(false);
 
-  const [welcomeTemplate, setWelcomeTemplate] = useState({ subject: '', html: '' });
-  const [loadingTemplate, setLoadingTemplate] = useState(true);
-  const [savingTemplate, setSavingTemplate] = useState(false);
+  // Email template management state
   const [emailTemplates, setEmailTemplates] = useState<EmailTemplate[]>([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(true);
+  const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState<EmailTemplate | null>(null);
+  const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
+  const [previewTemplate, setPreviewTemplate] = useState<EmailTemplate | null>(null);
   
-  const [previewOpen, setPreviewOpen] = useState(false);
-  const [previewContent, setPreviewContent] = useState({ subject: '', html: '' });
+  // Template form state
+  const [templateId, setTemplateId] = useState('');
+  const [templateName, setTemplateName] = useState('');
+  const [templateSubject, setTemplateSubject] = useState('');
+  const [templateHtml, setTemplateHtml] = useState('');
+  const [templateVariables, setTemplateVariables] = useState('');
 
   useEffect(() => {
     if (!authLoading && (!user || profile?.email !== 'pawme@ayvalabs.com')) {
@@ -121,73 +128,31 @@ export default function AdminPage() {
     }
   }, [user, profile]);
 
-  const handleSaveTemplate = async () => {
-    setSavingTemplate(true);
-    try {
-        const templateRef = doc(db, 'email_templates', 'welcome');
-        await setDoc(templateRef, welcomeTemplate);
-        toast.success('Welcome email template saved!');
-    } catch (e) {
-        toast.error('Failed to save template.');
-    } finally {
-        setSavingTemplate(false);
+  useEffect(() => {
+    if (user && profile?.email === 'pawme@ayvalabs.com') {
+      const fetchTemplates = async () => {
+        setLoadingTemplates(true);
+        try {
+          const templatesRef = collection(db, 'emailTemplates');
+          const q = query(templatesRef, orderBy('createdAt', 'desc'));
+          const querySnapshot = await getDocs(q);
+          
+          const templatesData: EmailTemplate[] = [];
+          querySnapshot.forEach((doc) => {
+            templatesData.push(doc.data() as EmailTemplate);
+          });
+          
+          setEmailTemplates(templatesData);
+        } catch (error) {
+          console.error('Error fetching templates:', error);
+          toast.error("Failed to load email templates.");
+        } finally {
+          setLoadingTemplates(false);
+        }
+      };
+      fetchTemplates();
     }
-  };
-
-  const handleTemplateChange = (templateId: string) => {
-    if (templateId === 'custom') {
-      setSubject('');
-      setBody('');
-      return;
-    }
-    const template = emailTemplates.find(t => t.id === templateId);
-    if (template) {
-      setSubject(template.subject);
-      setBody(template.html);
-    }
-  };
-  
-  const handlePreview = () => {
-    if (!subject || !body) {
-      toast.error("Subject and body are required to generate a preview.");
-      return;
-    }
-    
-    const sampleUser = {
-      name: "Alex Doe",
-      referralCode: "ALEXDOE123",
-      referralLink: `${window.location.origin}/?ref=ALEXDOE123`
-    };
-
-    const sampleVipBanner = `
-    <table role="presentation" style="width: 100%; margin: 30px 0; background-color: #fffaf0; border: 2px dashed #F59E0B; border-radius: 8px;">
-      <tr>
-        <td style="padding: 20px; text-align: center;">
-          <h3 style="margin: 0 0 10px; color: #D97706; font-size: 20px;">👑 Join the VIP List!</h3>
-          <p style="margin: 0 0 15px; color: #333; font-size: 16px;">
-            Become a founding member and get <strong style="color: #7678EE;">1.5x points</strong> for every referral!
-          </p>
-          <a href="#" style="display: inline-block; padding: 10px 20px; background-color: #F59E0B; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600;">
-            Claim Your Spot
-          </a>
-          <p style="margin: 15px 0 0; background-color: #7678EE; color: #ffffff; display: inline-block; padding: 5px 15px; border-radius: 9999px; font-weight: bold;">
-            Only 150 spots left!
-          </p>
-        </td>
-      </tr>
-    </table>`;
-
-    let previewHtml = body
-      .replace(/{{userName}}/g, sampleUser.name)
-      .replace(/{{referralCode}}/g, sampleUser.referralCode)
-      .replace(/{{referralLink}}/g, sampleUser.referralLink)
-      .replace(/{{vipBanner}}/g, sampleVipBanner);
-      
-    const previewSubject = subject.replace(/{{userName}}/g, sampleUser.name);
-
-    setPreviewContent({ subject: previewSubject, html: previewHtml });
-    setPreviewOpen(true);
-  };
+  }, [user, profile]);
 
   const filteredUsers = useMemo(() => {
     return allUsers.filter(u => u.email !== 'pawme@ayvalabs.com');
@@ -304,6 +269,99 @@ export default function AdminPage() {
     }
   };
 
+  const handleOpenTemplateDialog = (template?: EmailTemplate) => {
+    if (template) {
+      setEditingTemplate(template);
+      setTemplateId(template.id);
+      setTemplateName(template.name);
+      setTemplateSubject(template.subject);
+      setTemplateHtml(template.html);
+      setTemplateVariables(template.variables.join(', '));
+    } else {
+      setEditingTemplate(null);
+      setTemplateId('');
+      setTemplateName('');
+      setTemplateSubject('');
+      setTemplateHtml('');
+      setTemplateVariables('');
+    }
+    setTemplateDialogOpen(true);
+  };
+
+  const handleSaveTemplate = async () => {
+    if (!templateId || !templateName || !templateSubject || !templateHtml) {
+      toast.error("All fields are required.");
+      return;
+    }
+
+    try {
+      const variables = templateVariables.split(',').map(v => v.trim()).filter(v => v);
+      const templateData: EmailTemplate = {
+        id: templateId,
+        name: templateName,
+        subject: templateSubject,
+        html: templateHtml,
+        variables,
+        createdAt: editingTemplate?.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      const templateRef = doc(db, 'emailTemplates', templateId);
+      
+      if (editingTemplate) {
+        await updateDoc(templateRef, {
+          name: templateName,
+          subject: templateSubject,
+          html: templateHtml,
+          variables,
+          updatedAt: new Date().toISOString(),
+        });
+        toast.success("Template updated successfully!");
+      } else {
+        await setDoc(templateRef, templateData);
+        toast.success("Template created successfully!");
+      }
+
+      // Refetch templates
+      const templatesRef = collection(db, 'emailTemplates');
+      const q = query(templatesRef, orderBy('createdAt', 'desc'));
+      const querySnapshot = await getDocs(q);
+      
+      const templatesData: EmailTemplate[] = [];
+      querySnapshot.forEach((doc) => {
+        templatesData.push(doc.data() as EmailTemplate);
+      });
+      
+      setEmailTemplates(templatesData);
+      setTemplateDialogOpen(false);
+    } catch (error) {
+      console.error('Error saving template:', error);
+      toast.error("Failed to save template.");
+    }
+  };
+
+  const handleDeleteTemplate = async (templateId: string) => {
+    if (!confirm(`Are you sure you want to delete this template?`)) {
+      return;
+    }
+
+    try {
+      const templateRef = doc(db, 'emailTemplates', templateId);
+      await deleteDoc(templateRef);
+      
+      setEmailTemplates(prev => prev.filter(t => t.id !== templateId));
+      toast.success("Template deleted successfully!");
+    } catch (error) {
+      console.error('Error deleting template:', error);
+      toast.error("Failed to delete template.");
+    }
+  };
+
+  const handlePreviewTemplate = (template: EmailTemplate) => {
+    setPreviewTemplate(template);
+    setPreviewDialogOpen(true);
+  };
+
   if (authLoading || !user || !profile) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -322,12 +380,12 @@ export default function AdminPage() {
             <p className="text-muted-foreground">Manage users, rewards, and communications.</p>
           </div>
 
-          <Tabs defaultValue="broadcast" className="w-full">
+          <Tabs defaultValue="users" className="w-full">
             <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="broadcast">Broadcast</TabsTrigger>
               <TabsTrigger value="users">Users ({filteredUsers.length})</TabsTrigger>
-              <TabsTrigger value="rewards">Reward Fulfillment ({pendingRewards.length})</TabsTrigger>
-              <TabsTrigger value="templates">Email Templates</TabsTrigger>
+              <TabsTrigger value="rewards">Rewards ({pendingRewards.length})</TabsTrigger>
+              <TabsTrigger value="email">Broadcast</TabsTrigger>
+              <TabsTrigger value="templates">Templates ({emailTemplates.length})</TabsTrigger>
             </TabsList>
             
             <TabsContent value="broadcast" className="mt-4">
@@ -597,10 +655,360 @@ export default function AdminPage() {
                 </CardContent>
               </Card>
             </TabsContent>
+            <TabsContent value="templates" className="mt-4">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Email Templates</CardTitle>
+                      <CardDescription>Manage email templates for automated communications.</CardDescription>
+                    </div>
+                    <Button onClick={() => handleOpenTemplateDialog()}>
+                      <Plus className="w-4 h-4 mr-2"/>
+                      New Template
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="border rounded-md">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Template Name</TableHead>
+                          <TableHead>Subject</TableHead>
+                          <TableHead>Variables</TableHead>
+                          <TableHead>Updated</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {loadingTemplates ? (
+                          Array.from({ length: 3 }).map((_, i) => (
+                            <TableRow key={i}>
+                              <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                              <TableCell><Skeleton className="h-5 w-48" /></TableCell>
+                              <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                              <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                              <TableCell><Skeleton className="h-5 w-24 ml-auto" /></TableCell>
+                            </TableRow>
+                          ))
+                        ) : (
+                          emailTemplates.map(template => (
+                            <TableRow key={template.id}>
+                              <TableCell className="font-medium">{template.name}</TableCell>
+                              <TableCell className="text-muted-foreground">{template.subject}</TableCell>
+                              <TableCell>
+                                <div className="flex gap-1 flex-wrap">
+                                  {template.variables.map(v => (
+                                    <span key={v} className="text-xs bg-muted px-2 py-1 rounded">
+                                      {`{{${v}}}`}
+                                    </span>
+                                  ))}
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-sm text-muted-foreground">
+                                {new Date(template.updatedAt).toLocaleDateString()}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex gap-2 justify-end">
+                                  <Button size="sm" variant="ghost" onClick={() => handlePreviewTemplate(template)}>
+                                    <Eye className="w-4 h-4"/>
+                                  </Button>
+                                  <Button size="sm" variant="ghost" onClick={() => handleOpenTemplateDialog(template)}>
+                                    <Edit className="w-4 h-4"/>
+                                  </Button>
+                                  <Button size="sm" variant="ghost" onClick={() => handleDeleteTemplate(template.id)}>
+                                    <Trash2 className="w-4 h-4 text-destructive"/>
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                        {emailTemplates.length === 0 && !loadingTemplates && (
+                          <TableRow>
+                            <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                              No email templates yet. Click "New Template" to create one.
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
           </Tabs>
         </main>
         <Footer />
       </div>
+
+      {/* Template Editor Dialog */}
+      <Dialog open={templateDialogOpen} onOpenChange={setTemplateDialogOpen}>
+        <DialogContent className="w-[96vw] max-h-[92vh] overflow-hidden p-6">
+          <DialogHeader>
+            <DialogTitle>{editingTemplate ? 'Edit Template' : 'Create New Template'}</DialogTitle>
+            <DialogDescription>
+              {editingTemplate ? 'Update the email template details. Preview updates in real-time.' : 'Create a new email template. Preview updates in real-time.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-5 gap-6 h-[calc(92vh-160px)]">
+            {/* Left: Editor (2 columns) */}
+            <div className="col-span-2 space-y-4 overflow-y-auto pr-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="template-id">Template ID *</Label>
+                  <Input 
+                    id="template-id" 
+                    value={templateId} 
+                    onChange={(e) => setTemplateId(e.target.value)}
+                    placeholder="e.g., welcome, shipping"
+                    disabled={!!editingTemplate}
+                  />
+                  <p className="text-xs text-muted-foreground">Unique identifier</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="template-name">Template Name *</Label>
+                  <Input 
+                    id="template-name" 
+                    value={templateName} 
+                    onChange={(e) => setTemplateName(e.target.value)}
+                    placeholder="e.g., Welcome Email"
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="template-subject">Email Subject *</Label>
+                <Input 
+                  id="template-subject" 
+                  value={templateSubject} 
+                  onChange={(e) => setTemplateSubject(e.target.value)}
+                  placeholder="e.g., Welcome to PawMe! 🐾"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="template-variables">Variables (comma-separated)</Label>
+                <Input 
+                  id="template-variables" 
+                  value={templateVariables} 
+                  onChange={(e) => setTemplateVariables(e.target.value)}
+                  placeholder="e.g., userName, referralCode, totalUsers"
+                />
+                <p className="text-xs text-muted-foreground">Use as {`{{variableName}}`} in HTML</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="template-html">HTML Content *</Label>
+                <Textarea 
+                  id="template-html" 
+                  value={templateHtml} 
+                  onChange={(e) => setTemplateHtml(e.target.value)}
+                  placeholder="Enter HTML email content..."
+                  className="font-mono text-sm min-h-[500px]"
+                />
+              </div>
+            </div>
+
+            {/* Right: Live Preview (3 columns) */}
+            <div className="col-span-3 border-l pl-6 overflow-y-auto">
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Live Preview</h3>
+                  <p className="text-xs text-muted-foreground mb-4">
+                    This is how users will see the email with PawMe branding. Variables show as placeholders.
+                  </p>
+                </div>
+
+                {/* Subject Preview */}
+                {templateSubject && (
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">Subject Line:</Label>
+                    <div className="p-3 bg-muted rounded-md">
+                      <p className="font-medium">{templateSubject}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Email Preview with Branded Wrapper */}
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Email Body:</Label>
+                  <div className="border rounded-lg bg-gradient-to-b from-gray-100 to-gray-50 p-8">
+                    <div className="max-w-[600px] mx-auto bg-white rounded-lg shadow-lg overflow-hidden">
+                      {/* Branded Header */}
+                      <div style={{
+                        background: 'linear-gradient(135deg, #7678EE 0%, #9673D6 100%)',
+                        padding: '32px 24px',
+                        textAlign: 'center'
+                      }}>
+                        <div style={{ marginBottom: '12px' }}>
+                          <svg width="48" height="48" viewBox="0 0 100 100" style={{ display: 'inline-block' }}>
+                            <circle cx="50" cy="50" r="45" fill="white" opacity="0.2"/>
+                            <circle cx="50" cy="50" r="35" fill="white"/>
+                            <text x="50" y="65" fontSize="40" fill="#7678EE" textAnchor="middle" fontWeight="bold">🐾</text>
+                          </svg>
+                        </div>
+                        <h1 style={{ 
+                          margin: 0, 
+                          color: 'white', 
+                          fontSize: '28px', 
+                          fontWeight: '600',
+                          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                        }}>
+                          PawMe
+                        </h1>
+                      </div>
+
+                      {/* Email Content */}
+                      <div style={{ padding: '32px 24px' }}>
+                        {templateHtml ? (
+                          <div dangerouslySetInnerHTML={{ __html: templateHtml }} />
+                        ) : (
+                          <div style={{ 
+                            textAlign: 'center', 
+                            padding: '80px 20px',
+                            color: '#999',
+                            fontSize: '14px'
+                          }}>
+                            Start typing HTML to see preview...
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Branded Footer */}
+                      <div style={{
+                        background: '#f8f8fc',
+                        padding: '24px',
+                        textAlign: 'center',
+                        borderTop: '1px solid #e5e5e5'
+                      }}>
+                        <p style={{ 
+                          margin: '0 0 12px', 
+                          color: '#666', 
+                          fontSize: '14px',
+                          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                        }}>
+                          © 2024 PawMe by Ayva Labs Limited. All rights reserved.
+                        </p>
+                        <p style={{ 
+                          margin: '0 0 16px', 
+                          color: '#999', 
+                          fontSize: '12px',
+                          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                        }}>
+                          You're receiving this email because you signed up for PawMe.
+                        </p>
+                        <div style={{ marginTop: '16px' }}>
+                          <a href="#" style={{ 
+                            display: 'inline-block',
+                            margin: '0 8px',
+                            color: '#7678EE',
+                            textDecoration: 'none',
+                            fontSize: '12px'
+                          }}>Twitter</a>
+                          <span style={{ color: '#ddd' }}>•</span>
+                          <a href="#" style={{ 
+                            display: 'inline-block',
+                            margin: '0 8px',
+                            color: '#7678EE',
+                            textDecoration: 'none',
+                            fontSize: '12px'
+                          }}>Facebook</a>
+                          <span style={{ color: '#ddd' }}>•</span>
+                          <a href="#" style={{ 
+                            display: 'inline-block',
+                            margin: '0 8px',
+                            color: '#7678EE',
+                            textDecoration: 'none',
+                            fontSize: '12px'
+                          }}>Instagram</a>
+                          <span style={{ color: '#ddd' }}>•</span>
+                          <a href="#" style={{ 
+                            display: 'inline-block',
+                            margin: '0 8px',
+                            color: '#7678EE',
+                            textDecoration: 'none',
+                            fontSize: '12px'
+                          }}>TikTok</a>
+                        </div>
+                        <p style={{ 
+                          margin: '16px 0 0', 
+                          color: '#999', 
+                          fontSize: '11px',
+                          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                        }}>
+                          Follow us @pawme on all social media
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Variables Info */}
+                {templateVariables && (
+                  <div className="p-4 bg-muted/50 rounded-md">
+                    <p className="text-xs font-medium mb-2">Available Variables:</p>
+                    <div className="flex gap-2 flex-wrap">
+                      {templateVariables.split(',').map(v => v.trim()).filter(v => v).map(v => (
+                        <span key={v} className="text-xs bg-background px-2 py-1 rounded border">
+                          {`{{${v}}}`}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => setTemplateDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleSaveTemplate}>
+              {editingTemplate ? 'Update Template' : 'Create Template'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Template Preview Dialog */}
+      <Dialog open={previewDialogOpen} onOpenChange={setPreviewDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Preview: {previewTemplate?.name}</DialogTitle>
+            <DialogDescription>
+              Subject: {previewTemplate?.subject}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="border rounded-lg p-4 bg-muted/30">
+              <div 
+                className="bg-white p-4 rounded"
+                dangerouslySetInnerHTML={{ __html: previewTemplate?.html || '' }}
+              />
+            </div>
+            <div className="mt-4 p-4 bg-muted rounded-lg">
+              <p className="text-sm font-medium mb-2">Available Variables:</p>
+              <div className="flex gap-2 flex-wrap">
+                {previewTemplate?.variables.map(v => (
+                  <span key={v} className="text-xs bg-background px-2 py-1 rounded border">
+                    {`{{${v}}}`}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPreviewDialogOpen(false)}>Close</Button>
+            <Button onClick={() => {
+              setPreviewDialogOpen(false);
+              if (previewTemplate) handleOpenTemplateDialog(previewTemplate);
+            }}>
+              <Edit className="w-4 h-4 mr-2"/>
+              Edit Template
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={shippingDialogOpen} onOpenChange={setShippingDialogOpen}>
         <DialogContent>
