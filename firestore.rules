@@ -40,5 +40,14 @@ service cloud.firestore {
           )
         );
     }
+
+    // Rules for the 'emailTemplates' collection
+    match /emailTemplates/{templateId} {
+      // Only admin can read email templates
+      allow read: if isAdmin();
+      
+      // Only admin can create, update, or delete email templates
+      allow write: if isAdmin();
+    }
   }
 }
