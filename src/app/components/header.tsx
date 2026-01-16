@@ -38,7 +38,7 @@ export function Header({ onShowLeaderboard }: HeaderProps) {
     { name: 'Pink', value: 'pink', color: '#ec4899' },
   ];
   
-  const { circleIcon, textLogo } = placeholderImages;
+  const { favicon, logoText } = placeholderImages;
 
   return (
     <>
@@ -46,20 +46,20 @@ export function Header({ onShowLeaderboard }: HeaderProps) {
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Image
-              src={circleIcon.src}
-              alt={circleIcon.alt}
-              width={circleIcon.width}
-              height={circleIcon.height}
+              src={favicon.src}
+              alt={favicon.alt}
+              width={favicon.width}
+              height={favicon.height}
               className="h-10 w-10"
-              data-ai-hint={circleIcon.hint}
+              data-ai-hint={favicon.hint}
             />
             <Image
-              src={textLogo.src}
-              alt={textLogo.alt}
-              width={textLogo.width}
-              height={textLogo.height}
+              src={logoText.src}
+              alt={logoText.alt}
+              width={logoText.width}
+              height={logoText.height}
               className="h-8 w-auto"
-              data-ai-hint={textLogo.hint}
+              data-ai-hint={logoText.hint}
             />
           </div>
 

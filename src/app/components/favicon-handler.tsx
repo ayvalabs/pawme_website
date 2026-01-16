@@ -9,7 +9,7 @@ export function FaviconHandler() {
     const link = document.querySelector("link[rel*='icon']") as HTMLLinkElement || document.createElement('link');
     link.type = 'image/png';
     link.rel = 'icon';
-    link.href = placeholderImages.circleIcon.src;
+    link.href = placeholderImages.favicon.src;
     document.getElementsByTagName('head')[0].appendChild(link);
 
     // Set page title

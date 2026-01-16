@@ -10,7 +10,7 @@ export function Footer() {
     { icon: Linkedin, href: 'https://linkedin.com/company/pawme', label: 'LinkedIn' },
   ];
 
-  const { circleIcon, textLogo } = placeholderImages;
+  const { favicon, logoText } = placeholderImages;
 
   return (
     <footer className="border-t border-border bg-gradient-to-b from-transparent to-secondary/20 py-12 px-4">
@@ -20,20 +20,20 @@ export function Footer() {
           <div>
             <div className="flex items-center gap-3 mb-4">
               <Image
-                src={circleIcon.src}
-                alt={circleIcon.alt}
-                width={circleIcon.width}
-                height={circleIcon.height}
+                src={favicon.src}
+                alt={favicon.alt}
+                width={favicon.width}
+                height={favicon.height}
                 className="h-10 w-10"
-                data-ai-hint={circleIcon.hint}
+                data-ai-hint={favicon.hint}
               />
               <Image
-                src={textLogo.src}
-                alt={textLogo.alt}
-                width={textLogo.width}
-                height={textLogo.height}
+                src={logoText.src}
+                alt={logoText.alt}
+                width={logoText.width}
+                height={logoText.height}
                 className="h-6 w-auto"
-                data-ai-hint={textLogo.hint}
+                data-ai-hint={logoText.hint}
               />
             </div>
             <p className="text-sm text-muted-foreground mb-4">
