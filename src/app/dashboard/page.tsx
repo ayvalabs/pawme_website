@@ -13,6 +13,7 @@ import { Checkbox } from '@/app/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/app/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
 import { Skeleton } from '@/app/components/ui/skeleton';
 import { toast } from 'sonner';
 import { User, Mail, Send, Truck, Package, PackageCheck, Save, ClipboardList } from 'lucide-react';
@@ -23,7 +24,7 @@ import { Header } from '@/app/components/header';
 import { Footer } from '@/app/components/footer';
 import { db } from '@/firebase/config';
 import { collection, query, orderBy, getDocs, doc, getDoc, setDoc } from 'firebase/firestore';
-import { defaultTemplates } from '@/lib/email-templates';
+import { defaultTemplates, type EmailTemplate } from '@/lib/email-templates';
 
 type UserWithId = UserProfile & { id: string };
 type RewardWithUser = Reward & { user: { id: string; name: string; email: string }, rewardTitle: string };
@@ -56,6 +57,7 @@ export default function AdminPage() {
   const [welcomeTemplate, setWelcomeTemplate] = useState({ subject: '', html: '' });
   const [loadingTemplate, setLoadingTemplate] = useState(true);
   const [savingTemplate, setSavingTemplate] = useState(false);
+  const [emailTemplates, setEmailTemplates] = useState<EmailTemplate[]>([]);
 
   useEffect(() => {
     if (!authLoading && (!user || profile?.email !== 'pawme@ayvalabs.com')) {
@@ -86,29 +88,35 @@ export default function AdminPage() {
         }
       };
       
-      const fetchTemplate = async () => {
+      const fetchTemplates = async () => {
         setLoadingTemplate(true);
         try {
-          const templateRef = doc(db, 'email_templates', 'welcome');
-          const templateSnap = await getDoc(templateRef);
-          if (templateSnap.exists()) {
-              setWelcomeTemplate(templateSnap.data() as { subject: string, html: string });
-          } else {
-              const defaultWelcome = defaultTemplates.welcome;
-              setWelcomeTemplate({ subject: defaultWelcome.subject, html: defaultWelcome.html });
+          const templates: EmailTemplate[] = [];
+          // In a real app, you might fetch these from Firestore
+          // For now, we'll use the defaults
+          for (const key in defaultTemplates) {
+              templates.push(defaultTemplates[key]);
           }
+          setEmailTemplates(templates);
+
+          const welcomeTemplateRef = doc(db, 'email_templates', 'welcome');
+          const welcomeTemplateSnap = await getDoc(welcomeTemplateRef);
+          if (welcomeTemplateSnap.exists()) {
+              setWelcomeTemplate(welcomeTemplateSnap.data() as { subject: string, html: string });
+          } else {
+              setWelcomeTemplate(defaultTemplates.welcome);
+          }
+
         } catch (error) {
-          console.error("Error fetching welcome template", error);
-          const defaultWelcome = defaultTemplates.welcome;
-          setWelcomeTemplate({ subject: defaultWelcome.subject, html: defaultWelcome.html });
-          toast.error("Could not load email template from database.");
+          console.error("Error fetching email templates", error);
+          toast.error("Could not load email templates from database.");
         } finally {
           setLoadingTemplate(false);
         }
       };
 
       fetchUsers();
-      fetchTemplate();
+      fetchTemplates();
     }
   }, [user, profile]);
 
@@ -122,6 +130,19 @@ export default function AdminPage() {
         toast.error('Failed to save template.');
     } finally {
         setSavingTemplate(false);
+    }
+  };
+
+  const handleTemplateChange = (templateId: string) => {
+    if (templateId === 'custom') {
+      setSubject('');
+      setBody('');
+      return;
+    }
+    const template = emailTemplates.find(t => t.id === templateId);
+    if (template) {
+      setSubject(template.subject);
+      setBody(template.html);
     }
   };
 
@@ -258,30 +279,111 @@ export default function AdminPage() {
             <p className="text-muted-foreground">Manage users, rewards, and communications.</p>
           </div>
 
-          <Tabs defaultValue="users" className="w-full">
+          <Tabs defaultValue="broadcast" className="w-full">
             <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="broadcast">Broadcast</TabsTrigger>
               <TabsTrigger value="users">Users ({filteredUsers.length})</TabsTrigger>
               <TabsTrigger value="rewards">Reward Fulfillment ({pendingRewards.length})</TabsTrigger>
-              <TabsTrigger value="email">Email Broadcast</TabsTrigger>
-              <TabsTrigger value="templates">Templates</TabsTrigger>
+              <TabsTrigger value="templates">Email Templates</TabsTrigger>
             </TabsList>
+            
+            <TabsContent value="broadcast" className="mt-4">
+               <Card>
+                <CardHeader>
+                  <CardTitle>Email Broadcast</CardTitle>
+                  <CardDescription>
+                    Select users and compose a message to send an email broadcast.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-2">
+                    <Label>1. Select Recipients ({selectedUserIds.size} selected)</Label>
+                     <div className="border rounded-md mt-2 max-h-96 overflow-y-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-12">
+                              <Checkbox 
+                                checked={selectedUserIds.size === filteredUsers.length && filteredUsers.length > 0}
+                                onCheckedChange={handleSelectAll}
+                              />
+                            </TableHead>
+                            <TableHead>User</TableHead>
+                            <TableHead>Email</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {loadingUsers ? (
+                            Array.from({ length: 5 }).map((_, i) => (
+                              <TableRow key={i}>
+                                <TableCell><Skeleton className="h-5 w-5" /></TableCell>
+                                <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                                <TableCell><Skeleton className="h-5 w-48" /></TableCell>
+                              </TableRow>
+                            ))
+                          ) : (
+                            filteredUsers.map(u => (
+                              <TableRow key={u.id} data-state={selectedUserIds.has(u.id) ? 'selected' : ''}>
+                                <TableCell>
+                                  <Checkbox checked={selectedUserIds.has(u.id)} onCheckedChange={() => handleSelectUser(u.id)} />
+                                </TableCell>
+                                <TableCell className="font-medium">{u.name}</TableCell>
+                                <TableCell className="text-muted-foreground">{u.email}</TableCell>
+                              </TableRow>
+                            ))
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="template">2. Choose a Template (Optional)</Label>
+                    <Select onValueChange={handleTemplateChange}>
+                      <SelectTrigger id="template">
+                        <SelectValue placeholder="Start with a template..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="custom">Custom Email</SelectItem>
+                        {emailTemplates.map(template => (
+                          <SelectItem key={template.id} value={template.id}>{template.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-4">
+                    <Label>3. Compose Email</Label>
+                    <div className="space-y-2">
+                      <Label htmlFor="subject" className="text-sm font-normal text-muted-foreground">Subject</Label>
+                      <Input id="subject" value={subject} onChange={e => setSubject(e.target.value)} placeholder="A quick update from PawMe..." />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="body" className="text-sm font-normal text-muted-foreground">Body (HTML supported)</Label>
+                      <Textarea id="body" value={body} onChange={e => setBody(e.target.value)} placeholder="Hi {{userName}}," className="min-h-[300px]" />
+                      <p className="text-xs text-muted-foreground">You can use {'{{userName}}'} as a placeholder.</p>
+                    </div>
+                  </div>
+
+                  <Button onClick={handleSendBroadcast} disabled={sendingBroadcast || selectedUserIds.size === 0}>
+                    <Send className="w-4 h-4 mr-2"/>
+                    {sendingBroadcast ? 'Sending...' : `Send to ${selectedUserIds.size} users`}
+                  </Button>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
             <TabsContent value="users" className="mt-4">
               <Card>
                 <CardHeader>
                   <CardTitle>All Users</CardTitle>
-                  <CardDescription>Select users to include in an email broadcast.</CardDescription>
+                  <CardDescription>A complete list of everyone who has joined the waitlist.</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="border rounded-md">
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="w-12">
-                            <Checkbox 
-                              checked={selectedUserIds.size === filteredUsers.length && filteredUsers.length > 0}
-                              onCheckedChange={handleSelectAll}
-                            />
-                          </TableHead>
                           <TableHead>User</TableHead>
                           <TableHead>Email</TableHead>
                           <TableHead className="text-center">Points</TableHead>
@@ -294,7 +396,6 @@ export default function AdminPage() {
                         {loadingUsers ? (
                            Array.from({ length: 5 }).map((_, i) => (
                             <TableRow key={i}>
-                              <TableCell><Skeleton className="h-5 w-5" /></TableCell>
                               <TableCell><Skeleton className="h-5 w-32" /></TableCell>
                               <TableCell><Skeleton className="h-5 w-48" /></TableCell>
                               <TableCell><Skeleton className="h-5 w-12 mx-auto" /></TableCell>
@@ -305,10 +406,7 @@ export default function AdminPage() {
                           ))
                         ) : (
                           filteredUsers.map(u => (
-                            <TableRow key={u.id} data-state={selectedUserIds.has(u.id) ? 'selected' : ''}>
-                              <TableCell>
-                                <Checkbox checked={selectedUserIds.has(u.id)} onCheckedChange={() => handleSelectUser(u.id)} />
-                              </TableCell>
+                            <TableRow key={u.id}>
                               <TableCell className="font-medium">{u.name}</TableCell>
                               <TableCell className="text-muted-foreground">{u.email}</TableCell>
                               <TableCell className="text-center">{u.points}</TableCell>
@@ -322,7 +420,7 @@ export default function AdminPage() {
                         )}
                         {filteredUsers.length === 0 && !loadingUsers && (
                           <TableRow>
-                            <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">No referral members yet.</TableCell>
+                            <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">No referral members yet.</TableCell>
                           </TableRow>
                         )}
                       </TableBody>
@@ -331,6 +429,7 @@ export default function AdminPage() {
                 </CardContent>
               </Card>
             </TabsContent>
+
             <TabsContent value="rewards">
               <div className="grid md:grid-cols-2 gap-6 mt-4">
                 <Card>
@@ -403,30 +502,6 @@ export default function AdminPage() {
                   </CardContent>
                 </Card>
               </div>
-            </TabsContent>
-            <TabsContent value="email" className="mt-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Email Broadcast</CardTitle>
-                  <CardDescription>
-                    Send an email to {selectedUserIds.size} selected user(s). You can use {'{{userName}}'} as a placeholder.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="subject">Subject</Label>
-                    <Input id="subject" value={subject} onChange={e => setSubject(e.target.value)} placeholder="A quick update from PawMe..." />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="body">Body (HTML supported)</Label>
-                    <Textarea id="body" value={body} onChange={e => setBody(e.target.value)} placeholder="Hi {{userName}}," className="min-h-[300px]" />
-                  </div>
-                  <Button onClick={handleSendBroadcast} disabled={sendingBroadcast || selectedUserIds.size === 0}>
-                    <Send className="w-4 h-4 mr-2"/>
-                    {sendingBroadcast ? 'Sending...' : `Send to ${selectedUserIds.size} users`}
-                  </Button>
-                </CardContent>
-              </Card>
             </TabsContent>
             <TabsContent value="templates" className="mt-4">
               <Card>
@@ -512,3 +587,5 @@ export default function AdminPage() {
     </>
   );
 }
+
+    

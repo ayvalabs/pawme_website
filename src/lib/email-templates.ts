@@ -40,6 +40,24 @@ export const defaultTemplates: Record<string, EmailTemplate> = {
     `,
     variables: ['userName', 'referralCode', 'referralLink', 'vipBanner'],
   },
+  productUpdate: {
+    id: 'productUpdate',
+    name: 'Product Update',
+    subject: '🚀 An Update from PawMe!',
+    html: `
+    <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; color: #333;">
+      <h2 style="color: #7678EE;">Hi {{userName}}, we have an update!</h2>
+      <p>Here's what's new with PawMe...</p>
+      
+      <!-- Admin can add more content here -->
+      
+      <br/>
+      <p>Best regards,</p>
+      <p><strong>The PawMe Team</strong></p>
+    </div>
+    `,
+    variables: ['userName'],
+  },
   shippingNotification: {
     id: 'shippingNotification',
     name: 'Reward Shipped',
@@ -85,3 +103,5 @@ export function renderTemplate(templateId: string, variables: Record<string, str
 
   return { subject, html };
 }
+
+    
