@@ -42,7 +42,7 @@ function VipBanner({ totalUsers, loading, userName, onJoinClick }: { totalUsers:
     >
       <CardHeader className="p-0 mb-4">
         <CardTitle className="text-3xl font-bold text-primary">
-          👑 {userName}, join the {vipLimit} VIP List! 👑
+          👑 {userName}, join the {vipLimit} VIP list! 👑
         </CardTitle>
         <CardDescription className="text-lg text-foreground/80">
           Become a founding member, get exclusive early bird pricing, and earn <span className="font-bold text-primary">1.5x points</span> for every referral!
@@ -151,9 +151,9 @@ const addressSchema = z.object({
 });
 
 const paymentSchema = z.object({
-  cardNumber: z.string().length(16, "Card number must be 16 digits."),
+  cardNumber: z.string().length(16, "Card number must be 16 digits.").regex(/^\d+$/, "Card number must be numeric."),
   expiryDate: z.string().regex(/^(0[1-9]|1[0-2])\/\d{2}$/, "Expiry date must be in MM/YY format."),
-  cvc: z.string().length(3, "CVC must be 3 digits."),
+  cvc: z.string().length(3, "CVC must be 3 digits.").regex(/^\d+$/, "CVC must be numeric."),
 });
 
 export default function LeaderboardPage() {
@@ -374,7 +374,7 @@ ${profile.name}`
     if (!selectedReward) return;
     setIsSubmitting(true);
     try {
-      await redeemReward(selectedReward.id);
+      await redeemReward(selectedReward.id, values);
       toast.success(`'${selectedReward.title}' reward redeemed!`, {
         description: 'We will be in touch about shipping details soon.'
       });
@@ -594,7 +594,7 @@ ${profile.name}`
           <DialogHeader>
             <DialogTitle>Join the VIP List</DialogTitle>
             <DialogDescription>
-              Become a founding member for a one-time payment of $1 to unlock exclusive perks and 1.5x referral points.
+              Become a founding member for a one-time payment to unlock exclusive perks and 1.5x referral points.
             </DialogDescription>
           </DialogHeader>
           <Form {...paymentForm}>
@@ -637,7 +637,7 @@ ${profile.name}`
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setVipDialogOpen(false)} disabled={isSubmitting}>Cancel</Button>
                 <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? 'Processing...' : 'Confirm & Pay $1'}
+                  {isSubmitting ? 'Processing...' : 'Confirm & Join VIP'}
                 </Button>
               </DialogFooter>
             </form>

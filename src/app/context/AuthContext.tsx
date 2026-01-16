@@ -28,7 +28,24 @@ import { auth, db } from '@/firebase/config';
 import { getTotalUsers } from '@/app/actions/users';
 import { sendWelcomeEmail, sendReferralSuccessEmail } from '@/app/actions/email';
 
-interface UserProfile {
+export interface Reward {
+  rewardId: string;
+  redeemedAt: string;
+  status: 'pending' | 'shipped';
+  trackingCode?: string;
+  shippingAddress?: {
+    fullName: string;
+    address1: string;
+    address2?: string;
+    city: string;
+    state: string;
+    zip: string;
+    country: string;
+    phone: string;
+  };
+}
+
+export interface UserProfile {
   id: string;
   email: string;
   name: string;
@@ -37,7 +54,7 @@ interface UserProfile {
   referralCount: number;
   referredBy: string | null;
   theme: string;
-  rewards: { rewardId: string; redeemedAt: string }[];
+  rewards: Reward[];
   createdAt: string;
   isVip?: boolean;
   privacyPolicyAgreed: boolean;
@@ -56,7 +73,7 @@ interface AuthContextType {
   updateTheme: (theme: string) => Promise<void>;
   sendPasswordReset: (email: string) => Promise<void>;
   joinVip: () => Promise<void>;
-  redeemReward: (rewardId: string) => Promise<void>;
+  redeemReward: (rewardId: string, shippingAddress: any) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -264,11 +281,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const redeemReward = async (rewardId: string) => {
+  const redeemReward = async (rewardId: string, shippingAddress: any) => {
     if (user && profile) {
       const userDocRef = doc(db, 'users', user.uid);
-      const newReward = { rewardId, redeemedAt: new Date().toISOString() };
-      const updatedRewards = [...profile.rewards, newReward];
+      const newReward: Reward = { 
+        rewardId, 
+        redeemedAt: new Date().toISOString(),
+        status: 'pending',
+        shippingAddress,
+      };
+      const updatedRewards = [...(profile.rewards || []), newReward];
       try {
         await updateDoc(userDocRef, { rewards: updatedRewards });
         await fetchProfile(user.uid);
