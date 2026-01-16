@@ -1,6 +1,6 @@
 import { Twitter, Facebook, Instagram, Linkedin } from 'lucide-react';
-import circleIcon from 'figma:asset/bdd95d9196437c53040ed91a0ab1509a30e2ba09.png';
-import textLogo from 'figma:asset/94fe960e5888dfb11d640069616da8e885e693aa.png';
+import Image from 'next/image';
+import placeholderImages from '@/app/lib/placeholder-images.json';
 
 export function Footer() {
   const socialLinks = [
@@ -10,6 +10,8 @@ export function Footer() {
     { icon: Linkedin, href: 'https://linkedin.com/company/pawme', label: 'LinkedIn' },
   ];
 
+  const { circleIcon, textLogo } = placeholderImages;
+
   return (
     <footer className="border-t border-border bg-gradient-to-b from-transparent to-secondary/20 py-12 px-4">
       <div className="max-w-6xl mx-auto">
@@ -17,8 +19,22 @@ export function Footer() {
           {/* Brand */}
           <div>
             <div className="flex items-center gap-3 mb-4">
-              <img src={circleIcon} alt="PawMe Icon" className="h-10 w-10" />
-              <img src={textLogo} alt="PawMe" className="h-6" />
+              <Image
+                src={circleIcon.src}
+                alt={circleIcon.alt}
+                width={circleIcon.width}
+                height={circleIcon.height}
+                className="h-10 w-10"
+                data-ai-hint={circleIcon.hint}
+              />
+              <Image
+                src={textLogo.src}
+                alt={textLogo.alt}
+                width={textLogo.width}
+                height={textLogo.height}
+                className="h-6 w-auto"
+                data-ai-hint={textLogo.hint}
+              />
             </div>
             <p className="text-sm text-muted-foreground mb-4">
               The AI companion robot that understands and cares for your pets.

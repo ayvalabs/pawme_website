@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import circleIcon from 'figma:asset/bdd95d9196437c53040ed91a0ab1509a30e2ba09.png';
+import placeholderImages from '@/app/lib/placeholder-images.json';
 
 export function FaviconHandler() {
   useEffect(() => {
@@ -9,7 +9,7 @@ export function FaviconHandler() {
     const link = document.querySelector("link[rel*='icon']") as HTMLLinkElement || document.createElement('link');
     link.type = 'image/png';
     link.rel = 'icon';
-    link.href = circleIcon;
+    link.href = placeholderImages.circleIcon.src;
     document.getElementsByTagName('head')[0].appendChild(link);
 
     // Set page title

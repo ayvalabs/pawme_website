@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/app/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/app/components/ui/dropdown-menu';
-import { User, LogOut, Trophy, Settings, Palette } from 'lucide-react';
+import { User, LogOut, Trophy, Palette } from 'lucide-react';
 import { useAuth } from '@/app/context/AuthContext';
 import { AuthDialog } from '@/app/components/auth-dialog';
-import circleIcon from 'figma:asset/bdd95d9196437c53040ed91a0ab1509a30e2ba09.png';
-import textLogo from 'figma:asset/94fe960e5888dfb11d640069616da8e885e693aa.png';
+import Image from 'next/image';
+import placeholderImages from '@/app/lib/placeholder-images.json';
 
 interface HeaderProps {
   onShowLeaderboard?: () => void;
@@ -24,25 +24,43 @@ export function Header({ onShowLeaderboard }: HeaderProps) {
   }, [profile?.theme]);
 
   const handleThemeChange = async (theme: string) => {
-    await updateTheme(theme);
+    if (updateTheme) {
+        await updateTheme(theme);
+    }
     setThemeMenuOpen(false);
   };
 
   const themes = [
     { name: 'Green', value: 'green', color: '#10b981' },
     { name: 'Blue', value: 'blue', color: '#3b82f6' },
-    { name: 'Purple', value: 'purple', color: '#a855f7' },
+    { name: 'Purple', value: 'purple', color: '#7678EE' },
     { name: 'Orange', value: 'orange', color: '#f97316' },
     { name: 'Pink', value: 'pink', color: '#ec4899' },
   ];
+  
+  const { circleIcon, textLogo } = placeholderImages;
 
   return (
     <>
       <header className="fixed top-0 left-0 right-0 z-50 bg-transparent backdrop-blur-md border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src={circleIcon} alt="PawMe Icon" className="h-10 w-10" />
-            <img src={textLogo} alt="PawMe" className="h-8" />
+            <Image
+              src={circleIcon.src}
+              alt={circleIcon.alt}
+              width={circleIcon.width}
+              height={circleIcon.height}
+              className="h-10 w-10"
+              data-ai-hint={circleIcon.hint}
+            />
+            <Image
+              src={textLogo.src}
+              alt={textLogo.alt}
+              width={textLogo.width}
+              height={textLogo.height}
+              className="h-8 w-auto"
+              data-ai-hint={textLogo.hint}
+            />
           </div>
 
           <div className="flex items-center gap-3">

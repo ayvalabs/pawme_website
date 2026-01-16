@@ -1,3 +1,4 @@
+'use client';
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/app/components/ui/dialog';
 import { Button } from '@/app/components/ui/button';
@@ -63,7 +64,9 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
   const handleGoogleSignIn = async () => {
     try {
       await signInWithGoogle();
-      toast.info('Please complete setup at Supabase Console for Google OAuth');
+      // Google sign-in closes the popup, so we can close the dialog
+      onOpenChange(false);
+      toast.success('Signed in with Google!');
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Google sign in failed';
       toast.error(message);

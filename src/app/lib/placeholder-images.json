@@ -1,0 +1,16 @@
+{
+  "circleIcon": {
+    "src": "https://picsum.photos/seed/pawme-circle/40/40",
+    "width": 40,
+    "height": 40,
+    "alt": "PawMe Icon",
+    "hint": "cat dog"
+  },
+  "textLogo": {
+    "src": "https://picsum.photos/seed/pawme-text/120/32",
+    "width": 120,
+    "height": 32,
+    "alt": "PawMe",
+    "hint": "logo text"
+  }
+}

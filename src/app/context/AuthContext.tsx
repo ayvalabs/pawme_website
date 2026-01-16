@@ -1,15 +1,28 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { createClient } from '@supabase/supabase-js';
-import { projectId, publicAnonKey } from '../../../utils/supabase/info';
-
-const supabase = createClient(
-  `https://${projectId}.supabase.co`,
-  publicAnonKey
-);
-
-const API_BASE = `https://${projectId}.supabase.co/functions/v1/make-server-f2b924d9`;
+import {
+  onAuthStateChanged,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  GoogleAuthProvider,
+  signOut as firebaseSignOut,
+  User as FirebaseUser,
+  updateProfile as updateUserProfile,
+} from 'firebase/auth';
+import {
+  doc,
+  setDoc,
+  getDoc,
+  collection,
+  query,
+  where,
+  getDocs,
+  updateDoc,
+  runTransaction,
+} from 'firebase/firestore';
+import { auth, db } from '@/firebase/config';
 
 interface UserProfile {
   id: string;
@@ -22,13 +35,14 @@ interface UserProfile {
   theme: string;
   rewards: any[];
   createdAt: string;
+  isPriority?: boolean;
 }
 
 interface AuthContextType {
-  user: any | null;
+  user: FirebaseUser | null;
   profile: UserProfile | null;
   loading: boolean;
-  signUp: (email: string, password: string, name: string, referredBy?: string) => Promise<void>;
+  signUp: (email: string, password: string, name: string, referredByCode?: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -38,142 +52,145 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+function generateReferralCode(email: string): string {
+  const namePart = email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '');
+  const randomPart = Math.random().toString(36).substring(2, 6);
+  return `${namePart}${randomPart}`.toUpperCase().slice(0, 10);
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<any | null>(null);
+  const [user, setUser] = useState<FirebaseUser | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [accessToken, setAccessToken] = useState<string | null>(null);
 
   useEffect(() => {
-    checkSession();
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      setUser(user);
+      if (user) {
+        await fetchProfile(user.uid);
+      } else {
+        setProfile(null);
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
 
-  const checkSession = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (session) {
-        setUser(session.user);
-        setAccessToken(session.access_token);
-        await fetchProfile(session.access_token);
-      }
-    } catch (error) {
-      console.error('Session check error:', error);
-    } finally {
-      setLoading(false);
+  const fetchProfile = async (uid: string) => {
+    const docRef = doc(db, 'users', uid);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      setProfile(docSnap.data() as UserProfile);
+    } else {
+      console.log('No such profile!');
     }
   };
 
-  const fetchProfile = async (token: string) => {
-    try {
-      const response = await fetch(`${API_BASE}/profile`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
+  const creditReferrer = async (referralCode: string) => {
+    const referralsRef = collection(db, 'users');
+    const q = query(referralsRef, where('referralCode', '==', referralCode));
+    const querySnapshot = await getDocs(q);
 
-      if (response.ok) {
-        const data = await response.json();
-        setProfile(data.profile);
-      }
-    } catch (error) {
-      console.error('Profile fetch error:', error);
+    if (!querySnapshot.empty) {
+      const referrerDoc = querySnapshot.docs[0];
+      const referrerRef = doc(db, 'users', referrerDoc.id);
+
+      await runTransaction(db, async (transaction) => {
+        const referrerDoc = await transaction.get(referrerRef);
+        if (!referrerDoc.exists()) {
+          throw "Referrer document does not exist!";
+        }
+        const newReferralCount = (referrerDoc.data().referralCount || 0) + 1;
+        const newPoints = (referrerDoc.data().points || 0) + 100;
+        transaction.update(referrerRef, { 
+          referralCount: newReferralCount,
+          points: newPoints
+        });
+      });
+      console.log(`Credited referrer ${referrerDoc.id}`);
+    } else {
+      console.log(`Referral code ${referralCode} not found.`);
     }
   };
 
-  const signUp = async (email: string, password: string, name: string, referredBy?: string) => {
-    try {
-      const response = await fetch(`${API_BASE}/auth/signup`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${publicAnonKey}`,
-        },
-        body: JSON.stringify({ email, password, name, referredBy }),
-      });
+  const signUp = async (email: string, password: string, name: string, referredByCode?: string) => {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const newUser = userCredential.user;
+    
+    await updateUserProfile(newUser, { displayName: name });
 
-      const data = await response.json();
+    const referralCode = generateReferralCode(email);
+    const userProfile: UserProfile = {
+      id: newUser.uid,
+      email: newUser.email!,
+      name: name || newUser.email!.split('@')[0],
+      referralCode,
+      points: 100, // Initial points for signing up
+      referralCount: 0,
+      referredBy: referredByCode || null,
+      theme: 'purple',
+      rewards: [],
+      createdAt: new Date().toISOString(),
+    };
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Signup failed');
-      }
-
-      // Now sign in
-      await signIn(email, password);
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      throw new Error(message);
+    await setDoc(doc(db, 'users', newUser.uid), userProfile);
+    
+    if (referredByCode) {
+      await creditReferrer(referredByCode);
     }
+
+    setUser(newUser);
+    setProfile(userProfile);
   };
 
   const signIn = async (email: string, password: string) => {
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) throw error;
-
-      setUser(data.user);
-      setAccessToken(data.session.access_token);
-      await fetchProfile(data.session.access_token);
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      throw new Error(message);
-    }
+    await signInWithEmailAndPassword(auth, email, password);
   };
 
   const signInWithGoogle = async () => {
-    try {
-      // Do not forget to complete setup at https://supabase.com/docs/guides/auth/social-login/auth-google
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-      });
+    const provider = new GoogleAuthProvider();
+    const result = await signInWithPopup(auth, provider);
+    const user = result.user;
 
-      if (error) throw error;
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      throw new Error(message);
+    const userDocRef = doc(db, 'users', user.uid);
+    const userDoc = await getDoc(userDocRef);
+
+    if (!userDoc.exists()) {
+      // Create profile for new Google user
+      const referralCode = generateReferralCode(user.email!);
+      const userProfile: UserProfile = {
+        id: user.uid,
+        email: user.email!,
+        name: user.displayName || user.email!.split('@')[0],
+        referralCode,
+        points: 100,
+        referralCount: 0,
+        referredBy: null,
+        theme: 'purple',
+        rewards: [],
+        createdAt: new Date().toISOString(),
+      };
+      await setDoc(userDocRef, userProfile);
+      setProfile(userProfile);
     }
   };
 
   const signOut = async () => {
-    try {
-      await supabase.auth.signOut();
-      setUser(null);
-      setProfile(null);
-      setAccessToken(null);
-    } catch (error) {
-      console.error('Signout error:', error);
-    }
+    await firebaseSignOut(auth);
   };
 
   const refreshProfile = async () => {
-    if (accessToken) {
-      await fetchProfile(accessToken);
+    if (user) {
+      await fetchProfile(user.uid);
     }
   };
 
   const updateTheme = async (theme: string) => {
-    if (!accessToken) return;
-
-    try {
-      const response = await fetch(`${API_BASE}/profile/theme`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({ theme }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setProfile(data.profile);
-      }
-    } catch (error) {
-      console.error('Theme update error:', error);
+    if (user) {
+      const userDocRef = doc(db, 'users', user.uid);
+      await updateDoc(userDocRef, { theme });
+      await fetchProfile(user.uid); // Refresh profile after update
     }
   };
 

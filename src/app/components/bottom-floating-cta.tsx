@@ -1,13 +1,15 @@
+'use client';
 import { useState } from 'react';
 import { Button } from '@/app/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/app/components/ui/card';
 import { Input } from '@/app/components/ui/input';
 import { Label } from '@/app/components/ui/label';
-import { Rocket, Crown, CreditCard, X, Check, Sparkles } from 'lucide-react';
+import { Crown, CreditCard, X, Check, Sparkles } from 'lucide-react';
 import { useAuth } from '@/app/context/AuthContext';
 import { AuthDialog } from '@/app/components/auth-dialog';
 import { toast } from 'sonner';
-import { projectId, publicAnonKey } from '../../../utils/supabase/info';
+import { db } from '@/firebase/config';
+import { doc, updateDoc } from 'firebase/firestore';
 
 interface PaymentMethod {
   cardNumber: string;
@@ -28,11 +30,12 @@ export function BottomFloatingCTA() {
     cardholderName: '',
   });
 
-  const handleJoinWaitlist = () => {
-    setAuthDialogOpen(true);
-  };
-
   const handleUpgradeToPriority = () => {
+    if (!user) {
+      toast.error("You need to be signed in to upgrade.");
+      setAuthDialogOpen(true);
+      return;
+    }
     setPriorityDialogOpen(true);
   };
 
@@ -104,45 +107,23 @@ export function BottomFloatingCTA() {
     setIsProcessing(true);
 
     try {
-      const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-f2b924d9/priority-upgrade`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${publicAnonKey}`,
-          },
-          body: JSON.stringify({
-            userId: user?.id,
-            paymentMethod: {
-              cardLast4: paymentMethod.cardNumber.slice(-4),
-              cardholderName: paymentMethod.cardholderName,
-              // In production, never send full card details to backend
-              // This would go through a payment processor like Stripe
-            },
-          }),
-        }
-      );
+      if (!user) throw new Error("User not authenticated");
+      
+      console.log('Simulating payment for $1.00...');
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      console.log('Payment successful (simulated).');
 
-      if (!response.ok) {
-        const error = await response.text();
-        throw new Error(error);
-      }
-
-      const data = await response.json();
-
-      // Clear payment form
-      setPaymentMethod({
-        cardNumber: '',
-        expiryDate: '',
-        cvv: '',
-        cardholderName: '',
+      const userDocRef = doc(db, 'users', user.uid);
+      await updateDoc(userDocRef, {
+        isPriority: true,
+        priorityUpgradeDate: new Date().toISOString(),
+        points: (profile?.points || 0) + 200,
       });
 
+      setPaymentMethod({ cardNumber: '', expiryDate: '', cvv: '', cardholderName: '' });
       setPriorityDialogOpen(false);
       toast.success('Welcome to Priority List! 🎉');
       
-      // Refresh profile to get updated status
       if (refreshProfile) {
         await refreshProfile();
       }
@@ -157,39 +138,32 @@ export function BottomFloatingCTA() {
   const isPriority = profile?.isPriority === true;
 
   if (isPriority) {
-    // Don't show the button if user is already on priority list
     return null;
   }
 
   return (
     <>
-      {/* Bottom Floating CTA */}
       <div className="fixed bottom-0 left-0 right-0 z-30 pointer-events-none">
         <div className="max-w-md mx-auto px-4 pb-6">
           <div className="pointer-events-auto">
             <Button
-              onClick={() => window.open('https://www.kickstarter.com/', '_blank')}
+              onClick={handleUpgradeToPriority}
               size="lg"
-              className="w-full h-14 text-base font-semibold shadow-2xl hover:shadow-3xl transition-all hover:scale-105 bg-gradient-to-r from-primary via-primary/90 to-primary hover:from-primary/90 hover:via-primary hover:to-primary/90 group relative overflow-hidden animate-pulse rounded-full"
+              className="w-full h-14 text-base font-semibold shadow-2xl hover:shadow-3xl transition-all hover:scale-105 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 group relative overflow-hidden animate-pulse rounded-full"
             >
-              {/* Flashing overlay effect */}
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 rounded-full" />
-              
-              {/* Pulsing ring effect */}
-              <div className="absolute inset-0 rounded-full animate-ping opacity-20 bg-primary" style={{ animationDuration: '2s' }} />
-              
+              <div className="absolute inset-0 rounded-full animate-ping opacity-20 bg-amber-400" style={{ animationDuration: '2s' }} />
               <span className="relative z-10 flex items-center justify-center gap-2">
-                🚀 Join Kickstarter Waitlist 🎉
+                <Crown className="w-5 h-5" />
+                Join Priority List - $1
               </span>
             </Button>
           </div>
         </div>
       </div>
 
-      {/* Auth Dialog */}
       <AuthDialog open={authDialogOpen} onOpenChange={setAuthDialogOpen} />
 
-      {/* Priority Upgrade Dialog */}
       {priorityDialogOpen && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 animate-in fade-in">
           <Card className="w-full max-w-md shadow-2xl border-2 border-amber-500/30 animate-in zoom-in-95">
@@ -218,8 +192,7 @@ export function BottomFloatingCTA() {
               </div>
             </CardHeader>
 
-            <CardContent className="space-y-6">
-              {/* Benefits */}
+            <CardContent className="space-y-6 pt-6">
               <div className="bg-amber-50 dark:bg-amber-950/20 rounded-lg p-4 space-y-2">
                 <h4 className="font-semibold text-amber-900 dark:text-amber-100 flex items-center gap-2">
                   <Sparkles className="w-4 h-4" />
@@ -228,11 +201,11 @@ export function BottomFloatingCTA() {
                 <ul className="space-y-1.5 text-sm text-amber-800 dark:text-amber-200">
                   <li className="flex items-start gap-2">
                     <Check className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                    <span>First access to Kickstarter launch (24h early)</span>
+                    <span>24h early access to Kickstarter</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <Check className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                    <span>Exclusive early bird pricing guaranteed</span>
+                    <span>Guaranteed early bird pricing</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <Check className="w-4 h-4 mt-0.5 flex-shrink-0" />
@@ -240,16 +213,11 @@ export function BottomFloatingCTA() {
                   </li>
                   <li className="flex items-start gap-2">
                     <Check className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                    <span>VIP updates and behind-the-scenes content</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Check className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                    <span>Priority customer support</span>
+                    <span>200 bonus referral points!</span>
                   </li>
                 </ul>
               </div>
 
-              {/* Payment Form */}
               <div className="space-y-4">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <CreditCard className="w-4 h-4" />
@@ -308,7 +276,6 @@ export function BottomFloatingCTA() {
                 </div>
               </div>
 
-              {/* Submit Button */}
               <div className="space-y-3">
                 <Button
                   onClick={handleSubmitPayment}
