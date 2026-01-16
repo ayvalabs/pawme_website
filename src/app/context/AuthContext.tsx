@@ -49,8 +49,8 @@ interface AuthContextType {
   profile: UserProfile | null;
   loading: boolean;
   signUp: (email: string, password: string, name: string, referredByCode: string | undefined, privacyPolicyAgreed: boolean, marketingOptIn: boolean) => Promise<void>;
-  signIn: (email: string, password: string) => Promise<void>;
-  signInWithGoogle: () => Promise<void>;
+  signIn: (email: string, password: string) => Promise<FirebaseUser>;
+  signInWithGoogle: () => Promise<FirebaseUser>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   updateTheme: (theme: string) => Promise<void>;
@@ -186,7 +186,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signIn = async (email: string, password: string) => {
-    await signInWithEmailAndPassword(auth, email, password);
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    await fetchProfile(userCredential.user.uid);
+    return userCredential.user;
   };
 
   const sendPasswordReset = async (email: string) => {
@@ -220,7 +222,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       };
       await setDoc(userDocRef, userProfile);
       setProfile(userProfile);
+    } else {
+      await fetchProfile(user.uid);
     }
+    return user;
   };
 
   const signOut = async () => {

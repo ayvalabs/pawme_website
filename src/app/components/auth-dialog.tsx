@@ -42,10 +42,14 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
     setError('');
     
     try {
-      await signIn(signInEmail, signInPassword);
+      const user = await signIn(signInEmail, signInPassword);
       toast.success('Welcome back!');
       onOpenChange(false);
-      router.push('/leaderboard');
+      if (user.email === 'pawme@ayvalabs.com') {
+        router.push('/admin');
+      } else {
+        router.push('/leaderboard');
+      }
     } catch (error: any) {
       let message = 'Sign in failed. Please try again.';
       switch (error.code) {
@@ -115,10 +119,14 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
   const handleGoogleSignIn = async () => {
     setError('');
     try {
-      await signInWithGoogle();
+      const user = await signInWithGoogle();
       onOpenChange(false);
       toast.success('Signed in with Google!');
-      router.push('/leaderboard');
+      if (user.email === 'pawme@ayvalabs.com') {
+        router.push('/admin');
+      } else {
+        router.push('/leaderboard');
+      }
     } catch (error: any) {
       setError(error.message || 'Google sign in failed');
     }
