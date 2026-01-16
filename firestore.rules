@@ -24,7 +24,10 @@ service cloud.firestore {
           request.resource.data.diff(resource.data).affectedKeys().hasAll(['points', 'referralCount']) &&
           request.resource.data.diff(resource.data).affectedKeys().size() == 2 &&
           request.resource.data.referralCount == resource.data.referralCount + 1 &&
-          request.resource.data.points == resource.data.points + 100
+          (
+            request.resource.data.points == resource.data.points + 100 ||
+            request.resource.data.points == resource.data.points + 150
+          )
         );
     }
   }
