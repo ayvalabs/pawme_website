@@ -18,6 +18,8 @@ export function Header({ onShowLeaderboard }: HeaderProps) {
   const [themeMenuOpen, setThemeMenuOpen] = useState(false);
   const { user, profile, signOut, updateTheme } = useAuth();
 
+  const headerClasses = user ? 'border-b' : 'absolute top-0 left-0 right-0 z-40';
+
   useEffect(() => {
     // Apply theme color to CSS variables
     if (profile?.theme) {
@@ -42,7 +44,7 @@ export function Header({ onShowLeaderboard }: HeaderProps) {
 
   return (
     <>
-      <header className="top-0 z-40">
+      <header className={headerClasses}>
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <ImageWithFallback
