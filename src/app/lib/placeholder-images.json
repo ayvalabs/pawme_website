@@ -11,5 +11,30 @@
     "src": "/full_logo.svg",
     "alt": "PawMe Full Logo",
     "data-ai-hint": "logo"
+  },
+  "rewardTreats": {
+    "src": "https://picsum.photos/seed/reward1/600/400",
+    "alt": "A pack of premium pet treats",
+    "data-ai-hint": "pet treats"
+  },
+  "rewardToy": {
+    "src": "https://picsum.photos/seed/reward2/600/400",
+    "alt": "An interactive puzzle toy for pets",
+    "data-ai-hint": "pet toy"
+  },
+  "rewardAccessory": {
+    "src": "https://picsum.photos/seed/reward3/600/400",
+    "alt": "A stylish personalized pet collar",
+    "data-ai-hint": "dog collar"
+  },
+  "rewardBundle": {
+    "src": "https://picsum.photos/seed/reward4/600/400",
+    "alt": "A comfort bundle for pets with a toy and grooming supplies",
+    "data-ai-hint": "pet supplies"
+  },
+  "rewardBed": {
+    "src": "https://picsum.photos/seed/reward5/600/400",
+    "alt": "A cozy premium pet bed",
+    "data-ai-hint": "dog bed"
   }
 }
