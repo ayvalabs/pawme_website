@@ -11,6 +11,7 @@ import { useAuth } from '@/app/context/AuthContext';
 import { toast } from 'sonner';
 import { ImageWithFallback } from '@/app/components/figma/ImageWithFallback';
 import imageData from '@/app/lib/placeholder-images.json';
+import { Checkbox } from '@/app/components/ui/checkbox';
 
 interface AuthDialogProps {
   open: boolean;
@@ -31,6 +32,8 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
   const [signUpName, setSignUpName] = useState('');
   const [signUpEmail, setSignUpEmail] = useState('');
   const [signUpPassword, setSignUpPassword] = useState('');
+  const [privacyPolicyAgreed, setPrivacyPolicyAgreed] = useState(false);
+  const [marketingOptIn, setMarketingOptIn] = useState(false);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,10 +87,14 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!privacyPolicyAgreed) {
+        toast.error('You must agree to the Privacy Policy to sign up.');
+        return;
+    }
     setLoading(true);
     
     try {
-      await signUp(signUpEmail, signUpPassword, signUpName, referralCode);
+      await signUp(signUpEmail, signUpPassword, signUpName, referralCode, privacyPolicyAgreed, marketingOptIn);
       toast.success('Account created successfully!');
       onOpenChange(false);
     } catch (error: any) {
@@ -277,6 +284,43 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
                   />
                 </div>
               </div>
+
+              <div className="items-top flex space-x-2">
+                <Checkbox
+                  id="terms"
+                  checked={privacyPolicyAgreed}
+                  onCheckedChange={(checked) => setPrivacyPolicyAgreed(checked as boolean)}
+                  disabled={loading}
+                />
+                <div className="grid gap-1.5 leading-none">
+                  <label
+                    htmlFor="terms"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    I agree to the{' '}
+                    <a href="#" className="underline text-primary hover:text-primary/80">
+                      Privacy Policy
+                    </a>
+                  </label>
+                </div>
+              </div>
+
+              <div className="items-top flex space-x-2">
+                <Checkbox
+                  id="marketing"
+                  checked={marketingOptIn}
+                  onCheckedChange={(checked) => setMarketingOptIn(checked as boolean)}
+                  disabled={loading}
+                />
+                <div className="grid gap-1.5 leading-none">
+                  <label
+                    htmlFor="marketing"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Receive occasional product promotion messages
+                  </label>
+                </div>
+              </div>
               
               {referralCode && (
                 <div className="text-sm text-muted-foreground bg-primary/5 p-3 rounded-md">
@@ -284,7 +328,7 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
                 </div>
               )}
               
-              <Button type="submit" className="w-full" disabled={loading}>
+              <Button type="submit" className="w-full" disabled={loading || !privacyPolicyAgreed}>
                 {loading ? 'Creating account...' : 'Create Account'}
               </Button>
             </form>

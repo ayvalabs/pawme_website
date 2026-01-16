@@ -1,3 +1,4 @@
+
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
@@ -37,13 +38,15 @@ interface UserProfile {
   rewards: any[];
   createdAt: string;
   isPriority?: boolean;
+  privacyPolicyAgreed: boolean;
+  marketingOptIn: boolean;
 }
 
 interface AuthContextType {
   user: FirebaseUser | null;
   profile: UserProfile | null;
   loading: boolean;
-  signUp: (email: string, password: string, name: string, referredByCode?: string) => Promise<void>;
+  signUp: (email: string, password: string, name: string, referredByCode: string | undefined, privacyPolicyAgreed: boolean, marketingOptIn: boolean) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -116,7 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signUp = async (email: string, password: string, name: string, referredByCode?: string) => {
+  const signUp = async (email: string, password: string, name: string, referredByCode: string | undefined, privacyPolicyAgreed: boolean, marketingOptIn: boolean) => {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const newUser = userCredential.user;
     
@@ -134,6 +137,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       theme: 'purple',
       rewards: [],
       createdAt: new Date().toISOString(),
+      privacyPolicyAgreed,
+      marketingOptIn,
     };
 
     await setDoc(doc(db, 'users', newUser.uid), userProfile);
@@ -176,6 +181,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         theme: 'purple',
         rewards: [],
         createdAt: new Date().toISOString(),
+        privacyPolicyAgreed: true, // Implied agreement for social sign-in
+        marketingOptIn: false, // Default to not opted-in
       };
       await setDoc(userDocRef, userProfile);
       setProfile(userProfile);
