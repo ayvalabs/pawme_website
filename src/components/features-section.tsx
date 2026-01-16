@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Bot, Laser, Bone, Camera, Mic, ToyBrick } from 'lucide-react';
+import { Bot, Crosshair, Bone, Camera, Mic, ToyBrick } from 'lucide-react';
 
 const features = [
   {
@@ -9,7 +9,7 @@ const features = [
       "PawMe's advanced AI learns your pet's personality and preferences to create unique play sessions every day.",
   },
   {
-    icon: <Laser className="h-10 w-10 text-primary" />,
+    icon: <Crosshair className="h-10 w-10 text-primary" />,
     title: 'Dynamic Laser Play',
     description:
       'An integrated, pet-safe laser provides endless fun, with patterns that adapt to keep your pet engaged.',
