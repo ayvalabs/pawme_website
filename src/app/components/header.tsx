@@ -20,13 +20,17 @@ export function Header({ variant: initialVariant = 'solid' }: HeaderProps) {
   const [headerVariant, setHeaderVariant] = useState(initialVariant);
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.location.pathname.includes('/leaderboard')) {
+    const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
+
+    const isSolidPage = currentPath.includes('/leaderboard') || currentPath.includes('/dashboard');
+
+    if (isSolidPage) {
       setHeaderVariant('solid');
-      return;
+    } else {
+      // Respect the variant passed from the page, like 'transparent' for the homepage
+      setHeaderVariant(initialVariant);
     }
-    
-    setHeaderVariant(user ? 'solid' : 'transparent');
-  }, [user]);
+  }, [user, initialVariant]);
 
   const headerClasses = headerVariant === 'transparent'
     ? 'absolute top-0 left-0 right-0 z-40'
