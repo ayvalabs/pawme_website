@@ -87,25 +87,45 @@ export async function sendWelcomeEmail({ to, name, referralCode, totalUsers }: {
 }
 
 export async function sendVerificationCodeEmail({ to, name, code }: { to: string, name: string, code: string }) {
-  const template = defaultTemplates.verificationCode;
-  if (!template) {
-    console.error("Verification code email template not found.");
+  console.log('🔵 [EMAIL_ACTION] Preparing to send verification code email via Resend.');
+  
+  if (!process.env.RESEND_API_KEY) {
+    console.error('❌ [EMAIL_ACTION] RESEND_API_KEY is not set. Email will not be sent.');
+    // In a real app, you might want to throw an error or handle this more gracefully
     return;
   }
+  console.log('✅ [EMAIL_ACTION] RESEND_API_KEY is present.');
+
+  const template = defaultTemplates.verificationCode;
+  if (!template) {
+    console.error("❌ [EMAIL_ACTION] Verification code email template not found.");
+    return;
+  }
+  console.log('✅ [EMAIL_ACTION] Email template found.');
+
   const subject = template.subject.replace(/{{userName}}/g, name);
   const html = template.html
     .replace(/{{userName}}/g, name)
     .replace(/{{code}}/g, code);
   
   try {
-    await resend.emails.send({
+    console.log(`🔵 [EMAIL_ACTION] Sending email to: ${to} with subject: "${subject}"`);
+    const { data, error } = await resend.emails.send({
       from: fromEmail,
       to,
       subject,
       html,
     });
+
+    if (error) {
+      console.error('❌ [EMAIL_ACTION] Resend API returned an error:', JSON.stringify(error, null, 2));
+      throw error;
+    }
+    
+    console.log('✅ [EMAIL_ACTION] Email sent successfully via Resend. Email ID:', data?.id);
+
   } catch (error) {
-    console.error('Failed to send verification code email:', error);
+    console.error('❌ [EMAIL_ACTION] A catch-block error occurred while sending verification email:', error);
   }
 }
 

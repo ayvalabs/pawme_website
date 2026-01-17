@@ -1,6 +1,6 @@
 
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/app/components/ui/dialog';
 import { Button } from '@/app/components/ui/button';
@@ -39,6 +39,15 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
   const [verificationCode, setVerificationCode] = useState('');
   const [privacyPolicyAgreed, setPrivacyPolicyAgreed] = useState(false);
   const [marketingOptIn, setMarketingOptIn] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (resendCooldown > 0) {
+      timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
 
   const resetSignUpForm = () => {
     setSignUpStep('details');
@@ -49,6 +58,7 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
     setPrivacyPolicyAgreed(false);
     setMarketingOptIn(false);
     setError('');
+    setResendCooldown(0);
   };
 
   const handleOpenChange = (isOpen: boolean) => {
@@ -108,6 +118,21 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
     if (result.success) {
       toast.success('Verification code sent!', { description: `A 4-digit code has been sent to ${signUpEmail}.` });
       setSignUpStep('verify');
+      setResendCooldown(60);
+    } else {
+      setError(result.message);
+    }
+    setLoading(false);
+  };
+
+  const handleResendCode = async () => {
+    if (resendCooldown > 0) return;
+    setLoading(true);
+    setError('');
+    const result = await sendSignUpVerificationCode({ email: signUpEmail, name: signUpName });
+    if (result.success) {
+      toast.success('New verification code sent!');
+      setResendCooldown(60); // 60 second cooldown
     } else {
       setError(result.message);
     }
@@ -193,8 +218,11 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
             )}
 
             {signUpStep === 'verify' && (
-              <form onSubmit={handleCompleteSignUp} className="space-y-4">
-                <p className="text-sm text-center text-muted-foreground">Enter the 4-digit code sent to {signUpEmail}</p>
+              <form onSubmit={handleCompleteSignUp} className="space-y-6">
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground">Enter the 4-digit code sent to {signUpEmail}</p>
+                  <p className="text-xs text-muted-foreground mt-1">The code expires in 10 minutes.</p>
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="verification-code">Verification Code</Label>
                   <InputOTP maxLength={4} value={verificationCode} onChange={setVerificationCode}>
@@ -207,7 +235,18 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
                   </InputOTP>
                 </div>
                 <Button type="submit" className="w-full" disabled={loading || verificationCode.length < 4}>{loading ? 'Verifying...' : 'Verify & Create Account'}</Button>
-                <Button type="button" variant="link" className="w-full" onClick={() => setSignUpStep('details')} disabled={loading}>Back to details</Button>
+                <div className="text-center text-sm">
+                  <Button 
+                      type="button" 
+                      variant="link" 
+                      className="p-0 h-auto font-normal text-primary hover:text-primary/80" 
+                      onClick={handleResendCode} 
+                      disabled={loading || resendCooldown > 0}
+                  >
+                      {resendCooldown > 0 ? `Resend code in ${resendCooldown}s` : "Didn't receive a code? Resend"}
+                  </Button>
+                </div>
+                <Button type="button" variant="link" className="w-full text-muted-foreground" onClick={() => setSignUpStep('details')} disabled={loading}>Back to details</Button>
               </form>
             )}
             
