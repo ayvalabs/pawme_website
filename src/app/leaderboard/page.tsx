@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import { getTotalUsers, getLeaderboard } from '@/app/actions/users';
 import { Skeleton } from '@/app/components/ui/skeleton';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/app/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/app/components/ui/alert-dialog';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -36,7 +37,7 @@ interface LeaderboardUser {
 }
 
 function VipBanner({ totalUsers, loading, userName, onJoinClick }: { totalUsers: number | null, loading: boolean, userName: string, onJoinClick: () => void }) {
-  const vipLimit = 250;
+  const vipLimit = 100;
   const spotsLeft = totalUsers !== null ? Math.max(0, vipLimit - totalUsers) : null;
 
   return (
@@ -59,10 +60,29 @@ function VipBanner({ totalUsers, loading, userName, onJoinClick }: { totalUsers:
           ) : (
             <p className="text-xl font-semibold bg-primary text-primary-foreground rounded-full px-6 py-2 inline-flex items-center gap-2">
               <Sparkles className="w-5 h-5" />
-              Only {spotsLeft} spots left!
+              Only {spotsLeft !== null ? spotsLeft : '...'} spots left!
             </p>
           )}
         </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function MarketingOptInBanner({ onOptIn }: { onOptIn: () => void }) {
+  return (
+    <Card className="mb-8 bg-blue-500/10 border-blue-500/20">
+      <CardContent className="p-6 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Mail className="w-8 h-8 text-blue-500 flex-shrink-0" />
+          <div>
+            <h3 className="font-semibold text-lg">Don't Miss Out!</h3>
+            <p className="text-muted-foreground text-sm">
+              Get the latest promotions and exclusive offers from PawMe.
+            </p>
+          </div>
+        </div>
+        <Button onClick={onOptIn} variant="outline" className="bg-transparent hover:bg-blue-500/10 border-blue-500/30 text-blue-600 hover:text-blue-500">Opt-In to Promotions</Button>
       </CardContent>
     </Card>
   );
@@ -155,7 +175,7 @@ const addressSchema = z.object({
 });
 
 export default function LeaderboardPage() {
-  const { user, profile, loading: authLoading, joinVip, redeemReward } = useAuth();
+  const { user, profile, loading: authLoading, joinVip, redeemReward, updateMarketingPreference } = useAuth();
   const router = useRouter();
 
   const rewardTiers = [
@@ -237,6 +257,7 @@ export default function LeaderboardPage() {
   const [selectedReward, setSelectedReward] = useState<(typeof rewardTiers)[0] | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [isOptInDialogOpen, setOptInDialogOpen] = useState(false);
   const [stripePromise] = useState(() => {
     const stripePublicKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
     if (stripePublicKey) {
@@ -394,6 +415,19 @@ ${profile.name}`
     }
   };
 
+  const handleOptIn = async () => {
+    try {
+      await updateMarketingPreference(true);
+      toast.success("You've opted in to marketing messages!", {
+        description: "You'll now receive our latest promotions and offers.",
+      });
+    } catch (e) {
+      toast.error("There was an issue updating your preferences. Please try again.");
+    } finally {
+        setOptInDialogOpen(false);
+    }
+  };
+
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -422,6 +456,10 @@ ${profile.name}`
               userName={profile.name.split(' ')[0]} 
               onJoinClick={handleOpenVipDialog}
             />
+          )}
+
+          {profile && !profile.marketingOptIn && (
+            <MarketingOptInBanner onOptIn={() => setOptInDialogOpen(true)} />
           )}
           
           <LeaderboardDisplay />
@@ -686,7 +724,21 @@ ${profile.name}`
           </Form>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={isOptInDialogOpen} onOpenChange={setOptInDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Receive Promotions?</AlertDialogTitle>
+            <AlertDialogDescription>
+              By clicking "Agree", you agree to receive promotional and marketing emails from PawMe. You can unsubscribe at any time.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleOptIn}>Agree</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
-
