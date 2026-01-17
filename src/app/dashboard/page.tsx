@@ -59,8 +59,6 @@ export default function AdminPage() {
   const [loadingTemplates, setLoadingTemplates] = useState(true);
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<EmailTemplate | null>(null);
-  const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
-  const [previewTemplate, setPreviewTemplate] = useState<EmailTemplate | null>(null);
   
   // Template form state
   const [templateId, setTemplateId] = useState('');
@@ -68,6 +66,10 @@ export default function AdminPage() {
   const [templateSubject, setTemplateSubject] = useState('');
   const [templateHtml, setTemplateHtml] = useState('');
   const [templateVariables, setTemplateVariables] = useState('');
+  
+  // Preview State
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewContent, setPreviewContent] = useState({ subject: '', html: '' });
 
   useEffect(() => {
     if (!authLoading && (!user || profile?.email !== 'pawme@ayvalabs.com')) {
@@ -75,82 +77,52 @@ export default function AdminPage() {
     }
   }, [user, profile, authLoading, router]);
 
-  useEffect(() => {
-    if (user && profile?.email === 'pawme@ayvalabs.com') {
-      const fetchUsers = async () => {
-        setLoadingUsers(true);
-        try {
-          const usersRef = collection(db, 'users');
-          const q = query(usersRef, orderBy('createdAt', 'desc'));
-          const querySnapshot = await getDocs(q);
-          
-          const usersData: UserWithId[] = [];
-          querySnapshot.forEach((doc) => {
-            usersData.push({ id: doc.id, ...doc.data() } as UserWithId);
-          });
-          
-          setAllUsers(usersData);
-        } catch (error) {
-          console.error('Error fetching users:', error);
-          toast.error("Failed to load users.");
-        } finally {
-          setLoadingUsers(false);
-        }
-      };
+  const fetchAllUsers = async () => {
+    setLoadingUsers(true);
+    try {
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, orderBy('createdAt', 'desc'));
+      const querySnapshot = await getDocs(q);
       
-      const fetchTemplates = async () => {
-        setLoadingTemplate(true);
-        try {
-          const templates: EmailTemplate[] = [];
-          for (const key in defaultTemplates) {
-              templates.push(defaultTemplates[key as keyof typeof defaultTemplates]);
-          }
-          setEmailTemplates(templates);
-
-          const welcomeTemplateRef = doc(db, 'email_templates', 'welcome');
-          const welcomeTemplateSnap = await getDoc(welcomeTemplateRef);
-          if (welcomeTemplateSnap.exists()) {
-              setWelcomeTemplate(welcomeTemplateSnap.data() as { subject: string, html: string });
-          } else {
-              setWelcomeTemplate(defaultTemplates.welcome);
-          }
-
-        } catch (error) {
-          console.error("Error fetching email templates", error);
-          toast.error("Could not load email templates from database.");
-        } finally {
-          setLoadingTemplate(false);
-        }
-      };
-
-      fetchUsers();
-      fetchTemplates();
+      const usersData: UserWithId[] = [];
+      querySnapshot.forEach((doc) => {
+        usersData.push({ id: doc.id, ...doc.data() } as UserWithId);
+      });
+      
+      setAllUsers(usersData);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      toast.error("Failed to load users.");
+    } finally {
+      setLoadingUsers(false);
     }
-  }, [user, profile]);
+  }
+
+  const fetchEmailTemplates = async () => {
+    setLoadingTemplates(true);
+    try {
+      const templatesRef = collection(db, 'emailTemplates');
+      const q = query(templatesRef, orderBy('createdAt', 'desc'));
+      const querySnapshot = await getDocs(q);
+      
+      const templatesData: EmailTemplate[] = [];
+      querySnapshot.forEach((doc) => {
+        templatesData.push(doc.data() as EmailTemplate);
+      });
+      
+      setEmailTemplates(templatesData);
+    } catch (error) {
+      console.error('Error fetching templates:', error);
+      toast.error("Failed to load email templates.");
+    } finally {
+      setLoadingTemplates(false);
+    }
+  }
 
   useEffect(() => {
     if (user && profile?.email === 'pawme@ayvalabs.com') {
-      const fetchTemplates = async () => {
-        setLoadingTemplates(true);
-        try {
-          const templatesRef = collection(db, 'emailTemplates');
-          const q = query(templatesRef, orderBy('createdAt', 'desc'));
-          const querySnapshot = await getDocs(q);
-          
-          const templatesData: EmailTemplate[] = [];
-          querySnapshot.forEach((doc) => {
-            templatesData.push(doc.data() as EmailTemplate);
-          });
-          
-          setEmailTemplates(templatesData);
-        } catch (error) {
-          console.error('Error fetching templates:', error);
-          toast.error("Failed to load email templates.");
-        } finally {
-          setLoadingTemplates(false);
-        }
-      };
-      fetchTemplates();
+      fetchAllUsers();
+      fetchEmailTemplates();
     }
   }, [user, profile]);
 
@@ -161,6 +133,11 @@ export default function AdminPage() {
   const handleSelectUser = (userId: string) => {
     setSelectedUserIds(prev => {
       const newSet = new Set(prev);
+      const userToToggle = allUsers.find(u => u.id === userId);
+      if (userToToggle && !userToToggle.marketingOptIn) {
+        toast.error(`${userToToggle.name} has unsubscribed from marketing emails.`);
+        return prev;
+      }
       if (newSet.has(userId)) {
         newSet.delete(userId);
       } else {
@@ -171,10 +148,10 @@ export default function AdminPage() {
   };
 
   const handleSelectAll = () => {
-    if (selectedUserIds.size === filteredUsers.length && filteredUsers.length > 0) {
+    if (selectedUserIds.size === filteredUsers.filter(u => u.marketingOptIn).length && filteredUsers.length > 0) {
       setSelectedUserIds(new Set());
     } else {
-      setSelectedUserIds(new Set(filteredUsers.map(u => u.id)));
+      setSelectedUserIds(new Set(filteredUsers.filter(u => u.marketingOptIn).map(u => u.id)));
     }
   };
 
@@ -212,7 +189,7 @@ export default function AdminPage() {
         });
       }
     });
-    return rewards;
+    return rewards.sort((a,b) => new Date(b.redeemedAt).getTime() - new Date(a.redeemedAt).getTime());
   }, [allUsers]);
 
   const shippedRewards = useMemo(() => {
@@ -226,7 +203,7 @@ export default function AdminPage() {
         });
       }
     });
-    return rewards;
+    return rewards.sort((a,b) => new Date(b.redeemedAt).getTime() - new Date(a.redeemedAt).getTime());
   }, [allUsers]);
 
   const handleOpenShippingDialog = (reward: RewardWithUser) => {
@@ -250,17 +227,7 @@ export default function AdminPage() {
         trackingCode: trackingCode
       });
       toast.success(`Reward marked as shipped for ${shippingReward.user.name}.`);
-      
-      const usersRef = collection(db, 'users');
-      const q = query(usersRef, orderBy('createdAt', 'desc'));
-      const querySnapshot = await getDocs(q);
-      
-      const usersData: UserWithId[] = [];
-      querySnapshot.forEach((doc) => {
-        usersData.push({ id: doc.id, ...doc.data() } as UserWithId);
-      });
-      
-      setAllUsers(usersData);
+      await fetchAllUsers();
       setShippingDialogOpen(false);
     } catch (error) {
       toast.error("Failed to update reward status.");
@@ -296,43 +263,25 @@ export default function AdminPage() {
 
     try {
       const variables = templateVariables.split(',').map(v => v.trim()).filter(v => v);
-      const templateData: EmailTemplate = {
+      const templateData: Omit<EmailTemplate, 'createdAt' | 'updatedAt'> = {
         id: templateId,
         name: templateName,
         subject: templateSubject,
         html: templateHtml,
         variables,
-        createdAt: editingTemplate?.createdAt || new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
       };
 
       const templateRef = doc(db, 'emailTemplates', templateId);
       
       if (editingTemplate) {
-        await updateDoc(templateRef, {
-          name: templateName,
-          subject: templateSubject,
-          html: templateHtml,
-          variables,
-          updatedAt: new Date().toISOString(),
-        });
+        await updateDoc(templateRef, { ...templateData, updatedAt: new Date().toISOString() });
         toast.success("Template updated successfully!");
       } else {
-        await setDoc(templateRef, templateData);
+        await setDoc(templateRef, { ...templateData, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
         toast.success("Template created successfully!");
       }
 
-      // Refetch templates
-      const templatesRef = collection(db, 'emailTemplates');
-      const q = query(templatesRef, orderBy('createdAt', 'desc'));
-      const querySnapshot = await getDocs(q);
-      
-      const templatesData: EmailTemplate[] = [];
-      querySnapshot.forEach((doc) => {
-        templatesData.push(doc.data() as EmailTemplate);
-      });
-      
-      setEmailTemplates(templatesData);
+      await fetchEmailTemplates();
       setTemplateDialogOpen(false);
     } catch (error) {
       console.error('Error saving template:', error);
@@ -341,7 +290,7 @@ export default function AdminPage() {
   };
 
   const handleDeleteTemplate = async (templateId: string) => {
-    if (!confirm(`Are you sure you want to delete this template?`)) {
+    if (!confirm(`Are you sure you want to delete the template "${templateId}"? This cannot be undone.`)) {
       return;
     }
 
@@ -356,10 +305,31 @@ export default function AdminPage() {
       toast.error("Failed to delete template.");
     }
   };
-
-  const handlePreviewTemplate = (template: EmailTemplate) => {
-    setPreviewTemplate(template);
-    setPreviewDialogOpen(true);
+  
+  const handleTemplateChange = (templateId: string) => {
+    if (templateId === 'custom') {
+      setSubject('');
+      setBody('');
+      return;
+    }
+    const selectedTemplate = emailTemplates.find(t => t.id === templateId);
+    if (selectedTemplate) {
+      setSubject(selectedTemplate.subject);
+      setBody(selectedTemplate.html);
+    }
+  };
+  
+  const handlePreview = (subject: string, body: string) => {
+    if (!subject || !body) {
+      toast.error('Subject and body are required to preview.');
+      return;
+    }
+    
+    let previewHtml = body.replace(/{{userName}}/g, 'John Doe');
+    let previewSubject = subject.replace(/{{userName}}/g, 'John Doe');
+    
+    setPreviewContent({ subject: previewSubject, html: previewHtml });
+    setPreviewOpen(true);
   };
 
   if (authLoading || !user || !profile) {
@@ -388,7 +358,7 @@ export default function AdminPage() {
               <TabsTrigger value="templates">Templates ({emailTemplates.length})</TabsTrigger>
             </TabsList>
             
-            <TabsContent value="broadcast" className="mt-4">
+            <TabsContent value="email" className="mt-4">
                <Card>
                 <CardHeader>
                   <CardTitle>Email Broadcast</CardTitle>
@@ -405,7 +375,7 @@ export default function AdminPage() {
                           <TableRow>
                             <TableHead className="w-12">
                               <Checkbox 
-                                checked={selectedUserIds.size === filteredUsers.length && filteredUsers.length > 0}
+                                checked={selectedUserIds.size === filteredUsers.filter(u => u.marketingOptIn).length && filteredUsers.length > 0}
                                 onCheckedChange={handleSelectAll}
                               />
                             </TableHead>
@@ -424,9 +394,13 @@ export default function AdminPage() {
                             ))
                           ) : (
                             filteredUsers.map(u => (
-                              <TableRow key={u.id} data-state={selectedUserIds.has(u.id) ? 'selected' : ''}>
+                              <TableRow key={u.id} data-state={selectedUserIds.has(u.id) ? 'selected' : ''} className={!u.marketingOptIn ? 'opacity-50' : ''}>
                                 <TableCell>
-                                  <Checkbox checked={selectedUserIds.has(u.id)} onCheckedChange={() => handleSelectUser(u.id)} />
+                                  {u.marketingOptIn ? (
+                                    <Checkbox checked={selectedUserIds.has(u.id)} onCheckedChange={() => handleSelectUser(u.id)} />
+                                  ) : (
+                                    <Lock className="w-4 h-4 text-muted-foreground" title={`${u.name} has unsubscribed.`}/>
+                                  )}
                                 </TableCell>
                                 <TableCell className="font-medium">{u.name}</TableCell>
                                 <TableCell className="text-muted-foreground">{u.email}</TableCell>
@@ -467,7 +441,7 @@ export default function AdminPage() {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <Button variant="outline" onClick={handlePreview} disabled={!subject || !body}>
+                    <Button variant="outline" onClick={() => handlePreview(subject, body)} disabled={!subject || !body}>
                       <Eye className="w-4 h-4 mr-2"/>
                       Preview
                     </Button>
@@ -497,6 +471,7 @@ export default function AdminPage() {
                           <TableHead className="text-center">Referrals</TableHead>
                           <TableHead className="text-center">Tier</TableHead>
                           <TableHead className="text-center">VIP</TableHead>
+                          <TableHead className="text-center">Marketing</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -508,6 +483,7 @@ export default function AdminPage() {
                               <TableCell><Skeleton className="h-5 w-12 mx-auto" /></TableCell>
                               <TableCell><Skeleton className="h-5 w-12 mx-auto" /></TableCell>
                               <TableCell><Skeleton className="h-5 w-8 mx-auto" /></TableCell>
+                              <TableCell><Skeleton className="h-5 w-5 mx-auto" /></TableCell>
                               <TableCell><Skeleton className="h-5 w-5 mx-auto" /></TableCell>
                             </TableRow>
                           ))
@@ -522,12 +498,13 @@ export default function AdminPage() {
                                 {getReferralTierIcon(u.referralCount || 0)}
                               </TableCell>
                               <TableCell className="text-center">{u.isVip ? '👑' : ''}</TableCell>
+                              <TableCell className="text-center">{u.marketingOptIn ? '✅' : '❌'}</TableCell>
                             </TableRow>
                           ))
                         )}
                         {filteredUsers.length === 0 && !loadingUsers && (
                           <TableRow>
-                            <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">No referral members yet.</TableCell>
+                            <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">No referral members yet.</TableCell>
                           </TableRow>
                         )}
                       </TableBody>
@@ -613,51 +590,6 @@ export default function AdminPage() {
             <TabsContent value="templates" className="mt-4">
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <ClipboardList />
-                    Welcome Email Template
-                  </CardTitle>
-                  <CardDescription>
-                    Edit the template for the automated welcome email sent to new users. Use placeholders like {"{{userName}}"}, {"{{referralCode}}"}, {"{{referralLink}}"}, and {"{{vipBanner}}"}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {loadingTemplate ? (
-                    <div className="space-y-4">
-                      <Skeleton className="h-10 w-full" />
-                      <Skeleton className="h-64 w-full" />
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="template-subject">Subject</Label>
-                        <Input 
-                          id="template-subject" 
-                          value={welcomeTemplate.subject} 
-                          onChange={e => setWelcomeTemplate(prev => ({ ...prev, subject: e.target.value }))}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="template-body">Body (HTML)</Label>
-                        <Textarea 
-                          id="template-body"
-                          value={welcomeTemplate.html}
-                          onChange={e => setWelcomeTemplate(prev => ({...prev, html: e.target.value}))}
-                          className="min-h-[400px] font-mono text-xs"
-                        />
-                      </div>
-                      <Button onClick={handleSaveTemplate} disabled={savingTemplate}>
-                        <Save className="w-4 h-4 mr-2" />
-                        {savingTemplate ? 'Saving...' : 'Save Template'}
-                      </Button>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-            <TabsContent value="templates" className="mt-4">
-              <Card>
-                <CardHeader>
                   <div className="flex items-center justify-between">
                     <div>
                       <CardTitle>Email Templates</CardTitle>
@@ -676,7 +608,6 @@ export default function AdminPage() {
                         <TableRow>
                           <TableHead>Template Name</TableHead>
                           <TableHead>Subject</TableHead>
-                          <TableHead>Variables</TableHead>
                           <TableHead>Updated</TableHead>
                           <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
@@ -688,7 +619,6 @@ export default function AdminPage() {
                               <TableCell><Skeleton className="h-5 w-32" /></TableCell>
                               <TableCell><Skeleton className="h-5 w-48" /></TableCell>
                               <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-                              <TableCell><Skeleton className="h-5 w-24" /></TableCell>
                               <TableCell><Skeleton className="h-5 w-24 ml-auto" /></TableCell>
                             </TableRow>
                           ))
@@ -697,27 +627,18 @@ export default function AdminPage() {
                             <TableRow key={template.id}>
                               <TableCell className="font-medium">{template.name}</TableCell>
                               <TableCell className="text-muted-foreground">{template.subject}</TableCell>
-                              <TableCell>
-                                <div className="flex gap-1 flex-wrap">
-                                  {template.variables.map(v => (
-                                    <span key={v} className="text-xs bg-muted px-2 py-1 rounded">
-                                      {`{{${v}}}`}
-                                    </span>
-                                  ))}
-                                </div>
-                              </TableCell>
                               <TableCell className="text-sm text-muted-foreground">
                                 {new Date(template.updatedAt).toLocaleDateString()}
                               </TableCell>
                               <TableCell className="text-right">
-                                <div className="flex gap-2 justify-end">
-                                  <Button size="sm" variant="ghost" onClick={() => handlePreviewTemplate(template)}>
+                                <div className="flex gap-1 justify-end">
+                                  <Button size="icon" variant="ghost" onClick={() => handlePreview(template.subject, template.html)}>
                                     <Eye className="w-4 h-4"/>
                                   </Button>
-                                  <Button size="sm" variant="ghost" onClick={() => handleOpenTemplateDialog(template)}>
+                                  <Button size="icon" variant="ghost" onClick={() => handleOpenTemplateDialog(template)}>
                                     <Edit className="w-4 h-4"/>
                                   </Button>
-                                  <Button size="sm" variant="ghost" onClick={() => handleDeleteTemplate(template.id)}>
+                                  <Button size="icon" variant="ghost" onClick={() => handleDeleteTemplate(template.id)}>
                                     <Trash2 className="w-4 h-4 text-destructive"/>
                                   </Button>
                                 </div>
@@ -745,16 +666,14 @@ export default function AdminPage() {
 
       {/* Template Editor Dialog */}
       <Dialog open={templateDialogOpen} onOpenChange={setTemplateDialogOpen}>
-        <DialogContent className="w-[96vw] max-h-[92vh] overflow-hidden p-6">
+        <DialogContent className="sm:max-w-3xl h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>{editingTemplate ? 'Edit Template' : 'Create New Template'}</DialogTitle>
             <DialogDescription>
-              {editingTemplate ? 'Update the email template details. Preview updates in real-time.' : 'Create a new email template. Preview updates in real-time.'}
+              {editingTemplate ? 'Update the email template details.' : 'Create a new reusable email template.'}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-5 gap-6 h-[calc(92vh-160px)]">
-            {/* Left: Editor (2 columns) */}
-            <div className="col-span-2 space-y-4 overflow-y-auto pr-4">
+          <div className="flex-grow space-y-4 overflow-y-auto pr-2">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="template-id">Template ID *</Label>
@@ -765,7 +684,7 @@ export default function AdminPage() {
                     placeholder="e.g., welcome, shipping"
                     disabled={!!editingTemplate}
                   />
-                  <p className="text-xs text-muted-foreground">Unique identifier</p>
+                  <p className="text-xs text-muted-foreground">Unique identifier, no spaces.</p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="template-name">Template Name *</Label>
@@ -794,9 +713,9 @@ export default function AdminPage() {
                   id="template-variables" 
                   value={templateVariables} 
                   onChange={(e) => setTemplateVariables(e.target.value)}
-                  placeholder="e.g., userName, referralCode, totalUsers"
+                  placeholder="e.g., userName, referralCode"
                 />
-                <p className="text-xs text-muted-foreground">Use as {`{{variableName}}`} in HTML</p>
+                <p className="text-xs text-muted-foreground">Use as {'{{variableName}}'} in your HTML.</p>
               </div>
 
               <div className="space-y-2">
@@ -806,205 +725,19 @@ export default function AdminPage() {
                   value={templateHtml} 
                   onChange={(e) => setTemplateHtml(e.target.value)}
                   placeholder="Enter HTML email content..."
-                  className="font-mono text-sm min-h-[500px]"
+                  className="font-mono text-sm min-h-[400px]"
                 />
               </div>
-            </div>
-
-            {/* Right: Live Preview (3 columns) */}
-            <div className="col-span-3 border-l pl-6 overflow-y-auto">
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-sm font-medium mb-2">Live Preview</h3>
-                  <p className="text-xs text-muted-foreground mb-4">
-                    This is how users will see the email with PawMe branding. Variables show as placeholders.
-                  </p>
-                </div>
-
-                {/* Subject Preview */}
-                {templateSubject && (
-                  <div className="space-y-2">
-                    <Label className="text-xs text-muted-foreground">Subject Line:</Label>
-                    <div className="p-3 bg-muted rounded-md">
-                      <p className="font-medium">{templateSubject}</p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Email Preview with Branded Wrapper */}
-                <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">Email Body:</Label>
-                  <div className="border rounded-lg bg-gradient-to-b from-gray-100 to-gray-50 p-8">
-                    <div className="max-w-[600px] mx-auto bg-white rounded-lg shadow-lg overflow-hidden">
-                      {/* Branded Header */}
-                      <div style={{
-                        background: 'linear-gradient(135deg, #7678EE 0%, #9673D6 100%)',
-                        padding: '32px 24px',
-                        textAlign: 'center'
-                      }}>
-                        <div style={{ marginBottom: '12px' }}>
-                          <svg width="48" height="48" viewBox="0 0 100 100" style={{ display: 'inline-block' }}>
-                            <circle cx="50" cy="50" r="45" fill="white" opacity="0.2"/>
-                            <circle cx="50" cy="50" r="35" fill="white"/>
-                            <text x="50" y="65" fontSize="40" fill="#7678EE" textAnchor="middle" fontWeight="bold">🐾</text>
-                          </svg>
-                        </div>
-                        <h1 style={{ 
-                          margin: 0, 
-                          color: 'white', 
-                          fontSize: '28px', 
-                          fontWeight: '600',
-                          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-                        }}>
-                          PawMe
-                        </h1>
-                      </div>
-
-                      {/* Email Content */}
-                      <div style={{ padding: '32px 24px' }}>
-                        {templateHtml ? (
-                          <div dangerouslySetInnerHTML={{ __html: templateHtml }} />
-                        ) : (
-                          <div style={{ 
-                            textAlign: 'center', 
-                            padding: '80px 20px',
-                            color: '#999',
-                            fontSize: '14px'
-                          }}>
-                            Start typing HTML to see preview...
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Branded Footer */}
-                      <div style={{
-                        background: '#f8f8fc',
-                        padding: '24px',
-                        textAlign: 'center',
-                        borderTop: '1px solid #e5e5e5'
-                      }}>
-                        <p style={{ 
-                          margin: '0 0 12px', 
-                          color: '#666', 
-                          fontSize: '14px',
-                          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-                        }}>
-                          © 2024 PawMe by Ayva Labs Limited. All rights reserved.
-                        </p>
-                        <p style={{ 
-                          margin: '0 0 16px', 
-                          color: '#999', 
-                          fontSize: '12px',
-                          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-                        }}>
-                          You're receiving this email because you signed up for PawMe.
-                        </p>
-                        <div style={{ marginTop: '16px' }}>
-                          <a href="#" style={{ 
-                            display: 'inline-block',
-                            margin: '0 8px',
-                            color: '#7678EE',
-                            textDecoration: 'none',
-                            fontSize: '12px'
-                          }}>Twitter</a>
-                          <span style={{ color: '#ddd' }}>•</span>
-                          <a href="#" style={{ 
-                            display: 'inline-block',
-                            margin: '0 8px',
-                            color: '#7678EE',
-                            textDecoration: 'none',
-                            fontSize: '12px'
-                          }}>Facebook</a>
-                          <span style={{ color: '#ddd' }}>•</span>
-                          <a href="#" style={{ 
-                            display: 'inline-block',
-                            margin: '0 8px',
-                            color: '#7678EE',
-                            textDecoration: 'none',
-                            fontSize: '12px'
-                          }}>Instagram</a>
-                          <span style={{ color: '#ddd' }}>•</span>
-                          <a href="#" style={{ 
-                            display: 'inline-block',
-                            margin: '0 8px',
-                            color: '#7678EE',
-                            textDecoration: 'none',
-                            fontSize: '12px'
-                          }}>TikTok</a>
-                        </div>
-                        <p style={{ 
-                          margin: '16px 0 0', 
-                          color: '#999', 
-                          fontSize: '11px',
-                          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-                        }}>
-                          Follow us @pawme on all social media
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Variables Info */}
-                {templateVariables && (
-                  <div className="p-4 bg-muted/50 rounded-md">
-                    <p className="text-xs font-medium mb-2">Available Variables:</p>
-                    <div className="flex gap-2 flex-wrap">
-                      {templateVariables.split(',').map(v => v.trim()).filter(v => v).map(v => (
-                        <span key={v} className="text-xs bg-background px-2 py-1 rounded border">
-                          {`{{${v}}}`}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
           </div>
-          <DialogFooter className="mt-4">
+          <DialogFooter className="pt-4 border-t">
+            <Button variant="outline" onClick={() => handlePreview(templateSubject, templateHtml)}>
+                <Eye className="w-4 h-4 mr-2" />
+                Preview
+            </Button>
+            <div className="flex-grow" />
             <Button variant="outline" onClick={() => setTemplateDialogOpen(false)}>Cancel</Button>
             <Button onClick={handleSaveTemplate}>
               {editingTemplate ? 'Update Template' : 'Create Template'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Template Preview Dialog */}
-      <Dialog open={previewDialogOpen} onOpenChange={setPreviewDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Preview: {previewTemplate?.name}</DialogTitle>
-            <DialogDescription>
-              Subject: {previewTemplate?.subject}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <div className="border rounded-lg p-4 bg-muted/30">
-              <div 
-                className="bg-white p-4 rounded"
-                dangerouslySetInnerHTML={{ __html: previewTemplate?.html || '' }}
-              />
-            </div>
-            <div className="mt-4 p-4 bg-muted rounded-lg">
-              <p className="text-sm font-medium mb-2">Available Variables:</p>
-              <div className="flex gap-2 flex-wrap">
-                {previewTemplate?.variables.map(v => (
-                  <span key={v} className="text-xs bg-background px-2 py-1 rounded border">
-                    {`{{${v}}}`}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setPreviewDialogOpen(false)}>Close</Button>
-            <Button onClick={() => {
-              setPreviewDialogOpen(false);
-              if (previewTemplate) handleOpenTemplateDialog(previewTemplate);
-            }}>
-              <Edit className="w-4 h-4 mr-2"/>
-              Edit Template
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1043,15 +776,15 @@ export default function AdminPage() {
       </Dialog>
       
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent className="sm:max-w-2xl h-[80vh] flex flex-col">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-3xl h-[90vh] flex flex-col p-0">
+          <DialogHeader className="p-6 pb-2">
             <DialogTitle>Email Preview</DialogTitle>
             <DialogDescription>
               This is a preview of how the email will look. Placeholders are filled with sample data.
             </DialogDescription>
           </DialogHeader>
-          <div className="flex-grow border rounded-md overflow-hidden flex flex-col">
-            <div className="p-3 border-b bg-muted text-sm">
+          <div className="flex-grow border-y flex flex-col overflow-hidden">
+            <div className="p-3 px-6 border-b bg-muted text-sm">
               <strong>Subject:</strong> {previewContent.subject}
             </div>
             <iframe
@@ -1060,7 +793,7 @@ export default function AdminPage() {
               title="Email Preview"
             />
           </div>
-          <DialogFooter className="mt-4">
+          <DialogFooter className="p-6 pt-4">
             <Button variant="outline" onClick={() => setPreviewOpen(false)}>Close</Button>
           </DialogFooter>
         </DialogContent>
@@ -1068,7 +801,5 @@ export default function AdminPage() {
     </>
   );
 }
-
-    
 
     
