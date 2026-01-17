@@ -73,7 +73,7 @@ service cloud.firestore {
     }
 
     // Rules for the 'appSettings' collection
-    match /appSettings/{settingId} {
+    match /app-settings/{settingId} {
       // Anyone can read app settings (for public display of referral tiers, rewards, etc.)
       allow read: if true;
       
