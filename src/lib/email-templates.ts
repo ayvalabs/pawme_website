@@ -57,6 +57,23 @@ export const defaultTemplates: Record<string, EmailTemplate> = {
                       </td>
                     </tr>
                   </table>
+
+                  <!-- VIP Banner -->
+                  <table role="presentation" style="width: 100%; margin-bottom: 30px;">
+                    <tr>
+                      <td style="background: linear-gradient(135deg, rgba(250, 204, 21, 0.1) 0%, rgba(118, 120, 238, 0.1) 50%, rgba(250, 204, 21, 0.1) 100%); border: 1px solid rgba(118, 120, 238, 0.2); border-radius: 8px; text-align: center; padding: 25px;">
+                        <a href="https://pawme.com/leaderboard" target="_blank" style="text-decoration: none; color: #333333;">
+                          <h2 style="margin: 0 0 10px; font-size: 24px; font-weight: bold; color: #7678EE;">👑 Join the VIP List! 👑</h2>
+                          <p style="margin: 0 0 20px; font-size: 16px; line-height: 1.5; color: #4A5568;">
+                            Become a founding member, get exclusive early bird pricing, and earn <strong style="color: #7678EE;">1.5x points</strong> for every referral!
+                          </p>
+                          <div style="display: inline-block; padding: 10px 20px; background-color: #7678EE; color: #ffffff; border-radius: 9999px; font-size: 16px; font-weight: 600;">
+                            ✨ Limited spots available - Join Now!
+                          </div>
+                        </a>
+                      </td>
+                    </tr>
+                  </table>
                   
                   <!-- CTA Button -->
                   <table role="presentation" style="width: 100%; text-align: center;">
