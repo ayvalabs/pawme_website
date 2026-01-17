@@ -1,32 +1,14 @@
 
-import { Twitter, Facebook, Instagram, Linkedin } from 'lucide-react';
+import { SocialIcon } from 'react-social-icons';
 import { ThemeAwareLogo } from '@/app/components/theme-aware-logo';
-
-const TikTokIcon = (props: React.SVGProps<SVGSVGElement>) => (
-    <svg 
-      xmlns="http://www.w3.org/2000/svg" 
-      width="24" 
-      height="24" 
-      viewBox="0 0 24 24" 
-      fill="none" 
-      stroke="currentColor" 
-      strokeWidth="2" 
-      strokeLinecap="round" 
-      strokeLinejoin="round"
-      {...props}
-    >
-      <path d="M16 4.99a5 5 0 0 1-5 5V16a3 3 0 1 0 3 3V12a8 8 0 1 0-8 8h1"/>
-    </svg>
-);
-
 
 export function Footer() {
   const socialLinks = [
-    { icon: Twitter, href: 'https://twitter.com/pawme', label: 'Twitter' },
-    { icon: Facebook, href: 'https://facebook.com/pawme', label: 'Facebook' },
-    { icon: Instagram, href: 'https://instagram.com/pawme', label: 'Instagram' },
-    { icon: Linkedin, href: 'https://linkedin.com/company/pawme', label: 'LinkedIn' },
-    { icon: TikTokIcon, href: 'https://tiktok.com/@pawme', label: 'TikTok' },
+    { network: 'twitter', url: 'https://twitter.com/pawme' },
+    { network: 'facebook', url: 'https://facebook.com/pawme' },
+    { network: 'instagram', url: 'https://instagram.com/pawme' },
+    { network: 'youtube', url: 'https://youtube.com/@pawme' },
+    { network: 'tiktok', url: 'https://tiktok.com/@pawme' },
   ];
 
   return (
@@ -69,22 +51,20 @@ export function Footer() {
           {/* Social */}
           <div>
             <h4 className="mb-4">Connect With Us</h4>
-            <div className="flex gap-3 mb-4">
-              {socialLinks.map((social) => {
-                const Icon = social.icon;
-                return (
-                  <a
-                    key={social.label}
-                    href={social.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-2 bg-primary/10 hover:bg-primary hover:text-primary-foreground text-primary rounded-lg transition-all hover:scale-110"
-                    aria-label={social.label}
-                  >
-                    <Icon className="w-5 h-5" />
-                  </a>
-                );
-              })}
+            <div className="flex gap-2 mb-4">
+              {socialLinks.map((social) => (
+                <SocialIcon
+                  key={social.network}
+                  url={social.url}
+                  network={social.network}
+                  bgColor="transparent"
+                  fgColor="currentColor"
+                  className="text-primary hover:text-primary-foreground hover:bg-primary rounded-full transition-all hover:scale-110"
+                  style={{ height: 44, width: 44 }}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                />
+              ))}
             </div>
             <p className="text-sm text-muted-foreground">
               Follow <span className="text-primary">@pawme</span> on all platforms

@@ -28,6 +28,7 @@ import { collection, query, orderBy, getDocs, doc, setDoc, deleteDoc, updateDoc 
 import { getAppSettings, updateAppSettings, type AppSettings, type ReferralTier, type RewardTier } from '@/app/actions/settings';
 import { defaultTemplates } from '@/lib/email-templates';
 import imageData from '@/app/lib/placeholder-images.json';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/app/components/ui/tooltip';
 
 type UserWithId = UserProfile & { id: string };
 type RewardWithUser = Reward & { user: { id: string; name: string; email: string }, rewardTitle: string };
@@ -775,28 +776,41 @@ export default function AdminPage() {
                             </TableRow>
                           ))
                         ) : (
-                          emailTemplates.map(template => (
-                            <TableRow key={template.id}>
-                              <TableCell className="font-medium">{template.name}</TableCell>
-                              <TableCell className="text-muted-foreground">{template.subject}</TableCell>
-                              <TableCell className="text-sm text-muted-foreground">
-                                {new Date(template.updatedAt).toLocaleDateString()}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <div className="flex gap-1 justify-end">
-                                  <Button size="icon" variant="ghost" onClick={() => handlePreview(template.subject, template.html)}>
-                                    <Eye className="w-4 h-4"/>
-                                  </Button>
-                                  <Button size="icon" variant="ghost" onClick={() => handleOpenTemplateDialog(template)}>
-                                    <Edit className="w-4 h-4"/>
-                                  </Button>
-                                  <Button size="icon" variant="ghost" onClick={() => handleDeleteTemplate(template.id)} disabled={Object.keys(defaultTemplates).includes(template.id)}>
-                                    <Trash2 className="w-4 h-4 text-destructive"/>
-                                  </Button>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          ))
+                          <TooltipProvider>
+                            {emailTemplates.map(template => (
+                              <TableRow key={template.id}>
+                                <TableCell className="font-medium">{template.name}</TableCell>
+                                <TableCell className="text-muted-foreground">{template.subject}</TableCell>
+                                <TableCell className="text-sm text-muted-foreground">
+                                  {new Date(template.updatedAt).toLocaleDateString()}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <div className="flex gap-1 justify-end">
+                                    <Button size="icon" variant="ghost" onClick={() => handlePreview(template.subject, template.html)}>
+                                      <Eye className="w-4 h-4"/>
+                                    </Button>
+                                    <Button size="icon" variant="ghost" onClick={() => handleOpenTemplateDialog(template)}>
+                                      <Edit className="w-4 h-4"/>
+                                    </Button>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <div tabIndex={0}>
+                                          <Button size="icon" variant="ghost" onClick={() => handleDeleteTemplate(template.id)} disabled={Object.keys(defaultTemplates).includes(template.id)}>
+                                            <Trash2 className="w-4 h-4 text-destructive"/>
+                                          </Button>
+                                        </div>
+                                      </TooltipTrigger>
+                                      {Object.keys(defaultTemplates).includes(template.id) && (
+                                        <TooltipContent>
+                                          <p>Default system templates cannot be deleted.</p>
+                                        </TooltipContent>
+                                      )}
+                                    </Tooltip>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TooltipProvider>
                         )}
                         {emailTemplates.length === 0 && !loadingTemplates && (
                           <TableRow>
