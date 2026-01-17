@@ -1,8 +1,7 @@
-
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/app/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/app/components/ui/dialog';
 import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
 import { Label } from '@/app/components/ui/label';
@@ -13,6 +12,8 @@ import { toast } from 'sonner';
 import { Checkbox } from '@/app/components/ui/checkbox';
 import { sendSignUpVerificationCode } from '@/app/actions/auth';
 import { InputOTP, InputOTPGroup, InputOTPSlot, InputOTPSeparator } from '@/app/components/ui/input-otp';
+import { PrivacyPolicy } from './privacy-policy';
+import { ScrollArea } from './ui/scroll-area';
 
 interface AuthDialogProps {
   open: boolean;
@@ -40,6 +41,7 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
   const [privacyPolicyAgreed, setPrivacyPolicyAgreed] = useState(false);
   const [marketingOptIn, setMarketingOptIn] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
+  const [isPrivacyOpen, setPrivacyOpen] = useState(false);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -166,6 +168,7 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader className="text-center items-center">
@@ -209,7 +212,7 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
                 <div className="space-y-2"><Label htmlFor="signup-name">Name</Label><div className="relative"><User className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" /><Input id="signup-name" type="text" placeholder="Your name" value={signUpName} onChange={(e) => setSignUpName(e.target.value)} required className="pl-10" disabled={loading} /></div></div>
                 <div className="space-y-2"><Label htmlFor="signup-email">Email</Label><div className="relative"><Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" /><Input id="signup-email" type="email" placeholder="you@example.com" value={signUpEmail} onChange={(e) => setSignUpEmail(e.target.value)} required className="pl-10" disabled={loading} /></div></div>
                 <div className="space-y-2"><Label htmlFor="signup-password">Password</Label><div className="relative"><Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" /><Input id="signup-password" type="password" placeholder="•••••••• (at least 6 characters)" value={signUpPassword} onChange={(e) => setSignUpPassword(e.target.value)} required minLength={6} className="pl-10" disabled={loading} /></div></div>
-                <div className="items-top flex space-x-2"><Checkbox id="terms" checked={privacyPolicyAgreed} onCheckedChange={(checked) => setPrivacyPolicyAgreed(checked as boolean)} disabled={loading} /><div className="grid gap-1.5 leading-none"><label htmlFor="terms" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">I agree to the{' '}<a href="/privacy-policy" target="_blank" className="underline text-primary hover:text-primary/80">Privacy Policy</a></label></div></div>
+                <div className="items-top flex space-x-2"><Checkbox id="terms" checked={privacyPolicyAgreed} onCheckedChange={(checked) => setPrivacyPolicyAgreed(checked as boolean)} disabled={loading} /><div className="grid gap-1.5 leading-none"><label htmlFor="terms" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">I agree to the{' '}<Button type="button" variant="link" className="p-0 h-auto underline" onClick={() => setPrivacyOpen(true)}>Privacy Policy</Button></label></div></div>
                 <div className="items-top flex space-x-2"><Checkbox id="marketing" checked={marketingOptIn} onCheckedChange={(checked) => setMarketingOptIn(checked as boolean)} disabled={loading} /><div className="grid gap-1.5 leading-none"><label htmlFor="marketing" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Receive occasional product promotion messages</label></div></div>
                 {referralCode && (<div className="text-sm text-muted-foreground bg-primary/5 p-3 rounded-md">You were referred with code: <span className="font-semibold text-primary">{referralCode}</span></div>)}
                 <Button type="submit" className="w-full" disabled={loading || !privacyPolicyAgreed}>{loading ? 'Sending code...' : 'Create Account'}</Button>
@@ -254,5 +257,18 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
         </Tabs>
       </DialogContent>
     </Dialog>
+
+    <Dialog open={isPrivacyOpen} onOpenChange={setPrivacyOpen}>
+      <DialogContent className="sm:max-w-3xl h-[80vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle>Privacy Policy</DialogTitle>
+          <DialogDescription>Last updated: January 17, 2026</DialogDescription>
+        </DialogHeader>
+        <ScrollArea className="flex-grow pr-4">
+          <PrivacyPolicy />
+        </ScrollArea>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
