@@ -102,29 +102,35 @@ export async function sendVerificationCodeEmail({ to, name, code }: { to: string
   }
 }
 
-function getReferralSuccessEmailHtml(referrerName: string, newReferralCount: number, newPoints: number) {
-  const brandColor = '#7678EE';
-  return `
-    <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; color: #333;">
-      <h2 style="color: ${brandColor};">🎉 You've earned points, ${referrerName}!</h2>
-      <p>Great news! Someone just signed up using your referral link.</p>
-      <h3>Your Stats:</h3>
-      <ul>
-        <li><strong>Total Referrals:</strong> ${newReferralCount}</li>
-        <li><strong>Points Earned:</strong> ${newPoints}</li>
-      </ul>
-      <p>Keep sharing to unlock more rewards!</p>
-      <br/>
-      <p>Best regards,</p>
-      <p><strong>The PawMe Team</strong></p>
-      <p style="font-size: 0.8em; color: #777;">Follow us @pawme on all social media.</p>
-    </div>
-  `;
-}
-
 export async function sendReferralSuccessEmail({ to, referrerName, newReferralCount, newPoints }: { to: string, referrerName: string, newReferralCount: number, newPoints: number }) {
-  const subject = "🎉 You've earned points! Someone joined using your referral link";
-  const html = getReferralSuccessEmailHtml(referrerName, newReferralCount, newPoints);
+  let subjectTemplate = '';
+  let htmlTemplate = '';
+
+  try {
+    const templateRef = doc(db, 'emailTemplates', 'referralSuccess');
+    const templateSnap = await getDoc(templateRef);
+
+    if (templateSnap.exists()) {
+      const templateData = templateSnap.data();
+      subjectTemplate = templateData.subject;
+      htmlTemplate = templateData.html;
+    } else {
+      const defaultTemplate = defaultTemplates.referralSuccess;
+      subjectTemplate = defaultTemplate.subject;
+      htmlTemplate = defaultTemplate.html;
+    }
+  } catch (error) {
+    console.error("Error fetching referral success template, using default.", error);
+    const defaultTemplate = defaultTemplates.referralSuccess;
+    subjectTemplate = defaultTemplate.subject;
+    htmlTemplate = defaultTemplate.html;
+  }
+  
+  const subject = subjectTemplate;
+  const html = htmlTemplate
+    .replace(/{{referrerName}}/g, referrerName)
+    .replace(/{{newReferralCount}}/g, newReferralCount.toString())
+    .replace(/{{newPoints}}/g, newPoints.toLocaleString());
   
   try {
     const { error } = await resend.emails.send({
