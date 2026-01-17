@@ -9,30 +9,7 @@ import { defaultTemplates } from '@/lib/email-templates';
 const resend = new Resend(process.env.RESEND_API_KEY);
 const fromEmail = 'PawMe <pawme@ayvalabs.com>';
 
-function getVipBannerHtml(totalUsers: number) {
-  const vipLimit = 250;
-  const spotsLeft = Math.max(0, vipLimit - totalUsers);
-  return `
-    <table role="presentation" style="width: 100%; margin: 30px 0; background-color: #fffaf0; border: 2px dashed #F59E0B; border-radius: 8px;">
-      <tr>
-        <td style="padding: 20px; text-align: center;">
-          <h3 style="margin: 0 0 10px; color: #D97706; font-size: 20px;">👑 Join the VIP List!</h3>
-          <p style="margin: 0 0 15px; color: #333; font-size: 16px;">
-            Become a founding member and get <strong style="color: #7678EE;">1.5x points</strong> for every referral!
-          </p>
-          <a href="https://pawme.com/leaderboard" style="display: inline-block; padding: 10px 20px; background-color: #F59E0B; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600;">
-            Claim Your Spot
-          </a>
-          <p style="margin: 15px 0 0; background-color: #7678EE; color: #ffffff; display: inline-block; padding: 5px 15px; border-radius: 9999px; font-weight: bold;">
-            Only ${spotsLeft} spots left!
-          </p>
-        </td>
-      </tr>
-    </table>
-  `;
-}
-
-export async function sendWelcomeEmail({ to, name, referralCode, totalUsers }: { to: string, name: string, referralCode: string, totalUsers: number | null }) {
+export async function sendWelcomeEmail({ to, name, referralCode }: { to: string, name: string, referralCode: string }) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9008';
   const referralLink = `${appUrl}/?ref=${referralCode}`;
   
@@ -61,13 +38,11 @@ export async function sendWelcomeEmail({ to, name, referralCode, totalUsers }: {
   }
 
   const subject = subjectTemplate.replace(/{{userName}}/g, name);
-  const vipBannerHtml = totalUsers !== null && totalUsers < 250 ? getVipBannerHtml(totalUsers) : '';
   
   const html = htmlTemplate
     .replace(/{{userName}}/g, name)
     .replace(/{{referralLink}}/g, referralLink)
-    .replace(/{{referralCode}}/g, referralCode)
-    .replace(/{{vipBanner}}/g, vipBannerHtml);
+    .replace(/{{referralCode}}/g, referralCode);
 
   try {
     const { error } = await resend.emails.send({

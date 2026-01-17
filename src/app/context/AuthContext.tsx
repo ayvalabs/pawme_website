@@ -27,7 +27,6 @@ import {
   deleteDoc,
 } from 'firebase/firestore';
 import { auth, db } from '@/firebase/config';
-import { getTotalUsers } from '@/app/actions/users';
 import { sendWelcomeEmail, sendReferralSuccessEmail } from '@/app/actions/email';
 import { isDisposableEmail } from '@/lib/disposable-domains';
 
@@ -77,6 +76,7 @@ interface AuthContextType {
   sendPasswordReset: (email: string) => Promise<void>;
   joinVip: () => Promise<void>;
   redeemReward: (rewardId: string, shippingAddress: any) => Promise<void>;
+  updateMarketingPreference: (optIn: boolean) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -214,16 +214,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const newUser = userCredential.user;
       console.log('✅ [SIGNUP] Firebase Auth user created:', newUser.uid);
       
-      // Ensure the auth token is ready before Firestore operations
-      console.log('🔵 [SIGNUP] Step 4: Refreshing auth token...');
-      await newUser.getIdToken(true);
-      console.log('✅ [SIGNUP] Auth token refreshed');
-      
-      console.log('🔵 [SIGNUP] Step 5: Updating user profile...');
+      console.log('🔵 [SIGNUP] Step 4: Updating user profile...');
       await updateUserProfile(newUser, { displayName: name });
       console.log('✅ [SIGNUP] User profile updated');
 
-      console.log('🔵 [SIGNUP] Step 6: Generating referral code...');
+      console.log('🔵 [SIGNUP] Step 5: Generating referral code...');
       const referralCode = await generateReferralCode(email, newUser.uid);
       console.log('✅ [SIGNUP] Referral code generated:', referralCode);
       
@@ -243,26 +238,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         marketingOptIn,
       };
 
-      console.log('🔵 [SIGNUP] Step 7: Creating user document in Firestore...');
-      console.log('🔵 [SIGNUP] User ID:', newUser.uid);
-      console.log('🔵 [SIGNUP] User Profile:', userProfile);
+      console.log('🔵 [SIGNUP] Step 6: Creating user document in Firestore...');
       await setDoc(doc(db, 'users', newUser.uid), userProfile);
       console.log('✅ [SIGNUP] User document created in Firestore');
       
-      // 3. Clean up and post-signup tasks
-      console.log('🔵 [SIGNUP] Step 8: Cleaning up verification code...');
+      // 7. Clean up and post-signup tasks
+      console.log('🔵 [SIGNUP] Step 7: Cleaning up verification code...');
       await deleteDoc(verificationDoc.ref);
       console.log('✅ [SIGNUP] Verification code deleted');
       
       if (referredByCode) {
-        console.log('🔵 [SIGNUP] Step 9: Crediting referrer...');
+        console.log('🔵 [SIGNUP] Step 8: Crediting referrer...');
         await creditReferrer(referredByCode, email);
         console.log('✅ [SIGNUP] Referrer credited');
       }
       
-      console.log('🔵 [SIGNUP] Step 10: Sending welcome email...');
-      const totalUsers = await getTotalUsers();
-      await sendWelcomeEmail({ to: email, name, referralCode, totalUsers });
+      console.log('🔵 [SIGNUP] Step 9: Sending welcome email...');
+      await sendWelcomeEmail({ to: email, name, referralCode });
       console.log('✅ [SIGNUP] Welcome email sent');
 
       setUser(newUser);
@@ -391,6 +383,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const updateMarketingPreference = async (optIn: boolean) => {
+    if (user) {
+      const userDocRef = doc(db, 'users', user.uid);
+      try {
+        await updateDoc(userDocRef, { marketingOptIn: optIn });
+        await fetchProfile(user.uid);
+      } catch (error) {
+        console.error('Error updating marketing preference:', error);
+        throw error;
+      }
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -406,6 +411,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         sendPasswordReset,
         joinVip,
         redeemReward,
+        updateMarketingPreference,
       }}
     >
       {children}
