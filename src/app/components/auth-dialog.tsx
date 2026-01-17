@@ -224,7 +224,6 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
                   <p className="text-xs text-muted-foreground mt-1">The code expires in 10 minutes.</p>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="verification-code">Verification Code</Label>
                   <InputOTP maxLength={4} value={verificationCode} onChange={setVerificationCode}>
                     <InputOTPGroup className="w-full justify-center">
                       <InputOTPSlot index={0} />
