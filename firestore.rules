@@ -11,9 +11,11 @@ service cloud.firestore {
     // Rules for the 'users' collection
     match /users/{userId} {
 
-      // Any authenticated user can read public user data for leaderboards and referrals.
-      // Admin can read all user data.
-      allow read: if request.auth != null;
+      // Any authenticated user can read a single user's public data.
+      allow get: if request.auth != null;
+      
+      // Allow any authenticated user to query/list the users collection (for counts, etc.).
+      allow list: if request.auth != null;
 
       // New users can create their own user document upon signup.
       // The document ID must match the user's UID.
@@ -53,7 +55,7 @@ service cloud.firestore {
                       request.resource.data.expiresAt is timestamp;
 
       // Allow anyone to read verification codes (needed to verify the code during signup)
-      // Security: codes are hashed and expire after 10 minutes
+      // Security: codes are short-lived
       allow read: if true;
 
       // Allow anyone to delete verification codes (cleanup after successful verification)
