@@ -1,3 +1,4 @@
+
 'use client';
 
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -109,3 +110,4 @@ export async function saveAppSettings(settings: Partial<AppSettings>): Promise<v
     throw new Error("Failed to update settings in Firestore. Check console and security rules.");
   }
 }
+
