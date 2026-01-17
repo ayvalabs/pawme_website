@@ -71,28 +71,37 @@ export async function uploadRewardImages(
   rewardTiers: RewardTier[],
   imageFiles: Record<string, File>
 ): Promise<RewardTier[]> {
+  // Create a deep copy to avoid modifying the original state directly
   const updatedTiers = JSON.parse(JSON.stringify(rewardTiers));
 
-  for (const tier of updatedTiers) {
-    const file = imageFiles[tier.id];
-    if (file) {
-      try {
-        const timestamp = Date.now();
-        const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-        const path = `rewards/${timestamp}_${sanitizedFileName}`;
-        
-        console.log(`Uploading image for tier ${tier.id}: ${file.name} to ${path}`);
-        const downloadURL = await uploadFileWithRetry(file, path);
-        
-        tier.image = downloadURL;
-        console.log(`Successfully uploaded image for tier ${tier.id}. URL:`, downloadURL);
+  // Use Promise.all to handle all uploads concurrently
+  await Promise.all(
+    updatedTiers.map(async (tier: RewardTier) => {
+      // Check if the image is a new local file (blob URL) that needs uploading
+      if (tier.image && tier.image.startsWith('blob:')) {
+        const file = imageFiles[tier.id];
 
-      } catch (error: any) {
-        console.error(`Failed to upload image for tier "${tier.title}":`, error);
-        throw new Error(`Failed to upload image for "${tier.title}": ${error.message}`);
+        if (file) {
+          const timestamp = Date.now();
+          const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+          const path = `rewards/${timestamp}_${sanitizedFileName}`;
+          
+          try {
+            const downloadURL = await uploadFileWithRetry(file, path);
+            tier.image = downloadURL; // Replace blob URL with permanent URL
+          } catch (error) {
+             console.error(`Failed to upload image for tier "${tier.title}":`, error);
+             // Re-throw the error to be caught by the calling function
+             throw new Error(`Image upload failed for "${tier.title}".`);
+          }
+        } else {
+          // This is a safeguard. A blob URL exists, but the file is missing from our state.
+          console.warn(`Could not find file for blob URL on tier "${tier.title}". Clearing image.`);
+          tier.image = ''; // Prevent saving the invalid blob URL
+        }
       }
-    }
-  }
+    })
+  );
 
   return updatedTiers;
 }
