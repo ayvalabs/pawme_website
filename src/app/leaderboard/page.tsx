@@ -23,6 +23,10 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import Image from 'next/image';
 import imageData from '@/app/lib/placeholder-images.json';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/ui/table';
+import { loadStripe, type Stripe as StripeType } from '@stripe/stripe-js';
+import { Elements } from '@stripe/react-stripe-js';
+import { createPaymentIntent } from '@/app/actions/stripe';
+import CheckoutForm from '@/app/components/CheckoutForm';
 
 interface LeaderboardUser {
   id: string;
@@ -150,12 +154,6 @@ const addressSchema = z.object({
   phone: z.string().min(10, 'A valid phone number is required.'),
 });
 
-const paymentSchema = z.object({
-  cardNumber: z.string().length(16, "Card number must be 16 digits.").regex(/^\d+$/, "Card number must be numeric."),
-  expiryDate: z.string().regex(/^(0[1-9]|1[0-2])\/\d{2}$/, "Expiry date must be in MM/YY format."),
-  cvc: z.string().length(3, "CVC must be 3 digits.").regex(/^\d+$/, "CVC must be numeric."),
-});
-
 export default function LeaderboardPage() {
   const { user, profile, loading: authLoading, joinVip, redeemReward } = useAuth();
   const router = useRouter();
@@ -238,18 +236,19 @@ export default function LeaderboardPage() {
   const [isRedeemDialogOpen, setRedeemDialogOpen] = useState(false);
   const [selectedReward, setSelectedReward] = useState<(typeof rewardTiers)[0] | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [stripePromise] = useState(() => {
+    const stripePublicKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+    if (stripePublicKey) {
+      return loadStripe(stripePublicKey);
+    }
+    return null;
+  });
 
   const addressForm = useForm<z.infer<typeof addressSchema>>({
     resolver: zodResolver(addressSchema),
     defaultValues: {
       fullName: '', address1: '', address2: '', city: '', state: '', zip: '', country: '', phone: ''
-    }
-  });
-
-  const paymentForm = useForm<z.infer<typeof paymentSchema>>({
-    resolver: zodResolver(paymentSchema),
-    defaultValues: {
-      cardNumber: '', expiryDate: '', cvc: ''
     }
   });
 
@@ -350,18 +349,27 @@ ${profile.name}`
     toast.success('WhatsApp has been opened!');
   };
 
-  const handleJoinVip = async () => {
-    setIsSubmitting(true);
-    await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate payment processing
+  const finalizeVipJoin = async () => {
     try {
       await joinVip();
       toast.success("Welcome to the VIP list! 👑 You're now a founding member.");
-      setVipDialogOpen(false);
     } catch (e) {
-      toast.error('Could not process VIP payment. Please try again.');
+      toast.error('There was an issue updating your VIP status. Please contact support.');
     } finally {
-      setIsSubmitting(false);
+      setVipDialogOpen(false);
     }
+  };
+  
+  const handleOpenVipDialog = async () => {
+    setIsSubmitting(true);
+    const res = await createPaymentIntent(100);
+    if (res.clientSecret) {
+      setClientSecret(res.clientSecret);
+      setVipDialogOpen(true);
+    } else {
+      toast.error(res.error || 'Could not initiate payment. Please try again later.');
+    }
+    setIsSubmitting(false);
   };
   
   const handleOpenRedeemDialog = (reward: (typeof rewardTiers)[0]) => {
@@ -412,7 +420,7 @@ ${profile.name}`
               totalUsers={totalUsers} 
               loading={loadingVipCount} 
               userName={profile.name.split(' ')[0]} 
-              onJoinClick={() => setVipDialogOpen(true)}
+              onJoinClick={handleOpenVipDialog}
             />
           )}
           
@@ -594,54 +602,18 @@ ${profile.name}`
           <DialogHeader>
             <DialogTitle>Join the VIP List</DialogTitle>
             <DialogDescription>
-              Become a founding member for a one-time payment to unlock exclusive perks and 1.5x referral points.
+              Complete the $1.00 deposit to become a founding member and unlock exclusive perks, including 1.5x referral points.
             </DialogDescription>
           </DialogHeader>
-          <Form {...paymentForm}>
-            <form onSubmit={paymentForm.handleSubmit(handleJoinVip)} className="space-y-4">
-              <FormField
-                control={paymentForm.control}
-                name="cardNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Card Number</FormLabel>
-                    <FormControl><Input {...field} placeholder="0000 0000 0000 0000" /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={paymentForm.control}
-                  name="expiryDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Expiry (MM/YY)</FormLabel>
-                      <FormControl><Input {...field} placeholder="MM/YY" /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={paymentForm.control}
-                  name="cvc"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>CVC</FormLabel>
-                      <FormControl><Input {...field} placeholder="123" /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setVipDialogOpen(false)} disabled={isSubmitting}>Cancel</Button>
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? 'Processing...' : 'Confirm & Join VIP'}
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
+          {clientSecret && stripePromise ? (
+            <Elements options={{ clientSecret }} stripe={stripePromise}>
+              <CheckoutForm onSuccess={finalizeVipJoin} />
+            </Elements>
+          ) : (
+            <div className="flex justify-center items-center h-32">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
       
@@ -717,3 +689,4 @@ ${profile.name}`
     </>
   );
 }
+
