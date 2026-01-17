@@ -24,6 +24,7 @@ import {
   getDocs,
   updateDoc,
   runTransaction,
+  deleteDoc,
 } from 'firebase/firestore';
 import { auth, db } from '@/firebase/config';
 import { getTotalUsers } from '@/app/actions/users';
@@ -67,7 +68,7 @@ interface AuthContextType {
   user: FirebaseUser | null;
   profile: UserProfile | null;
   loading: boolean;
-  signUp: (email: string, password: string, name: string, referredByCode: string | undefined, privacyPolicyAgreed: boolean, marketingOptIn: boolean) => Promise<void>;
+  signUp: (email: string, password: string, name: string, code: string, referredByCode: string | undefined, privacyPolicyAgreed: boolean, marketingOptIn: boolean) => Promise<void>;
   signIn: (email: string, password: string) => Promise<FirebaseUser>;
   signInWithGoogle: () => Promise<FirebaseUser>;
   signOut: () => Promise<void>;
@@ -174,7 +175,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signUp = async (email: string, password: string, name: string, referredByCode: string | undefined, privacyPolicyAgreed: boolean, marketingOptIn: boolean) => {
+  const signUp = async (email: string, password: string, name: string, code: string, referredByCode: string | undefined, privacyPolicyAgreed: boolean, marketingOptIn: boolean) => {
+    // 1. Verify code
+    const verificationsRef = collection(db, 'verifications');
+    const q = query(verificationsRef, where('email', '==', email), where('code', '==', code));
+    const querySnapshot = await getDocs(q);
+
+    if (querySnapshot.empty) {
+      throw new Error('Invalid verification code.');
+    }
+
+    const verificationDoc = querySnapshot.docs[0];
+    const verificationData = verificationDoc.data();
+
+    if (verificationData.expiresAt.toMillis() < Date.now()) {
+      await deleteDoc(verificationDoc.ref);
+      throw new Error('Verification code has expired. Please try again.');
+    }
+    
+    // 2. If valid, proceed with signup
     if (isDisposableEmail(email)) {
       throw new Error("Disposable email addresses are not allowed. Please use a permanent email address.");
     }
@@ -202,6 +221,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     await setDoc(doc(db, 'users', newUser.uid), userProfile);
+    
+    // 3. Clean up and post-signup tasks
+    await deleteDoc(verificationDoc.ref);
     
     if (referredByCode) {
       await creditReferrer(referredByCode, email);

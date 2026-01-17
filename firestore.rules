@@ -41,12 +41,19 @@ service cloud.firestore {
           )
         );
     }
-<<<<<<< HEAD
-    
-    // Rules for email templates
-    match /email_templates/{templateId} {
-      allow read, write: if isAdmin();
-=======
+
+    // Rules for the 'verifications' collection
+    match /verifications/{docId} {
+      // Allow anyone to create a verification document, but only with a specific structure.
+      allow create: if request.resource.data.keys().hasAll(['email', 'code', 'expiresAt']) &&
+                      request.resource.data.size() == 3 &&
+                      request.resource.data.email is string &&
+                      request.resource.data.code is string &&
+                      request.resource.data.expiresAt is timestamp;
+
+      // Only backend with admin access can read/delete.
+      allow read, update, delete: if false;
+    }
 
     // Rules for the 'emailTemplates' collection
     match /emailTemplates/{templateId} {
@@ -55,7 +62,6 @@ service cloud.firestore {
       
       // Only admin can create, update, or delete email templates
       allow write: if isAdmin();
->>>>>>> f63f1f59e82bd4af2a9b5cf14cdbb087cf906729
     }
   }
 }

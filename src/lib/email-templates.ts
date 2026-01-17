@@ -40,6 +40,25 @@ export const defaultTemplates: Record<string, EmailTemplate> = {
     `,
     variables: ['userName', 'referralCode', 'referralLink', 'vipBanner'],
   },
+  verificationCode: {
+    id: 'verificationCode',
+    name: 'Verification Code',
+    subject: 'Your PawMe Verification Code',
+    html: `
+    <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; color: #333;">
+      <h2 style="color: #7678EE;">Hi {{userName}}, please verify your email</h2>
+      <p>Here is your 4-digit verification code to complete your signup for PawMe:</p>
+      <p style="background-color: #f0f2fe; padding: 20px; border-radius: 5px; text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 8px; margin: 2rem 0;">
+        {{code}}
+      </p>
+      <p>This code will expire in 10 minutes. If you didn't request this, you can safely ignore this email.</p>
+      <br/>
+      <p>Best regards,</p>
+      <p><strong>The PawMe Team</strong></p>
+    </div>
+    `,
+    variables: ['userName', 'code'],
+  },
   productUpdate: {
     id: 'productUpdate',
     name: 'Product Update',

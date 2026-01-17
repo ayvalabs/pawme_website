@@ -42,7 +42,7 @@ export async function sendWelcomeEmail({ to, name, referralCode, totalUsers }: {
   let htmlTemplate = '';
 
   try {
-    const templateRef = doc(db, 'email_templates', 'welcome');
+    const templateRef = doc(db, 'emailTemplates', 'welcome');
     const templateSnap = await getDoc(templateRef);
 
     if (templateSnap.exists()) {
@@ -85,6 +85,30 @@ export async function sendWelcomeEmail({ to, name, referralCode, totalUsers }: {
     console.error('Failed to send welcome email:', error);
   }
 }
+
+export async function sendVerificationCodeEmail({ to, name, code }: { to: string, name: string, code: string }) {
+  const template = defaultTemplates.verificationCode;
+  if (!template) {
+    console.error("Verification code email template not found.");
+    return;
+  }
+  const subject = template.subject.replace(/{{userName}}/g, name);
+  const html = template.html
+    .replace(/{{userName}}/g, name)
+    .replace(/{{code}}/g, code);
+  
+  try {
+    await resend.emails.send({
+      from: fromEmail,
+      to,
+      subject,
+      html,
+    });
+  } catch (error) {
+    console.error('Failed to send verification code email:', error);
+  }
+}
+
 
 function getReferralSuccessEmailHtml(referrerName: string, newReferralCount: number, newPoints: number) {
   const brandColor = '#7678EE';

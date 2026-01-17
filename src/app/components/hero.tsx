@@ -112,21 +112,11 @@ export function Hero() {
             </p>
             <p className="text-lg md:text-xl lg:text-2xl mb-12 max-w-3xl mx-auto drop-shadow-lg text-white/90">
               {slide.description}
-            </p>
-
-            {/* CTA Button */}
-            <Button
-              size="lg"
-              onClick={() => setAuthDialogOpen(true)}
-              className="text-lg px-8 py-6 gap-3 shadow-2xl hover:shadow-3xl transition-all hover:scale-105 text-white"
-            >
-              {user ? 'Share & Earn Rewards' : 'Join the Waitlist'}
-              <ArrowRight className="w-5 h-5" />
-            </Button>
+            </p>           
           </div>
 
           {/* Slide Indicators */}
-          <div className="flex items-center justify-center gap-3 mt-16">
+          {/* <div className="flex items-center justify-center gap-3 mt-16">
             {slides.map((_, index) => (
               <button
                 key={index}
@@ -139,33 +129,16 @@ export function Hero() {
                 aria-label={`Go to slide ${index + 1}`}
               />
             ))}
-          </div>
+          </div> */}
         </div>
       </div>
 
-      {/* Navigation Arrows */}
-      <button
-        onClick={prevSlide}
-        className="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 z-20 w-12 h-12 md:w-14 md:h-14 rounded-full bg-white/10 backdrop-blur-sm hover:bg-white/20 transition-all flex items-center justify-center group border border-white/20"
-        aria-label="Previous slide"
-      >
-        <ChevronLeft className="w-6 h-6 md:w-8 md:h-8 text-white group-hover:scale-110 transition-transform" />
-      </button>
-
-      <button
-        onClick={nextSlide}
-        className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 z-20 w-12 h-12 md:w-14 md:h-14 rounded-full bg-white/10 backdrop-blur-sm hover:bg-white/20 transition-all flex items-center justify-center group border border-white/20"
-        aria-label="Next slide"
-      >
-        <ChevronRight className="w-6 h-6 md:w-8 md:h-8 text-white group-hover:scale-110 transition-transform" />
-      </button>
-
       {/* Scroll Down Indicator */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 animate-bounce">
+      {/* <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 animate-bounce">
         <div className="w-6 h-10 border-2 border-white/50 rounded-full flex items-start justify-center p-2">
           <div className="w-1.5 h-1.5 bg-white/70 rounded-full animate-pulse" />
         </div>
-      </div>
+      </div> */}
 
       <AuthDialog
         open={authDialogOpen}
