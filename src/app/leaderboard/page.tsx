@@ -13,7 +13,7 @@ import { Label } from '@/app/components/ui/label';
 import { Textarea } from '@/app/components/ui/textarea';
 import { Trophy, Users, Gift, Share2, Copy, Check, Mail, MessageCircle, Sparkles, Star, Lock } from 'lucide-react';
 import { toast } from 'sonner';
-import { getTotalUsers, getLeaderboard } from '@/app/actions/users';
+import { getLeaderboard } from '@/app/actions/users';
 import { Skeleton } from '@/app/components/ui/skeleton';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/app/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/app/components/ui/alert-dialog';
@@ -36,9 +36,8 @@ interface LeaderboardUser {
   rank: number;
 }
 
-function VipBanner({ totalUsers, loading, userName, onJoinClick }: { totalUsers: number | null, loading: boolean, userName: string, onJoinClick: () => void }) {
+function VipBanner({ userName, onJoinClick }: { userName: string, onJoinClick: () => void }) {
   const vipLimit = 100;
-  const spotsLeft = totalUsers !== null ? Math.max(0, vipLimit - totalUsers) : null;
 
   return (
     <Card 
@@ -55,14 +54,10 @@ function VipBanner({ totalUsers, loading, userName, onJoinClick }: { totalUsers:
       </CardHeader>
       <CardContent className="p-0 space-y-4">
         <div className="h-10 flex items-center justify-center">
-          {loading ? (
-            <Skeleton className="h-6 w-48" />
-          ) : (
             <p className="text-xl font-semibold bg-primary text-primary-foreground rounded-full px-6 py-2 inline-flex items-center gap-2">
               <Sparkles className="w-5 h-5" />
-              Only {spotsLeft !== null ? spotsLeft : '...'} spots left!
+              Limited spots available!
             </p>
-          )}
         </div>
       </CardContent>
     </Card>
@@ -249,8 +244,6 @@ export default function LeaderboardPage() {
   const [emailAddress, setEmailAddress] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [shareMessage, setShareMessage] = useState('');
-  const [totalUsers, setTotalUsers] = useState<number | null>(null);
-  const [loadingVipCount, setLoadingVipCount] = useState(true);
 
   const [isVipDialogOpen, setVipDialogOpen] = useState(false);
   const [isRedeemDialogOpen, setRedeemDialogOpen] = useState(false);
@@ -278,21 +271,6 @@ export default function LeaderboardPage() {
       router.push('/');
     }
   }, [user, authLoading, router]);
-
-  useEffect(() => {
-    async function fetchTotalUsers() {
-      try {
-        const count = await getTotalUsers();
-        setTotalUsers(count);
-      } catch (error) {
-        console.error("Failed to fetch total users:", error);
-        toast.error("Could not load VIP spots count.");
-      } finally {
-        setLoadingVipCount(false);
-      }
-    }
-    fetchTotalUsers();
-  }, []);
 
   useEffect(() => {
     if (profile && referralUrl) {
@@ -451,8 +429,6 @@ ${profile.name}`
         <div className="flex-grow max-w-7xl mx-auto px-4 py-8 w-full">
           {!profile.isVip && (
             <VipBanner 
-              totalUsers={totalUsers} 
-              loading={loadingVipCount} 
               userName={profile.name.split(' ')[0]} 
               onJoinClick={handleOpenVipDialog}
             />
