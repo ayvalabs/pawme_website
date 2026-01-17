@@ -72,7 +72,7 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // Rules for the 'appSettings' collection
+    // Rules for the 'app-settings' collection
     match /app-settings/{settingId} {
       // Anyone can read app settings (for public display of referral tiers, rewards, etc.)
       allow read: if true;
