@@ -1,3 +1,4 @@
+
 rules_version = '2';
 
 service cloud.firestore {
@@ -40,6 +41,12 @@ service cloud.firestore {
           )
         );
     }
+<<<<<<< HEAD
+    
+    // Rules for email templates
+    match /email_templates/{templateId} {
+      allow read, write: if isAdmin();
+=======
 
     // Rules for the 'emailTemplates' collection
     match /emailTemplates/{templateId} {
@@ -48,6 +55,7 @@ service cloud.firestore {
       
       // Only admin can create, update, or delete email templates
       allow write: if isAdmin();
+>>>>>>> f63f1f59e82bd4af2a9b5cf14cdbb087cf906729
     }
   }
 }
