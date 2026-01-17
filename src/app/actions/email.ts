@@ -7,9 +7,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { defaultTemplates } from '@/lib/email-templates';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const fromEmail = process.env.NODE_ENV === 'production' 
-  ? 'PawMe <pawme@ayvalabs.com>' 
-  : 'PawMe <onboarding@resend.dev>';
+const fromEmail = 'PawMe <pawme@ayvalabs.com>';
 
 function getVipBannerHtml(totalUsers: number) {
   const vipLimit = 250;
@@ -210,6 +208,6 @@ export async function sendShippingNotificationEmail({ to, userName, rewardTitle,
         });
     } catch (error) {
         console.error(`Failed to send shipping notification to ${to}:`, error);
-        throw error;
+        throw new Error('Failed to send shipping notification');
     }
 }
