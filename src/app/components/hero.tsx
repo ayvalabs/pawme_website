@@ -9,31 +9,31 @@ import { AuthDialog } from '@/app/components/auth-dialog';
 
 const slides = [
   {
-    image: '/images/hero-slide-1.jpg',
+    image: '/hero-slide-1.png',
     title: '360° Movement',
     subtitle: 'Follows Your Pet Anywhere',
     description: 'Advanced AI tracking keeps PawMe moving with your pet throughout your home, never missing a moment of their day.',
   },
   {
-    image: '/images/hero-slide-2.jpg',
+    image: '/hero-slide-2.png',
     title: 'AI Health Monitoring',
     subtitle: 'Early Detection Saves Lives',
     description: 'Detect skin issues, ticks, unusual behavior, and health changes before they become serious problems.',
   },
   {
-    image: '/images/hero-slide-3.jpg',
+    image: '/hero-slide-3.png',
     title: 'Interactive Play Mode',
     subtitle: 'Keep Your Pet Entertained',
     description: 'Built-in laser pointer and motion tracking for endless fun, keeping your pet active and engaged while you\'re away.',
   },
   {
-    image: '/images/hero-slide-4.jpg',
+    image: '/hero-slide-4.png',
     title: 'Remote Control via App',
     subtitle: 'Monitor From Anywhere',
     description: 'Live HD video feed, two-way audio, and full remote control through our iOS and Android companion app.',
   },
   {
-    image: '/images/hero-slide-5.jpg',
+    image: '/hero-slide-5.png',
     title: 'Daily Highlight Reels',
     subtitle: 'Never Miss A Precious Moment',
     description: 'Automatic motion detection captures your pet\'s cutest and funniest moments, compiled into daily highlight videos.',
