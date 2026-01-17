@@ -90,16 +90,15 @@ export async function sendVerificationCodeEmail({ to, name, code }: { to: string
   console.log('🔵 [EMAIL_ACTION] Preparing to send verification code email via Resend.');
   
   if (!process.env.RESEND_API_KEY) {
-    console.error('❌ [EMAIL_ACTION] RESEND_API_KEY is not set. Email will not be sent.');
-    // In a real app, you might want to throw an error or handle this more gracefully
-    return;
+    console.error('❌ [EMAIL_ACTION] FATAL: RESEND_API_KEY is not set. Email cannot be sent.');
+    throw new Error('Server is missing API key for email service.');
   }
   console.log('✅ [EMAIL_ACTION] RESEND_API_KEY is present.');
 
   const template = defaultTemplates.verificationCode;
   if (!template) {
     console.error("❌ [EMAIL_ACTION] Verification code email template not found.");
-    return;
+    throw new Error('Email template "verificationCode" is missing.');
   }
   console.log('✅ [EMAIL_ACTION] Email template found.');
 
@@ -126,9 +125,9 @@ export async function sendVerificationCodeEmail({ to, name, code }: { to: string
 
   } catch (error) {
     console.error('❌ [EMAIL_ACTION] A catch-block error occurred while sending verification email:', error);
+    throw new Error('Failed to send verification email due to a server error.');
   }
 }
-
 
 function getReferralSuccessEmailHtml(referrerName: string, newReferralCount: number, newPoints: number) {
   const brandColor = '#7678EE';
