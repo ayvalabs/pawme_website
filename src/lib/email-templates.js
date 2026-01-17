@@ -1,3 +1,4 @@
+
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.defaultTemplates = void 0;
@@ -6,15 +7,272 @@ exports.defaultTemplates = {
     welcome: {
         id: 'welcome',
         name: 'Welcome Email',
-        subject: 'Welcome to PawMe! 🐾',
-        html: "\n      <!DOCTYPE html>\n      <html>\n        <head>\n          <meta charset=\"utf-8\">\n          <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n          <title>Welcome to PawMe</title>\n        </head>\n        <body style=\"margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;\">\n          <table role=\"presentation\" style=\"width: 100%; border-collapse: collapse;\">\n            <tr>\n              <td align=\"center\" style=\"padding: 40px 0;\">\n                <table role=\"presentation\" style=\"width: 600px; max-width: 100%; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);\">\n                  <!-- Header -->\n                  <tr>\n                    <td style=\"padding: 40px 40px 20px; text-align: center; background: linear-gradient(135deg, #7678EE 0%, #9673D6 100%); border-radius: 8px 8px 0 0;\">\n                      <h1 style=\"margin: 0; color: #ffffff; font-size: 32px; font-weight: 600;\">Welcome to PawMe! \uD83D\uDC3E</h1>\n                    </td>\n                  </tr>\n                  \n                  <!-- Content -->\n                  <tr>\n                    <td style=\"padding: 40px;\">\n                      <p style=\"margin: 0 0 20px; color: #333333; font-size: 16px; line-height: 1.6;\">\n                        Hi {{userName}},\n                      </p>\n                      \n                      <p style=\"margin: 0 0 20px; color: #333333; font-size: 16px; line-height: 1.6;\">\n                        Thank you for joining PawMe! We're thrilled to have you as part of our community of pet lovers who are excited about the future of pet care.\n                      </p>\n                      \n                      <p style=\"margin: 0 0 20px; color: #333333; font-size: 16px; line-height: 1.6;\">\n                        You've earned <strong style=\"color: #7678EE;\">100 points</strong> just for signing up! Use these points to climb the leaderboard and unlock exclusive rewards.\n                      </p>\n                      \n                      <!-- Referral Code Box -->\n                      <table role=\"presentation\" style=\"width: 100%; margin: 30px 0; background-color: #f8f8fc; border-radius: 8px; border: 2px dashed #7678EE;\">\n                        <tr>\n                          <td style=\"padding: 20px; text-align: center;\">\n                            <p style=\"margin: 0 0 10px; color: #666666; font-size: 14px;\">Your Referral Code</p>\n                            <p style=\"margin: 0; color: #7678EE; font-size: 24px; font-weight: 700; letter-spacing: 2px;\">{{referralCode}}</p>\n                            <p style=\"margin: 10px 0 0; color: #666666; font-size: 14px;\">Share this code and earn 100 points for each friend who joins!</p>\n                          </td>\n                        </tr>\n                      </table>\n                      \n                      <p style=\"margin: 0 0 20px; color: #333333; font-size: 16px; line-height: 1.6;\">\n                        <strong>What's Next?</strong>\n                      </p>\n                      \n                      <ul style=\"margin: 0 0 20px; padding-left: 20px; color: #333333; font-size: 16px; line-height: 1.8;\">\n                        <li>Share your referral code with friends and family</li>\n                        <li>Track your points on the leaderboard</li>\n                        <li>Stay tuned for exclusive updates and early access</li>\n                      </ul>\n                      \n                      <table role=\"presentation\" style=\"margin: 30px 0;\">\n                        <tr>\n                          <td align=\"center\">\n                            <a href=\"https://pawme.com/leaderboard\" style=\"display: inline-block; padding: 14px 32px; background-color: #7678EE; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: 600;\">Visit Your Dashboard</a>\n                          </td>\n                        </tr>\n                      </table>\n                      \n                      <p style=\"margin: 20px 0 0; color: #333333; font-size: 16px; line-height: 1.6;\">\n                        Best regards,<br>\n                        <strong>The PawMe Team</strong>\n                      </p>\n                    </td>\n                  </tr>\n                  \n                  <!-- Footer -->\n                  <tr>\n                    <td style=\"padding: 30px 40px; background-color: #f8f8fc; border-radius: 0 0 8px 8px; text-align: center;\">\n                      <p style=\"margin: 0 0 10px; color: #666666; font-size: 14px;\">\n                        \u00A9 2024 PawMe. All rights reserved.\n                      </p>\n                      <p style=\"margin: 0; color: #999999; font-size: 12px;\">\n                        You're receiving this email because you signed up for PawMe.\n                      </p>\n                    </td>\n                  </tr>\n                </table>\n              </td>\n            </tr>\n          </table>\n        </body>\n      </html>\n    ",
-        variables: ['userName', 'referralCode'],
+        subject: '🐾 Welcome to PawMe! Your referral link is ready',
+        html: `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Welcome to PawMe</title>
+    </head>
+    <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
+      <table role="presentation" style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td align="center" style="padding: 40px 0;">
+            <table role="presentation" style="width: 600px; max-width: 100%; background-color: #ffffff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
+              <!-- Header -->
+              <tr>
+                <td style="padding: 40px 40px 30px; text-align: center; background: linear-gradient(135deg, #7678EE 0%, #9673D6 100%); border-radius: 8px 8px 0 0;">
+                  <h1 style="margin: 0; color: #ffffff; font-size: 32px; font-weight: 600;">🐾 Welcome to PawMe!</h1>
+                </td>
+              </tr>
+              
+              <!-- Content -->
+              <tr>
+                <td style="padding: 40px;">
+                  <p style="margin: 0 0 20px; color: #333333; font-size: 16px; line-height: 1.6;">
+                    Hi {{userName}},
+                  </p>
+                  
+                  <p style="margin: 0 0 20px; color: #333333; font-size: 16px; line-height: 1.6;">
+                    Thank you for joining the waitlist! We're thrilled to have you in our community of pet lovers who are excited about the future of pet care.
+                  </p>
+                  
+                  <p style="margin: 0 0 30px; color: #333333; font-size: 16px; line-height: 1.6;">
+                    You've earned <strong style="color: #7678EE;">100 points</strong> just for signing up! Start sharing your unique referral link to earn more points and climb the leaderboard.
+                  </p>
+                  
+                  <!-- Referral Link Box -->
+                  <table role="presentation" style="width: 100%; margin-bottom: 30px;">
+                    <tr>
+                      <td style="background-color: #f8f8fc; border-radius: 8px; padding: 25px; text-align: center;">
+                        <p style="margin: 0 0 15px; color: #666666; font-size: 14px;">Your Unique Referral Link</p>
+                        <a href="{{referralLink}}" target="_blank" style="display: inline-block; padding: 12px 20px; background-color: #ffffff; border: 1px solid #e5e5e5; color: #7678EE; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: 600;">{{referralLink}}</a>
+                        <p style="margin: 15px 0 0; color: #666666; font-size: 14px;">Or share your code: <strong style="color: #333;">{{referralCode}}</strong></p>
+                      </td>
+                    </tr>
+                  </table>
+                  
+                  <!-- CTA Button -->
+                  <table role="presentation" style="width: 100%; text-align: center;">
+                    <tr>
+                      <td>
+                        <a href="https://pawme.com/leaderboard" target="_blank" style="display: inline-block; padding: 14px 32px; background-color: #7678EE; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: 600;">View Your Dashboard</a>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+              
+              <!-- Footer -->
+              <tr>
+                <td style="padding: 30px 40px; background-color: #f8f8fc; border-radius: 0 0 8px 8px; text-align: center;">
+                  <p style="margin: 0 0 10px; color: #666666; font-size: 14px;">
+                    &copy; 2026 PawMe by Ayva Labs Limited.
+                  </p>
+                  <p style="margin: 0; color: #999999; font-size: 12px;">
+                    Follow us @pawme on all social media
+                  </p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+    `,
+        variables: ['userName', 'referralCode', 'referralLink'],
+    },
+    referralSuccess: {
+        id: 'referralSuccess',
+        name: 'Referral Success',
+        subject: "🎉 You've earned points! Someone joined using your referral link",
+        html: `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>You've Earned Points!</title>
+    </head>
+    <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
+      <table role="presentation" style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td align="center" style="padding: 40px 0;">
+            <table role="presentation" style="width: 600px; max-width: 100%; background-color: #ffffff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
+              <!-- Header -->
+              <tr>
+                <td style="padding: 40px 40px 30px; text-align: center; background: linear-gradient(135deg, #7678EE 0%, #9673D6 100%); border-radius: 8px 8px 0 0;">
+                  <h1 style="margin: 0; color: #ffffff; font-size: 32px; font-weight: 600;">🎉 You've Earned Points!</h1>
+                </td>
+              </tr>
+              
+              <!-- Content -->
+              <tr>
+                <td style="padding: 40px;">
+                  <p style="margin: 0 0 20px; color: #333333; font-size: 16px; line-height: 1.6;">
+                    Hi {{referrerName}},
+                  </p>
+                  
+                  <p style="margin: 0 0 30px; color: #333333; font-size: 16px; line-height: 1.6;">
+                    Great news! Someone just signed up using your referral link. Keep up the great work!
+                  </p>
+                  
+                  <!-- Stats Box -->
+                  <table role="presentation" style="width: 100%; margin-bottom: 30px;">
+                    <tr>
+                      <td style="background-color: #f8f8fc; border-radius: 8px; padding: 20px; text-align: center;">
+                        <p style="margin: 0 0 15px; color: #333333; font-size: 18px; font-weight: 600;">Your Referral Stats</p>
+                        <table role="presentation" style="width: 100%;">
+                          <tr>
+                            <td style="width: 50%; text-align: center; padding: 10px; border-right: 1px solid #e5e5e5;">
+                              <p style="margin: 0; color: #666666; font-size: 14px;">Total Referrals</p>
+                              <p style="margin: 5px 0 0; color: #7678EE; font-size: 28px; font-weight: 700;">{{newReferralCount}}</p>
+                            </td>
+                            <td style="width: 50%; text-align: center; padding: 10px;">
+                              <p style="margin: 0; color: #666666; font-size: 14px;">Total Points</p>
+                              <p style="margin: 5px 0 0; color: #7678EE; font-size: 28px; font-weight: 700;">{{newPoints}}</p>
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                  </table>
+                  
+                  <p style="margin: 0 0 20px; color: #333333; font-size: 16px; line-height: 1.6;">
+                    Keep sharing to unlock even more rewards.
+                  </p>
+                  
+                  <!-- CTA Button -->
+                  <table role="presentation" style="width: 100%; text-align: center; margin-top: 10px;">
+                    <tr>
+                      <td>
+                        <a href="https://pawme.com/leaderboard" target="_blank" style="display: inline-block; padding: 14px 32px; background-color: #7678EE; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: 600;">View Leaderboard</a>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+              
+              <!-- Footer -->
+              <tr>
+                <td style="padding: 30px 40px; background-color: #f8f8fc; border-radius: 0 0 8px 8px; text-align: center;">
+                  <p style="margin: 0 0 10px; color: #666666; font-size: 14px;">
+                    &copy; 2026 PawMe by Ayva Labs Limited.
+                  </p>
+                  <p style="margin: 0; color: #999999; font-size: 12px;">
+                    Follow us @pawme on all social media
+                  </p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+    `,
+        variables: ['referrerName', 'newReferralCount', 'newPoints'],
+    },
+    verificationCode: {
+        id: 'verificationCode',
+        name: 'Verification Code',
+        subject: 'Your PawMe Verification Code',
+        html: `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Your PawMe Verification Code</title>
+    </head>
+    <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
+      <table role="presentation" style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td align="center" style="padding: 40px 0;">
+            <table role="presentation" style="width: 600px; max-width: 100%; background-color: #ffffff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
+              <!-- Header -->
+              <tr>
+                <td style="padding: 40px 40px 30px; text-align: center; background: linear-gradient(135deg, #7678EE 0%, #9673D6 100%); border-radius: 8px 8px 0 0;">
+                  <h1 style="margin: 0; color: #ffffff; font-size: 32px; font-weight: 600;">Verify Your Email</h1>
+                </td>
+              </tr>
+              
+              <!-- Content -->
+              <tr>
+                <td style="padding: 40px;">
+                  <p style="margin: 0 0 20px; color: #333333; font-size: 16px; line-height: 1.6;">
+                    Hi {{userName}},
+                  </p>
+                  
+                  <p style="margin: 0 0 30px; color: #333333; font-size: 16px; line-height: 1.6;">
+                    Here is your 4-digit verification code to complete your PawMe signup.
+                  </p>
+                  
+                  <!-- Code Box -->
+                  <table role="presentation" style="width: 100%; margin-bottom: 30px;">
+                    <tr>
+                      <td style="background-color: #f8f8fc; border-radius: 8px; padding: 30px; text-align: center;">
+                        <p style="margin: 0; color: #7678EE; font-size: 48px; font-weight: 700; letter-spacing: 12px; line-height: 1;">{{code}}</p>
+                      </td>
+                    </tr>
+                  </table>
+                  
+                  <p style="margin: 0 0 20px; color: #666666; font-size: 14px; line-height: 1.6; text-align: center;">
+                    This code will expire in 10 minutes.
+                  </p>
+                  
+                  <p style="margin: 30px 0 0; color: #666666; font-size: 14px; line-height: 1.6;">
+                    If you didn't request this, you can safely ignore this email.
+                  </p>
+                </td>
+              </tr>
+              
+              <!-- Footer -->
+              <tr>
+                <td style="padding: 30px 40px; background-color: #f8f8fc; border-radius: 0 0 8px 8px; text-align: center;">
+                  <p style="margin: 0 0 10px; color: #666666; font-size: 14px;">
+                    &copy; 2026 PawMe by Ayva Labs Limited.
+                  </p>
+                  <p style="margin: 0; color: #999999; font-size: 12px;">
+                    Follow us @pawme on all social media
+                  </p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+    `,
+        variables: ['userName', 'code'],
     },
     shippingNotification: {
         id: 'shippingNotification',
         name: 'Reward Shipped',
         subject: '🎁 Your PawMe Reward has Shipped!',
-        html: "\n    <!DOCTYPE html>\n      <html>\n      <body style=\"margin: 0; padding: 0; font-family: sans-serif; background-color: #f5f5f5;\">\n        <div style=\"font-family: sans-serif; max-width: 600px; margin: auto; padding: 40px; background-color: #ffffff; border-radius: 8px;\">\n          <h2 style=\"color: #7678EE;\">\uD83D\uDE80 It's on its way, {{userName}}!</h2>\n          <p>Great news! Your reward, <strong>{{rewardTitle}}</strong>, has been shipped.</p>\n          <p>You can track your package using the following tracking code:</p>\n          <p style=\"background-color: #f0f2fe; padding: 12px; border-radius: 5px; border: 1px dashed #7678EE; text-align: center; font-size: 18px; font-weight: bold; letter-spacing: 1px;\">\n            {{trackingCode}}\n          </p>\n          <p>Thank you for being an essential part of the PawMe community. We appreciate your support!</p>\n          <br/>\n          <p>Best regards,</p>\n          <p><strong>The PawMe Team</strong></p>\n        </div>\n      </body>\n      </html>\n    ",
+        html: `
+    <!DOCTYPE html>
+      <html>
+      <body style="margin: 0; padding: 0; font-family: sans-serif; background-color: #f5f5f5;">
+        <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 40px; background-color: #ffffff; border-radius: 8px;">
+          <h2 style="color: #7678EE;">🚀 It's on its way, {{userName}}!</h2>
+          <p>Great news! Your reward, <strong>{{rewardTitle}}</strong>, has been shipped.</p>
+          <p>You can track your package using the following tracking code:</p>
+          <p style="background-color: #f0f2fe; padding: 12px; border-radius: 5px; border: 1px dashed #7678EE; text-align: center; font-size: 18px; font-weight: bold; letter-spacing: 1px;">
+            {{trackingCode}}
+          </p>
+          <p>Thank you for being an essential part of the PawMe community. We appreciate your support!</p>
+          <br/>
+          <p>Best regards,</p>
+          <p><strong>The PawMe Team</strong></p>
+        </div>
+      </body>
+      </html>
+    `,
         variables: ['userName', 'rewardTitle', 'trackingCode'],
     }
 };
