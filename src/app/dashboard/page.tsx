@@ -493,7 +493,7 @@ export default function AdminPage() {
                                 </div>
                                 <Input value={tier.reward} onChange={(e) => handleRewardTierChange(index, 'reward', e.target.value)} placeholder="Description"/>
                                 <div className="grid grid-cols-2 gap-2">
-                                <Input value={tier.image} onChange={(e) => handleRewardTierChange(index, 'image', e.target.value)} placeholder="Image URL"/>
+                                <Input value={tier.image} onChange={(e) => handleRewardTierChange(index, 'image', e.target.value)} placeholder="Image Path"/>
                                 <Input value={tier.alt} onChange={(e) => handleRewardTierChange(index, 'alt', e.target.value)} placeholder="Image Alt Text"/>
                                 </div>
                                 <Button size="sm" variant="ghost" onClick={() => handleRemoveRewardTier(index)} className="text-destructive hover:text-destructive"><Trash2 className="w-4 h-4 mr-2"/>Remove</Button>
@@ -777,39 +777,42 @@ export default function AdminPage() {
                           ))
                         ) : (
                           <TooltipProvider>
-                            {emailTemplates.map(template => (
-                              <TableRow key={template.id}>
-                                <TableCell className="font-medium">{template.name}</TableCell>
-                                <TableCell className="text-muted-foreground">{template.subject}</TableCell>
-                                <TableCell className="text-sm text-muted-foreground">
-                                  {new Date(template.updatedAt).toLocaleDateString()}
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  <div className="flex gap-1 justify-end">
-                                    <Button size="icon" variant="ghost" onClick={() => handlePreview(template.subject, template.html)}>
-                                      <Eye className="w-4 h-4"/>
-                                    </Button>
-                                    <Button size="icon" variant="ghost" onClick={() => handleOpenTemplateDialog(template)}>
-                                      <Edit className="w-4 h-4"/>
-                                    </Button>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <div tabIndex={0}>
-                                          <Button size="icon" variant="ghost" onClick={() => handleDeleteTemplate(template.id)} disabled={Object.keys(defaultTemplates).includes(template.id)}>
-                                            <Trash2 className="w-4 h-4 text-destructive"/>
-                                          </Button>
-                                        </div>
-                                      </TooltipTrigger>
-                                      {Object.keys(defaultTemplates).includes(template.id) && (
-                                        <TooltipContent>
-                                          <p>Default system templates cannot be deleted.</p>
-                                        </TooltipContent>
-                                      )}
-                                    </Tooltip>
-                                  </div>
-                                </TableCell>
-                              </TableRow>
-                            ))}
+                            {emailTemplates.map(template => {
+                              const isDefaultTemplate = Object.keys(defaultTemplates).includes(template.id);
+                              return (
+                                <TableRow key={template.id}>
+                                  <TableCell className="font-medium">{template.name}</TableCell>
+                                  <TableCell className="text-muted-foreground">{template.subject}</TableCell>
+                                  <TableCell className="text-sm text-muted-foreground">
+                                    {new Date(template.updatedAt).toLocaleDateString()}
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    <div className="flex gap-1 justify-end">
+                                      <Button size="icon" variant="ghost" onClick={() => handlePreview(template.subject, template.html)}>
+                                        <Eye className="w-4 h-4"/>
+                                      </Button>
+                                      <Button size="icon" variant="ghost" onClick={() => handleOpenTemplateDialog(template)}>
+                                        <Edit className="w-4 h-4"/>
+                                      </Button>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <div tabIndex={0}>
+                                            <Button size="icon" variant="ghost" onClick={() => handleDeleteTemplate(template.id)} disabled={isDefaultTemplate}>
+                                              <Trash2 className="w-4 h-4 text-destructive"/>
+                                            </Button>
+                                          </div>
+                                        </TooltipTrigger>
+                                        {isDefaultTemplate && (
+                                          <TooltipContent>
+                                            <p>Default templates cannot be deleted.</p>
+                                          </TooltipContent>
+                                        )}
+                                      </Tooltip>
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
                           </TooltipProvider>
                         )}
                         {emailTemplates.length === 0 && !loadingTemplates && (
@@ -967,3 +970,5 @@ export default function AdminPage() {
     </>
   );
 }
+
+    

@@ -13,28 +13,33 @@
     "data-ai-hint": "logo"
   },
   "rewardTreats": {
-    "src": "https://picsum.photos/seed/reward1/600/400",
+    "src": "/images/rewards/reward-treats.jpg",
     "alt": "A pack of premium pet treats",
     "data-ai-hint": "pet treats"
   },
   "rewardToy": {
-    "src": "https://picsum.photos/seed/reward2/600/400",
+    "src": "/images/rewards/reward-toy.jpg",
     "alt": "An interactive puzzle toy for pets",
     "data-ai-hint": "pet toy"
   },
   "rewardAccessory": {
-    "src": "https://picsum.photos/seed/reward3/600/400",
+    "src": "/images/rewards/reward-accessory.jpg",
     "alt": "A stylish personalized pet collar",
     "data-ai-hint": "dog collar"
   },
   "rewardBundle": {
-    "src": "https://picsum.photos/seed/reward4/600/400",
+    "src": "/images/rewards/reward-bundle.jpg",
     "alt": "A comfort bundle for pets with a toy and grooming supplies",
     "data-ai-hint": "pet supplies"
   },
   "rewardBed": {
-    "src": "https://picsum.photos/seed/reward5/600/400",
+    "src": "/images/rewards/reward-bed.jpg",
     "alt": "A cozy premium pet bed",
     "data-ai-hint": "dog bed"
+  },
+  "rewardFeeder": {
+    "src": "/images/rewards/reward-feeder.jpg",
+    "alt": "A smart automated pet feeder",
+    "data-ai-hint": "smart feeder"
   }
 }
