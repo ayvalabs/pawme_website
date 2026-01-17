@@ -44,12 +44,3 @@ export async function getAppSettings(): Promise<AppSettings | null> {
     return null;
   }
 }
-
-export async function updateAppSettings(settings: Partial<AppSettings>): Promise<void> {
-  try {
-    await setDoc(settingsRef, settings, { merge: true });
-  } catch (error) {
-    console.error("Error updating app settings: ", error);
-    throw new Error("Failed to update settings in Firestore.");
-  }
-}

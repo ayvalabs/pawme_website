@@ -1,8 +1,9 @@
 'use client';
 
-import { ref, uploadBytes, getDownloadURL, uploadBytesResumable } from 'firebase/storage';
-import { storage } from '@/firebase/config';
-import type { RewardTier } from '@/app/actions/settings';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { storage, db } from '@/firebase/config';
+import { doc, setDoc } from 'firebase/firestore';
+import type { RewardTier, AppSettings } from '@/app/actions/settings';
 
 /**
  * Uploads a single file to Firebase Storage with retry logic
@@ -39,7 +40,7 @@ async function uploadFileWithRetry(
       console.error(`Upload attempt ${attempt + 1} failed:`, error);
 
       if (error.code === 'storage/unauthorized') {
-        throw new Error('Unauthorized: Please ensure you are logged in as an admin.');
+        throw new Error('Unauthorized: Please ensure you are logged in as an admin and have correct storage rules.');
       }
 
       if (error.code === 'storage/canceled') {
@@ -69,22 +70,24 @@ export async function uploadRewardImages(
   rewardTiers: RewardTier[],
   imageFiles: (File | null)[]
 ): Promise<RewardTier[]> {
-  const updatedTiers = [...rewardTiers];
+  const updatedTiers = JSON.parse(JSON.stringify(rewardTiers));
 
   for (let i = 0; i < updatedTiers.length; i++) {
     const file = imageFiles[i];
     if (file) {
       try {
         const timestamp = Date.now();
-        const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
         const path = `rewards/${timestamp}_${sanitizedFileName}`;
         
+        console.log(`Uploading image for tier ${i}: ${file.name} to ${path}`);
         const downloadURL = await uploadFileWithRetry(file, path);
-        updatedTiers[i].image = downloadURL;
         
-        console.log(`Successfully uploaded image for tier ${i}:`, downloadURL);
+        updatedTiers[i].image = downloadURL;
+        console.log(`Successfully uploaded image for tier ${i}. URL:`, downloadURL);
+
       } catch (error: any) {
-        console.error(`Failed to upload image for tier ${i}:`, error);
+        console.error(`Failed to upload image for tier "${updatedTiers[i].title}":`, error);
         throw new Error(`Failed to upload image for "${updatedTiers[i].title}": ${error.message}`);
       }
     }
@@ -94,58 +97,15 @@ export async function uploadRewardImages(
 }
 
 /**
- * Uploads a single reward image with progress tracking
- * @param file - The file to upload
- * @param onProgress - Optional callback for upload progress (0-100)
- * @returns The download URL of the uploaded file
+ * Saves application settings to Firestore from the client.
+ * @param settings - The settings object to save.
  */
-export async function uploadRewardImage(
-  file: File,
-  onProgress?: (progress: number) => void
-): Promise<string> {
-  const timestamp = Date.now();
-  const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-  const path = `rewards/${timestamp}_${sanitizedFileName}`;
-  const storageRef = ref(storage, path);
-
-  const metadata = {
-    contentType: file.type,
-    customMetadata: {
-      uploadedBy: 'admin',
-      uploadedAt: new Date().toISOString(),
-    },
-  };
-
-  return new Promise((resolve, reject) => {
-    const uploadTask = uploadBytesResumable(storageRef, file, metadata);
-
-    uploadTask.on(
-      'state_changed',
-      (snapshot) => {
-        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        if (onProgress) {
-          onProgress(progress);
-        }
-      },
-      (error) => {
-        console.error('Upload error:', error);
-        
-        if (error.code === 'storage/unauthorized') {
-          reject(new Error('Unauthorized: Please ensure you are logged in as an admin.'));
-        } else if (error.code === 'storage/canceled') {
-          reject(new Error('Upload was canceled.'));
-        } else {
-          reject(new Error(`Upload failed: ${error.message}`));
-        }
-      },
-      async () => {
-        try {
-          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-          resolve(downloadURL);
-        } catch (error: any) {
-          reject(new Error(`Failed to get download URL: ${error.message}`));
-        }
-      }
-    );
-  });
+export async function saveAppSettings(settings: Partial<AppSettings>): Promise<void> {
+  try {
+    const settingsRef = doc(db, 'app-settings', 'rewards');
+    await setDoc(settingsRef, settings, { merge: true });
+  } catch (error) {
+    console.error("Error updating app settings from client: ", error);
+    throw new Error("Failed to update settings in Firestore. Check console and security rules.");
+  }
 }

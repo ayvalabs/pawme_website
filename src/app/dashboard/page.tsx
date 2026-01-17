@@ -25,11 +25,11 @@ import { Header } from '@/app/components/header';
 import { Footer } from '@/app/components/footer';
 import { db } from '@/firebase/config';
 import { collection, query, orderBy, getDocs, doc, setDoc, deleteDoc, updateDoc } from 'firebase/firestore';
-import { getAppSettings, updateAppSettings, type AppSettings, type ReferralTier, type RewardTier } from '@/app/actions/settings';
+import { getAppSettings, type AppSettings, type ReferralTier, type RewardTier } from '@/app/actions/settings';
 import { defaultTemplates } from '@/lib/email-templates';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/app/components/ui/tooltip';
 import Image from 'next/image';
-import { uploadRewardImages } from '@/app/services/adminService';
+import { uploadRewardImages, saveAppSettings } from '@/app/services/adminService';
 
 type UserWithId = UserProfile & { id: string };
 type RewardWithUser = Reward & { user: { id: string; name: string; email: string }, rewardTitle: string };
@@ -369,7 +369,7 @@ export default function AdminPage() {
   const handleSaveSettings = async (settingsToSave: Partial<AppSettings>) => {
     setSavingSettings(true);
     try {
-      await updateAppSettings(settingsToSave);
+      await saveAppSettings(settingsToSave);
       toast.success("Settings saved successfully!");
       await fetchSettings();
     } catch (error) {
@@ -427,7 +427,7 @@ export default function AdminPage() {
     setSavingSettings(true);
     try {
       const tiersWithUploadedImages = await uploadRewardImages(localRewardTiers, rewardImageFiles);
-      await handleSaveSettings({ rewardTiers: tiersWithUploadedImages });
+      await saveAppSettings({ rewardTiers: tiersWithUploadedImages });
       toast.success("Point Rewards saved successfully!");
       // After saving, reset image files state and fetch fresh settings
       setRewardImageFiles(new Array(localRewardTiers.length).fill(null));
