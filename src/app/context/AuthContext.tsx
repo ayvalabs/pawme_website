@@ -260,11 +260,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log('✅ [SIGNUP] Referrer credited');
       }
       
-      console.log('🔵 [SIGNUP] Step 10: Getting total users...');
+      console.log('🔵 [SIGNUP] Step 10: Sending welcome email...');
       const totalUsers = await getTotalUsers();
-      console.log('✅ [SIGNUP] Total users:', totalUsers);
-      
-      console.log('🔵 [SIGNUP] Step 11: Sending welcome email...');
       await sendWelcomeEmail({ to: email, name, referralCode, totalUsers });
       console.log('✅ [SIGNUP] Welcome email sent');
 

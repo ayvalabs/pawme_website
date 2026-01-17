@@ -17,8 +17,6 @@ export const defaultTemplates: Record<string, EmailTemplate> = {
       <h2 style="color: #7678EE;">🐾 Welcome to PawMe, {{userName}}!</h2>
       <p>We're thrilled to have you on the waitlist. You're one step closer to giving your pet the ultimate AI companion.</p>
       
-      {{vipBanner}}
-
       <h3>Your Unique Referral Link</h3>
       <p>Share this link with friends and family to earn points and climb the leaderboard:</p>
       <p style="background-color: #f0f2fe; padding: 12px; border-radius: 5px; border: 1px dashed #7678EE;">
@@ -38,7 +36,7 @@ export const defaultTemplates: Record<string, EmailTemplate> = {
       <p style="font-size: 0.8em; color: #777;">Follow us @pawme on all social media.</p>
     </div>
     `,
-    variables: ['userName', 'referralCode', 'referralLink', 'vipBanner'],
+    variables: ['userName', 'referralCode', 'referralLink'],
   },
   verificationCode: {
     id: 'verificationCode',
@@ -122,5 +120,3 @@ export function renderTemplate(templateId: string, variables: Record<string, str
 
   return { subject, html };
 }
-
-    
