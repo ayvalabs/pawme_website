@@ -75,6 +75,10 @@
     "next-themes": {
       "react": "$react",
       "react-dom": "$react-dom"
+    },
+    "@stripe/react-stripe-js": {
+      "react": "$react",
+      "react-dom": "$react-dom"
     }
   }
 }
