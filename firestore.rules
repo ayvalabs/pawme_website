@@ -71,5 +71,14 @@ service cloud.firestore {
       // Only admin can create, update, or delete email templates
       allow write: if isAdmin();
     }
+
+    // Rules for the 'appSettings' collection
+    match /appSettings/{settingId} {
+      // Anyone can read app settings (for public display of referral tiers, rewards, etc.)
+      allow read: if true;
+      
+      // Only admin can create, update, or delete app settings
+      allow write: if isAdmin();
+    }
   }
 }
