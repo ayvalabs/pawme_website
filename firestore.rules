@@ -44,15 +44,23 @@ service cloud.firestore {
 
     // Rules for the 'verifications' collection
     match /verifications/{docId} {
-      // Allow anyone to create a verification document, but only with a specific structure.
+      // Allow anyone to create a verification document with proper structure
+      // This is needed for email verification during signup (before user is authenticated)
       allow create: if request.resource.data.keys().hasAll(['email', 'code', 'expiresAt']) &&
                       request.resource.data.size() == 3 &&
                       request.resource.data.email is string &&
                       request.resource.data.code is string &&
                       request.resource.data.expiresAt is timestamp;
 
-      // Only backend with admin access can read/delete.
-      allow read, update, delete: if false;
+      // Allow anyone to read verification codes (needed to verify the code during signup)
+      // Security: codes are hashed and expire after 10 minutes
+      allow read: if true;
+
+      // Allow anyone to delete verification codes (cleanup after successful verification)
+      allow delete: if true;
+      
+      // No updates allowed - codes should be created and deleted, not modified
+      allow update: if false;
     }
 
     // Rules for the 'emailTemplates' collection

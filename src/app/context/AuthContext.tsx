@@ -176,64 +176,108 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signUp = async (email: string, password: string, name: string, code: string, referredByCode: string | undefined, privacyPolicyAgreed: boolean, marketingOptIn: boolean) => {
-    // 1. Verify code
-    const verificationsRef = collection(db, 'verifications');
-    const q = query(verificationsRef, where('email', '==', email), where('code', '==', code));
-    const querySnapshot = await getDocs(q);
+    console.log('🔵 [SIGNUP] Starting signup process for:', email);
+    
+    try {
+      // 1. Verify code
+      console.log('🔵 [SIGNUP] Step 1: Verifying code...');
+      const verificationsRef = collection(db, 'verifications');
+      const q = query(verificationsRef, where('email', '==', email), where('code', '==', code));
+      const querySnapshot = await getDocs(q);
+      console.log('✅ [SIGNUP] Code verification query completed');
 
-    if (querySnapshot.empty) {
-      throw new Error('Invalid verification code.');
-    }
+      if (querySnapshot.empty) {
+        console.error('❌ [SIGNUP] Invalid verification code');
+        throw new Error('Invalid verification code.');
+      }
 
-    const verificationDoc = querySnapshot.docs[0];
-    const verificationData = verificationDoc.data();
+      const verificationDoc = querySnapshot.docs[0];
+      const verificationData = verificationDoc.data();
+      console.log('✅ [SIGNUP] Verification document found');
 
-    if (verificationData.expiresAt.toMillis() < Date.now()) {
+      if (verificationData.expiresAt.toMillis() < Date.now()) {
+        console.error('❌ [SIGNUP] Verification code expired');
+        await deleteDoc(verificationDoc.ref);
+        throw new Error('Verification code has expired. Please try again.');
+      }
+      
+      // 2. If valid, proceed with signup
+      console.log('🔵 [SIGNUP] Step 2: Checking disposable email...');
+      if (isDisposableEmail(email)) {
+        console.error('❌ [SIGNUP] Disposable email detected');
+        throw new Error("Disposable email addresses are not allowed. Please use a permanent email address.");
+      }
+      console.log('✅ [SIGNUP] Email validation passed');
+      
+      console.log('🔵 [SIGNUP] Step 3: Creating Firebase Auth user...');
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const newUser = userCredential.user;
+      console.log('✅ [SIGNUP] Firebase Auth user created:', newUser.uid);
+      
+      // Ensure the auth token is ready before Firestore operations
+      console.log('🔵 [SIGNUP] Step 4: Refreshing auth token...');
+      await newUser.getIdToken(true);
+      console.log('✅ [SIGNUP] Auth token refreshed');
+      
+      console.log('🔵 [SIGNUP] Step 5: Updating user profile...');
+      await updateUserProfile(newUser, { displayName: name });
+      console.log('✅ [SIGNUP] User profile updated');
+
+      console.log('🔵 [SIGNUP] Step 6: Generating referral code...');
+      const referralCode = await generateReferralCode(email, newUser.uid);
+      console.log('✅ [SIGNUP] Referral code generated:', referralCode);
+      
+      const userProfile: UserProfile = {
+        id: newUser.uid,
+        email: newUser.email!,
+        name: name || newUser.email!.split('@')[0],
+        referralCode,
+        points: 100,
+        referralCount: 0,
+        referredBy: referredByCode || null,
+        theme: 'purple',
+        rewards: [],
+        createdAt: new Date().toISOString(),
+        isVip: false,
+        privacyPolicyAgreed,
+        marketingOptIn,
+      };
+
+      console.log('🔵 [SIGNUP] Step 7: Creating user document in Firestore...');
+      console.log('🔵 [SIGNUP] User ID:', newUser.uid);
+      console.log('🔵 [SIGNUP] User Profile:', userProfile);
+      await setDoc(doc(db, 'users', newUser.uid), userProfile);
+      console.log('✅ [SIGNUP] User document created in Firestore');
+      
+      // 3. Clean up and post-signup tasks
+      console.log('🔵 [SIGNUP] Step 8: Cleaning up verification code...');
       await deleteDoc(verificationDoc.ref);
-      throw new Error('Verification code has expired. Please try again.');
-    }
-    
-    // 2. If valid, proceed with signup
-    if (isDisposableEmail(email)) {
-      throw new Error("Disposable email addresses are not allowed. Please use a permanent email address.");
-    }
-    
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    const newUser = userCredential.user;
-    
-    await updateUserProfile(newUser, { displayName: name });
+      console.log('✅ [SIGNUP] Verification code deleted');
+      
+      if (referredByCode) {
+        console.log('🔵 [SIGNUP] Step 9: Crediting referrer...');
+        await creditReferrer(referredByCode, email);
+        console.log('✅ [SIGNUP] Referrer credited');
+      }
+      
+      console.log('🔵 [SIGNUP] Step 10: Getting total users...');
+      const totalUsers = await getTotalUsers();
+      console.log('✅ [SIGNUP] Total users:', totalUsers);
+      
+      console.log('🔵 [SIGNUP] Step 11: Sending welcome email...');
+      await sendWelcomeEmail({ to: email, name, referralCode, totalUsers });
+      console.log('✅ [SIGNUP] Welcome email sent');
 
-    const referralCode = await generateReferralCode(email, newUser.uid);
-    const userProfile: UserProfile = {
-      id: newUser.uid,
-      email: newUser.email!,
-      name: name || newUser.email!.split('@')[0],
-      referralCode,
-      points: 100,
-      referralCount: 0,
-      referredBy: referredByCode || null,
-      theme: 'purple',
-      rewards: [],
-      createdAt: new Date().toISOString(),
-      isVip: false,
-      privacyPolicyAgreed,
-      marketingOptIn,
-    };
-
-    await setDoc(doc(db, 'users', newUser.uid), userProfile);
-    
-    // 3. Clean up and post-signup tasks
-    await deleteDoc(verificationDoc.ref);
-    
-    if (referredByCode) {
-      await creditReferrer(referredByCode, email);
+      setUser(newUser);
+      setProfile(userProfile);
+      console.log('✅ [SIGNUP] Signup process completed successfully!');
+    } catch (error: any) {
+      console.error('❌ [SIGNUP] Error during signup:', error);
+      console.error('❌ [SIGNUP] Error code:', error.code);
+      console.error('❌ [SIGNUP] Error message:', error.message);
+      console.error('❌ [SIGNUP] Full error:', error);
+      throw error;
     }
-    
-    const totalUsers = await getTotalUsers();
-    await sendWelcomeEmail({ to: email, name, referralCode, totalUsers });
-
-    setUser(newUser);
-    setProfile(userProfile);
   };
 
   const signIn = async (email: string, password: string) => {
