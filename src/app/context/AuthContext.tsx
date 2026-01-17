@@ -276,6 +276,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error('❌ [SIGNUP] Error code:', error.code);
       console.error('❌ [SIGNUP] Error message:', error.message);
       console.error('❌ [SIGNUP] Full error:', error);
+      if (error.code === 'auth/email-already-in-use') {
+        throw new Error('An account with this email already exists. Please sign in.');
+      }
       throw error;
     }
   };
