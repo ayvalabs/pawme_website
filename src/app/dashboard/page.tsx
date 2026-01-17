@@ -16,7 +16,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
 import { Skeleton } from '@/app/components/ui/skeleton';
 import { toast } from 'sonner';
-import { User, Mail, Send, Truck, Package, PackageCheck, FileText, Plus, Edit, Trash2, Eye } from 'lucide-react';
+import { User, Mail, Send, Truck, Package, PackageCheck, FileText, Plus, Edit, Trash2, Eye, Lock } from 'lucide-react';
 import { markRewardShipped } from '@/app/actions/users';
 import { sendAdminBroadcast, sendShippingNotificationEmail } from '@/app/actions/email';
 import type { UserProfile, Reward } from '@/app/context/AuthContext';
@@ -801,5 +801,3 @@ export default function AdminPage() {
     </>
   );
 }
-
-    
