@@ -7,7 +7,7 @@ export function Footer() {
     { network: 'twitter', url: 'https://twitter.com/pawme', label: 'Twitter' },
     { network: 'facebook', url: 'https://facebook.com/pawme', label: 'Facebook' },
     { network: 'instagram', url: 'https://instagram.com/pawme', label: 'Instagram' },
-    { network: 'linkedin', url: 'https://linkedin.com/company/pawme', label: 'LinkedIn' },
+    { network: 'youtube', url: 'https://youtube.com/@pawme', label: 'YouTube' },
     { network: 'tiktok', url: 'https://tiktok.com/@pawme', label: 'TikTok' },
   ];
 
