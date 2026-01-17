@@ -16,19 +16,20 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
 import { Skeleton } from '@/app/components/ui/skeleton';
 import { toast } from 'sonner';
-import { User, Mail, Send, Truck, Package, PackageCheck, FileText, Plus, Edit, Trash2, Eye, Lock, SettingsIcon } from 'lucide-react';
+import { User, Mail, Send, Truck, Package, PackageCheck, FileText, Plus, Edit, Trash2, Eye, Lock, SettingsIcon, Upload } from 'lucide-react';
 import { markRewardShipped } from '@/app/actions/users';
 import { sendAdminBroadcast, sendShippingNotificationEmail } from '@/app/actions/email';
 import type { UserProfile, Reward } from '@/app/context/AuthContext';
 import type { EmailTemplate } from '@/app/actions/email-templates';
 import { Header } from '@/app/components/header';
 import { Footer } from '@/app/components/footer';
-import { db } from '@/firebase/config';
+import { db, storage } from '@/firebase/config';
 import { collection, query, orderBy, getDocs, doc, setDoc, deleteDoc, updateDoc } from 'firebase/firestore';
 import { getAppSettings, updateAppSettings, type AppSettings, type ReferralTier, type RewardTier } from '@/app/actions/settings';
 import { defaultTemplates } from '@/lib/email-templates';
-import imageData from '@/app/lib/placeholder-images.json';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/app/components/ui/tooltip';
+import Image from 'next/image';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 type UserWithId = UserProfile & { id: string };
 type RewardWithUser = Reward & { user: { id: string; name: string; email: string }, rewardTitle: string };
@@ -74,9 +75,11 @@ export default function AdminPage() {
 
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [loadingSettings, setLoadingSettings] = useState(true);
+  const [savingSettings, setSavingSettings] = useState(false);
   const [localVipSpots, setLocalVipSpots] = useState(100);
   const [localReferralTiers, setLocalReferralTiers] = useState<ReferralTier[]>([]);
   const [localRewardTiers, setLocalRewardTiers] = useState<RewardTier[]>([]);
+  const [rewardImageFiles, setRewardImageFiles] = useState<(File | null)[]>([]);
 
   useEffect(() => {
     if (!authLoading && (!user || profile?.email !== 'pawme@ayvalabs.com')) {
@@ -135,23 +138,7 @@ export default function AdminPage() {
         setLocalVipSpots(appSettings.vipConfig.totalSpots);
         setLocalReferralTiers(appSettings.referralTiers);
         setLocalRewardTiers(appSettings.rewardTiers);
-      } else {
-        // Fallback to hardcoded defaults if nothing in DB
-        const defaultSettings = {
-          vipConfig: { totalSpots: 100 },
-          referralTiers: [
-            { count: 1, tier: 'Bronze', reward: '15% OFF Early Bird Discount', icon: '🥉' },
-            { count: 5, tier: 'Silver', reward: '30% OFF Early Bird Discount', icon: '🥈' },
-            { count: 10, tier: 'Gold', reward: '50% OFF Early Bird Discount', icon: '🥇' },
-            { count: 25, tier: 'Platinum', reward: 'Limited Edition PawMe', icon: '💎' },
-          ],
-          rewardTiers: Object.values(imageData).filter(img => img.alt.toLowerCase().includes('reward'))
-            .map((img: any, i: number) => ({...img, id: `reward${i+1}`, title: img.alt, requiredPoints: (i+1) * 1000, reward: `A nice ${img.alt.toLowerCase()}`}))
-        };
-        setSettings(defaultSettings as any);
-        setLocalVipSpots(defaultSettings.vipConfig.totalSpots);
-        setLocalReferralTiers(defaultSettings.referralTiers);
-        setLocalRewardTiers(defaultSettings.rewardTiers as any);
+        setRewardImageFiles(new Array(appSettings.rewardTiers.length).fill(null));
       }
     } catch (error) {
       console.error('Error fetching settings:', error);
@@ -380,6 +367,7 @@ export default function AdminPage() {
   };
   
   const handleSaveSettings = async (settingsToSave: Partial<AppSettings>) => {
+    setSavingSettings(true);
     try {
       await updateAppSettings(settingsToSave);
       toast.success("Settings saved successfully!");
@@ -387,6 +375,8 @@ export default function AdminPage() {
     } catch (error) {
       console.error(error);
       toast.error("Failed to save settings.");
+    } finally {
+      setSavingSettings(false);
     }
   };
 
@@ -412,10 +402,51 @@ export default function AdminPage() {
 
   const handleAddRewardTier = () => {
     setLocalRewardTiers([...localRewardTiers, { id: `new-reward-${Date.now()}`, title: '', requiredPoints: 0, reward: '', image: '', alt: '', 'data-ai-hint': '' }]);
+    setRewardImageFiles([...rewardImageFiles, null]);
   };
 
   const handleRemoveRewardTier = (index: number) => {
     setLocalRewardTiers(localRewardTiers.filter((_, i) => i !== index));
+    setRewardImageFiles(rewardImageFiles.filter((_, i) => i !== index));
+  };
+
+  const handleImageFileChange = (index: number, file: File | null) => {
+    const newFiles = [...rewardImageFiles];
+    newFiles[index] = file;
+    setRewardImageFiles(newFiles);
+
+    // Show a local preview of the selected file
+    if (file) {
+        const newTiers = [...localRewardTiers];
+        newTiers[index].image = URL.createObjectURL(file);
+        setLocalRewardTiers(newTiers);
+    }
+  };
+
+  const handleSaveRewardTiers = async () => {
+    setSavingSettings(true);
+    try {
+        const updatedTiers = [...localRewardTiers];
+
+        for (let i = 0; i < updatedTiers.length; i++) {
+            const file = rewardImageFiles[i];
+            if (file) {
+                const storageRef = ref(storage, `rewards/${Date.now()}_${file.name}`);
+                const snapshot = await uploadBytes(storageRef, file);
+                const downloadURL = await getDownloadURL(snapshot.ref);
+                updatedTiers[i].image = downloadURL;
+            }
+        }
+        
+        await handleSaveSettings({ rewardTiers: updatedTiers });
+        toast.success("Point Rewards saved successfully!");
+        await fetchSettings();
+    } catch (error) {
+        console.error("Error saving point rewards:", error);
+        toast.error("Failed to save point rewards.");
+    } finally {
+        setSavingSettings(false);
+    }
   };
 
   if (authLoading || !user || !profile) {
@@ -459,7 +490,9 @@ export default function AdminPage() {
                         <div className="flex items-center gap-4">
                           <Label htmlFor="vip-spots">Total VIP Spots</Label>
                           <Input id="vip-spots" type="number" value={localVipSpots} onChange={(e) => setLocalVipSpots(Number(e.target.value))} className="w-24" />
-                          <Button onClick={() => handleSaveSettings({ vipConfig: { totalSpots: localVipSpots } })}>Save VIP Spots</Button>
+                          <Button onClick={() => handleSaveSettings({ vipConfig: { totalSpots: localVipSpots } })} disabled={savingSettings}>
+                            {savingSettings ? 'Saving...' : 'Save VIP Spots'}
+                          </Button>
                         </div>
                       </div>
                       
@@ -478,7 +511,9 @@ export default function AdminPage() {
                         </div>
                         <div className="flex gap-2">
                           <Button variant="outline" onClick={handleAddReferralTier}>Add Referral Tier</Button>
-                          <Button onClick={() => handleSaveSettings({ referralTiers: localReferralTiers })}>Save Referral Tiers</Button>
+                          <Button onClick={() => handleSaveSettings({ referralTiers: localReferralTiers })} disabled={savingSettings}>
+                            {savingSettings ? 'Saving...' : 'Save Referral Tiers'}
+                          </Button>
                         </div>
                       </div>
                       
@@ -486,23 +521,41 @@ export default function AdminPage() {
                         <h3 className="font-semibold text-lg">Point Rewards</h3>
                         <div className="space-y-2">
                           {localRewardTiers.map((tier, index) => (
-                            <div key={index} className="space-y-2 border-b pb-2">
-                                <div className="grid grid-cols-2 gap-2">
-                                  <Input value={tier.title} onChange={(e) => handleRewardTierChange(index, 'title', e.target.value)} placeholder="Title"/>
-                                  <Input type="number" value={tier.requiredPoints} onChange={(e) => handleRewardTierChange(index, 'requiredPoints', e.target.value)} placeholder="Points"/>
+                            <div key={tier.id} className="space-y-4 border-b pb-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div className="space-y-2">
+                                    <Label htmlFor={`reward-title-${index}`}>Title</Label>
+                                    <Input id={`reward-title-${index}`} value={tier.title} onChange={(e) => handleRewardTierChange(index, 'title', e.target.value)} placeholder="Title"/>
+                                  </div>
+                                  <div className="space-y-2">
+                                    <Label htmlFor={`reward-points-${index}`}>Points Required</Label>
+                                    <Input id={`reward-points-${index}`} type="number" value={tier.requiredPoints} onChange={(e) => handleRewardTierChange(index, 'requiredPoints', e.target.value)} placeholder="Points"/>
+                                  </div>
                                 </div>
-                                <Input value={tier.reward} onChange={(e) => handleRewardTierChange(index, 'reward', e.target.value)} placeholder="Description"/>
-                                <div className="grid grid-cols-2 gap-2">
-                                <Input value={tier.image} onChange={(e) => handleRewardTierChange(index, 'image', e.target.value)} placeholder="Image Path"/>
-                                <Input value={tier.alt} onChange={(e) => handleRewardTierChange(index, 'alt', e.target.value)} placeholder="Image Alt Text"/>
+                                <div className="space-y-2">
+                                  <Label htmlFor={`reward-desc-${index}`}>Description</Label>
+                                  <Input id={`reward-desc-${index}`} value={tier.reward} onChange={(e) => handleRewardTierChange(index, 'reward', e.target.value)} placeholder="Description"/>
                                 </div>
-                                <Button size="sm" variant="ghost" onClick={() => handleRemoveRewardTier(index)} className="text-destructive hover:text-destructive"><Trash2 className="w-4 h-4 mr-2"/>Remove</Button>
+                                <div className="flex items-end gap-4">
+                                  {tier.image && <Image src={tier.image} alt={tier.alt || 'Reward preview'} width={64} height={64} className="rounded-md object-cover aspect-square" />}
+                                  <div className="space-y-2 flex-grow">
+                                    <Label htmlFor={`reward-image-${index}`}>Reward Image</Label>
+                                    <Input id={`reward-image-${index}`} type="file" accept="image/*" onChange={(e) => handleImageFileChange(index, e.target.files ? e.target.files[0] : null)} />
+                                  </div>
+                                </div>
+                                <div className="space-y-2">
+                                  <Label htmlFor={`reward-alt-${index}`}>Image Alt Text</Label>
+                                  <Input id={`reward-alt-${index}`} value={tier.alt} onChange={(e) => handleRewardTierChange(index, 'alt', e.target.value)} placeholder="Image Alt Text"/>
+                                </div>
+                                <Button size="sm" variant="ghost" onClick={() => handleRemoveRewardTier(index)} className="text-destructive hover:text-destructive"><Trash2 className="w-4 h-4 mr-2"/>Remove Reward</Button>
                             </div>
                           ))}
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 mt-4">
                           <Button variant="outline" onClick={handleAddRewardTier}>Add Point Reward</Button>
-                          <Button onClick={() => handleSaveSettings({ rewardTiers: localRewardTiers })}>Save Point Rewards</Button>
+                          <Button onClick={handleSaveRewardTiers} disabled={savingSettings}>
+                            {savingSettings ? 'Saving...' : 'Save Point Rewards'}
+                          </Button>
                         </div>
                       </div>
                     </>
@@ -552,7 +605,16 @@ export default function AdminPage() {
                                   {u.marketingOptIn ? (
                                     <Checkbox checked={selectedUserIds.has(u.id)} onCheckedChange={() => handleSelectUser(u.id)} />
                                   ) : (
-                                    <Lock className="w-4 h-4 text-muted-foreground" title={`${u.name} has unsubscribed.`}/>
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger>
+                                          <Lock className="w-4 h-4 text-muted-foreground" />
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p>{u.name} has unsubscribed.</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
                                   )}
                                 </TableCell>
                                 <TableCell className="font-medium">{u.name}</TableCell>
