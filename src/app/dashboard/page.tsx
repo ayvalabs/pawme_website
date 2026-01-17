@@ -23,13 +23,13 @@ import type { UserProfile, Reward } from '@/app/context/AuthContext';
 import type { EmailTemplate } from '@/app/actions/email-templates';
 import { Header } from '@/app/components/header';
 import { Footer } from '@/app/components/footer';
-import { db, storage } from '@/firebase/config';
+import { db } from '@/firebase/config';
 import { collection, query, orderBy, getDocs, doc, setDoc, deleteDoc, updateDoc } from 'firebase/firestore';
 import { getAppSettings, updateAppSettings, type AppSettings, type ReferralTier, type RewardTier } from '@/app/actions/settings';
 import { defaultTemplates } from '@/lib/email-templates';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/app/components/ui/tooltip';
 import Image from 'next/image';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { uploadRewardImages } from '@/app/services/adminService';
 
 type UserWithId = UserProfile & { id: string };
 type RewardWithUser = Reward & { user: { id: string; name: string; email: string }, rewardTitle: string };
@@ -426,33 +426,27 @@ export default function AdminPage() {
   const handleSaveRewardTiers = async () => {
     setSavingSettings(true);
     try {
-        const updatedTiers = [...localRewardTiers];
-
-        for (let i = 0; i < updatedTiers.length; i++) {
-            const file = rewardImageFiles[i];
-            if (file) {
-                const storageRef = ref(storage, `rewards/${Date.now()}_${file.name}`);
-                const snapshot = await uploadBytes(storageRef, file);
-                const downloadURL = await getDownloadURL(snapshot.ref);
-                updatedTiers[i].image = downloadURL;
-            }
-        }
-        
-        await handleSaveSettings({ rewardTiers: updatedTiers });
-        toast.success("Point Rewards saved successfully!");
-        await fetchSettings();
+      const tiersWithUploadedImages = await uploadRewardImages(localRewardTiers, rewardImageFiles);
+      await handleSaveSettings({ rewardTiers: tiersWithUploadedImages });
+      toast.success("Point Rewards saved successfully!");
+      // After saving, reset image files state and fetch fresh settings
+      setRewardImageFiles(new Array(localRewardTiers.length).fill(null));
+      await fetchSettings();
     } catch (error) {
-        console.error("Error saving point rewards:", error);
-        toast.error("Failed to save point rewards.");
+      console.error("Error saving point rewards:", error);
+      toast.error("Failed to save point rewards. Check the console for details.");
     } finally {
-        setSavingSettings(false);
+      setSavingSettings(false);
     }
   };
 
   if (authLoading || !user || !profile) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading your dashboard...</p>
+        </div>
       </div>
     );
   }
