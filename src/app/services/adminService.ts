@@ -64,38 +64,39 @@ async function uploadFileWithRetry(
  * Uploads reward images to Firebase Storage and updates the tier objects with the new URLs.
  * This is a client-side service because it uses the Firebase client SDK for uploads.
  * @param rewardTiers - The array of reward tiers to process.
- * @param imageFiles - The array of files corresponding to each reward tier.
+ * @param imageFiles - A record of reward tier IDs to their corresponding File objects.
  * @returns An updated array of reward tiers with new image URLs for uploaded files.
  */
 export async function uploadRewardImages(
   rewardTiers: RewardTier[],
-  imageFiles: (File | null)[]
+  imageFiles: Record<string, File>
 ): Promise<RewardTier[]> {
   const updatedTiers = JSON.parse(JSON.stringify(rewardTiers));
 
-  for (let i = 0; i < updatedTiers.length; i++) {
-    const file = imageFiles[i];
+  for (const tier of updatedTiers) {
+    const file = imageFiles[tier.id];
     if (file) {
       try {
         const timestamp = Date.now();
         const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
         const path = `rewards/${timestamp}_${sanitizedFileName}`;
         
-        console.log(`Uploading image for tier ${i}: ${file.name} to ${path}`);
+        console.log(`Uploading image for tier ${tier.id}: ${file.name} to ${path}`);
         const downloadURL = await uploadFileWithRetry(file, path);
         
-        updatedTiers[i].image = downloadURL;
-        console.log(`Successfully uploaded image for tier ${i}. URL:`, downloadURL);
+        tier.image = downloadURL;
+        console.log(`Successfully uploaded image for tier ${tier.id}. URL:`, downloadURL);
 
       } catch (error: any) {
-        console.error(`Failed to upload image for tier "${updatedTiers[i].title}":`, error);
-        throw new Error(`Failed to upload image for "${updatedTiers[i].title}": ${error.message}`);
+        console.error(`Failed to upload image for tier "${tier.title}":`, error);
+        throw new Error(`Failed to upload image for "${tier.title}": ${error.message}`);
       }
     }
   }
 
   return updatedTiers;
 }
+
 
 /**
  * Saves application settings to Firestore from the client.
@@ -110,4 +111,3 @@ export async function saveAppSettings(settings: Partial<AppSettings>): Promise<v
     throw new Error("Failed to update settings in Firestore. Check console and security rules.");
   }
 }
-

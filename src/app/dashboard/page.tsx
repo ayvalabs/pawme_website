@@ -28,7 +28,7 @@ import { collection, query, orderBy, getDocs, doc, setDoc, deleteDoc, updateDoc 
 import { getAppSettings, type AppSettings, type ReferralTier, type RewardTier } from '@/app/actions/settings';
 import { defaultTemplates } from '@/lib/email-templates';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/app/components/ui/tooltip';
-import Image from 'next/image';
+import { ImageWithFallback } from '@/app/components/figma/ImageWithFallback';
 import { uploadRewardImages, saveAppSettings } from '@/app/services/adminService';
 
 type UserWithId = UserProfile & { id: string };
@@ -80,11 +80,10 @@ export default function AdminPage() {
   const [localReferralTiers, setLocalReferralTiers] = useState<ReferralTier[]>([]);
   const [localRewardTiers, setLocalRewardTiers] = useState<RewardTier[]>([]);
   
-  // State for the reward editing dialog
   const [isRewardDialogOpen, setRewardDialogOpen] = useState(false);
   const [editingReward, setEditingReward] = useState<RewardTier | null>(null);
   const [editingRewardIndex, setEditingRewardIndex] = useState<number | null>(null);
-  const [currentRewardImageFile, setCurrentRewardImageFile] = useState<File | null>(null);
+  const [rewardImageFiles, setRewardImageFiles] = useState<Record<string, File>>({});
 
   useEffect(() => {
     if (!authLoading && (!user || profile?.email !== 'pawme@ayvalabs.com')) {
@@ -414,7 +413,6 @@ export default function AdminPage() {
       });
       setEditingRewardIndex(null);
     }
-    setCurrentRewardImageFile(null);
     setRewardDialogOpen(true);
   };
 
@@ -425,10 +423,10 @@ export default function AdminPage() {
   };
 
   const handleDialogImageChange = (file: File | null) => {
-    setCurrentRewardImageFile(file);
     if (file && editingReward) {
-      const previewUrl = URL.createObjectURL(file);
-      setEditingReward({ ...editingReward, image: previewUrl });
+        const previewUrl = URL.createObjectURL(file);
+        setEditingReward({ ...editingReward, image: previewUrl });
+        setRewardImageFiles(prev => ({...prev, [editingReward.id]: file}));
     }
   };
 
@@ -436,7 +434,6 @@ export default function AdminPage() {
     if (!editingReward) return;
 
     const newLocalTiers = [...localRewardTiers];
-    let imageFileToSet: File | null = currentRewardImageFile;
 
     if (editingRewardIndex !== null) {
       // Update existing reward
@@ -452,31 +449,20 @@ export default function AdminPage() {
   
   const handleRemoveRewardTier = (index: number) => {
     if (confirm('Are you sure you want to remove this reward tier?')) {
-      setLocalRewardTiers(localRewardTiers.filter((_, i) => i !== index));
+      const newTiers = localRewardTiers.filter((_, i) => i !== index);
+      setLocalRewardTiers(newTiers);
     }
   };
 
   const handleSaveRewardTiers = async () => {
     setSavingSettings(true);
     try {
-      const filesToUpload = localRewardTiers.map(tier => {
-        // This is a simplified check. A more robust way would be to track which images are new/changed.
-        // For now, if it's a blob URL, we assume it's a new file.
-        if (tier.image.startsWith('blob:')) {
-          // This part is tricky as we don't have the File object here.
-          // This requires a bigger refactor to store the file objects alongside the tiers.
-          // For now, we will assume this simplified logic cannot handle file re-association and will rely on the dialog flow.
-        }
-        return null;
-      });
-
-      // A proper implementation would pass the actual File objects to uploadRewardImages.
-      // This is a placeholder for the logic that needs to be more robustly implemented.
-      const tiersWithUploadedImages = await uploadRewardImages(localRewardTiers, []);
+      const tiersWithUploadedImages = await uploadRewardImages(localRewardTiers, rewardImageFiles);
       await saveAppSettings({ rewardTiers: tiersWithUploadedImages });
 
       toast.success("Point Rewards saved successfully!");
       await fetchSettings();
+      setRewardImageFiles({}); // Clear the staged files
     } catch (error) {
       console.error("Error saving point rewards:", error);
       toast.error("Failed to save point rewards. Check the console for details.");
@@ -578,7 +564,7 @@ export default function AdminPage() {
                               {localRewardTiers.map((tier, index) => (
                                 <TableRow key={tier.id}>
                                   <TableCell>
-                                    <Image src={tier.image || "https://picsum.photos/seed/placeholder/40/40"} alt={tier.alt || tier.title} width={40} height={40} className="rounded-md object-cover aspect-square bg-muted"/>
+                                    <ImageWithFallback src={tier.image || "https://picsum.photos/seed/placeholder/40/40"} alt={tier.alt || tier.title} width={40} height={40} className="rounded-md object-cover aspect-square bg-muted"/>
                                   </TableCell>
                                   <TableCell className="font-medium">{tier.title}</TableCell>
                                   <TableCell>{tier.requiredPoints}</TableCell>
@@ -970,7 +956,7 @@ export default function AdminPage() {
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="reward-image" className="text-right">Image</Label>
                 <div className="col-span-3 flex items-center gap-4">
-                  {editingReward.image && <Image src={editingReward.image} alt="preview" width={40} height={40} className="rounded-md object-cover aspect-square"/>}
+                  {editingReward.image && <ImageWithFallback src={editingReward.image} alt="preview" width={40} height={40} className="rounded-md object-cover aspect-square"/>}
                   <Input id="reward-image" type="file" accept="image/*" onChange={(e) => handleDialogImageChange(e.target.files ? e.target.files[0] : null)} />
                 </div>
               </div>
@@ -1124,5 +1110,3 @@ export default function AdminPage() {
     </>
   );
 }
-
-    
