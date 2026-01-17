@@ -96,14 +96,13 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
       return;
     }
     setLoading(true);
-    try {
-      await sendPasswordReset(signInEmail);
+    const result = await sendPasswordReset(signInEmail);
+    if (result.success) {
       toast.success('Password reset email sent!', { description: 'Please check your inbox to continue.' });
-    } catch (error: any) {
-      toast.error(error.code === 'auth/user-not-found' ? 'No account found with this email address.' : 'Failed to send password reset email. Please try again.');
-    } finally {
-      setLoading(false);
+    } else {
+      toast.error(result.message || 'Failed to send password reset email. Please try again.');
     }
+    setLoading(false);
   };
 
   const handleInitiateSignUp = async (e: React.FormEvent) => {

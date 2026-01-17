@@ -10,9 +10,9 @@ import {
   signInWithPopup,
   GoogleAuthProvider,
   signOut as firebaseSignOut,
+  sendPasswordResetEmail as firebaseSendPasswordResetEmail,
   User as FirebaseUser,
   updateProfile as updateUserProfile,
-  sendPasswordResetEmail,
 } from 'firebase/auth';
 import {
   doc,
@@ -73,7 +73,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   updateTheme: (theme: string) => Promise<void>;
-  sendPasswordReset: (email: string) => Promise<void>;
+  sendPasswordReset: (email: string) => Promise<{ success: boolean; message?: string }>;
   joinVip: () => Promise<void>;
   redeemReward: (rewardId: string, shippingAddress: any) => Promise<void>;
   updateMarketingPreference: (optIn: boolean) => Promise<void>;
@@ -284,7 +284,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const sendPasswordReset = async (email: string) => {
-    await sendPasswordResetEmail(auth, email);
+    try {
+      const actionCodeSettings = {
+        url: `${window.location.origin}/`,
+        handleCodeInApp: false,
+      };
+      await firebaseSendPasswordResetEmail(auth, email, actionCodeSettings);
+      return { success: true };
+    } catch (error: any) {
+      if (error.code === 'auth/user-not-found') {
+        return { success: true };
+      }
+      console.error('Password reset error:', error);
+      return { success: false, message: 'Failed to send password reset email. Please try again later.' };
+    }
   };
 
   const signInWithGoogle = async () => {

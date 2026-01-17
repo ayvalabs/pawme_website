@@ -41,11 +41,9 @@ export async function sendSignUpVerificationCode({ email, name }: { email: strin
     
     return { success: true, message: 'Verification code sent.' };
   } catch (error: any) {
-    // This will now catch errors from both Firestore and the email service.
     console.error('❌ [ACTION] CRITICAL FAILURE in sendSignUpVerificationCode:', error.message);
-    console.error(error); // Log the full error object
+    console.error(error); 
     
-    // Provide a more specific message if it's our custom error.
     if (error.message.includes('API key')) {
         return { success: false, message: 'Email service is not configured on the server. Please contact support.' };
     }
