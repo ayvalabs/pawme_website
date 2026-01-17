@@ -22,12 +22,14 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/app/components/ui/form';
 import Image from 'next/image';
-import imageData from '@/app/lib/placeholder-images.json';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/ui/table';
 import { loadStripe, type Stripe as StripeType } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
 import { createPaymentIntent } from '@/app/actions/stripe';
 import CheckoutForm from '@/app/components/CheckoutForm';
+import { getAppSettings, AppSettings } from '@/app/actions/settings';
+import { collection, query, where, getCountFromServer } from 'firebase/firestore';
+import { db } from '@/firebase/config';
 
 interface LeaderboardUser {
   id: string;
@@ -36,9 +38,7 @@ interface LeaderboardUser {
   rank: number;
 }
 
-function VipBanner({ userName, onJoinClick }: { userName: string, onJoinClick: () => void }) {
-  const vipLimit = 100;
-
+function VipBanner({ userName, onJoinClick, spotsLeft }: { userName: string, onJoinClick: () => void, spotsLeft: number }) {
   return (
     <Card 
       onClick={onJoinClick}
@@ -46,7 +46,7 @@ function VipBanner({ userName, onJoinClick }: { userName: string, onJoinClick: (
     >
       <CardHeader className="p-0 mb-4">
         <CardTitle className="text-3xl font-bold text-primary">
-          👑 {userName}, join the {vipLimit} VIP list! 👑
+          👑 {userName}, join the VIP list! 👑
         </CardTitle>
         <CardDescription className="text-lg text-foreground/80">
           Become a founding member, get exclusive early bird pricing, and earn <span className="font-bold text-primary">1.5x points</span> for every referral!
@@ -56,7 +56,7 @@ function VipBanner({ userName, onJoinClick }: { userName: string, onJoinClick: (
         <div className="h-10 flex items-center justify-center">
             <p className="text-xl font-semibold bg-primary text-primary-foreground rounded-full px-6 py-2 inline-flex items-center gap-2">
               <Sparkles className="w-5 h-5" />
-              Limited spots available!
+              Only {spotsLeft} spots left!
             </p>
         </div>
       </CardContent>
@@ -173,70 +173,10 @@ export default function LeaderboardPage() {
   const { user, profile, loading: authLoading, joinVip, redeemReward, updateMarketingPreference } = useAuth();
   const router = useRouter();
 
-  const rewardTiers = [
-    { 
-      id: 'treats', 
-      title: 'Premium Treats Sampler', 
-      requiredPoints: 1000, 
-      reward: 'A delicious pack of high-quality, natural pet treats.',
-      image: imageData.rewardTreats.src,
-      alt: 'Premium pet treats',
-      'data-ai-hint': imageData.rewardTreats['data-ai-hint'],
-    },
-    { 
-      id: 'toy', 
-      title: 'Interactive Puzzle Toy', 
-      requiredPoints: 2500, 
-      reward: 'A treat-dispensing ball or puzzle to keep your pet engaged.',
-      image: imageData.rewardToy.src,
-      alt: 'Interactive pet toy',
-      'data-ai-hint': imageData.rewardToy['data-ai-hint'],
-    },
-    { 
-      id: 'accessory', 
-      title: 'Personalized Pet Accessory', 
-      requiredPoints: 5000, 
-      reward: 'A custom engraved collar or a stylish harness in brand colors.',
-      image: imageData.rewardAccessory.src,
-      alt: 'Personalized pet collar',
-      'data-ai-hint': imageData.rewardAccessory['data-ai-hint'],
-    },
-    { 
-      id: 'bundle', 
-      title: 'Comfort Bundle', 
-      requiredPoints: 7500, 
-      reward: 'A gift set with a plush toy, grooming wipes, and a travel bowl.',
-      image: imageData.rewardBundle.src,
-      alt: 'Pet comfort bundle',
-      'data-ai-hint': imageData.rewardBundle['data-ai-hint'],
-    },
-    { 
-      id: 'bed', 
-      title: 'Premium Pet Bed', 
-      requiredPoints: 10000, 
-      reward: 'A cozy, high-quality pet bed for ultimate comfort.',
-      image: imageData.rewardBed.src,
-      alt: 'A cozy premium pet bed',
-      'data-ai-hint': imageData.rewardBed['data-ai-hint'],
-    },
-    { 
-      id: 'feeder', 
-      title: 'Smart Pet Feeder', 
-      requiredPoints: 20000, 
-      reward: 'An automated, app-controlled pet feeder for scheduled meals.',
-      image: imageData.rewardFeeder.src,
-      alt: 'A smart automated pet feeder',
-      'data-ai-hint': imageData.rewardFeeder['data-ai-hint'],
-    }
-  ];
+  const [settings, setSettings] = useState<AppSettings | null>(null);
+  const [loadingSettings, setLoadingSettings] = useState(true);
+  const [vipCount, setVipCount] = useState(0);
 
-  const referralTiers = [
-    { count: 1, tier: 'Bronze', reward: '15% OFF Early Bird Discount', icon: '🥉' },
-    { count: 5, tier: 'Silver', reward: '30% OFF Early Bird Discount', icon: '🥈' },
-    { count: 10, tier: 'Gold', reward: '50% OFF Early Bird Discount', icon: '🥇' },
-    { count: 25, tier: 'Platinum', reward: 'Limited Edition PawMe', icon: '💎' },
-  ];
-  
   const [copied, setCopied] = useState(false);
   const referralUrl = typeof window !== 'undefined' ? `${window.location.origin}/?ref=${profile?.referralCode}` : '';
 
@@ -247,7 +187,7 @@ export default function LeaderboardPage() {
 
   const [isVipDialogOpen, setVipDialogOpen] = useState(false);
   const [isRedeemDialogOpen, setRedeemDialogOpen] = useState(false);
-  const [selectedReward, setSelectedReward] = useState<(typeof rewardTiers)[0] | null>(null);
+  const [selectedReward, setSelectedReward] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [isOptInDialogOpen, setOptInDialogOpen] = useState(false);
@@ -265,6 +205,28 @@ export default function LeaderboardPage() {
       fullName: '', address1: '', address2: '', city: '', state: '', zip: '', country: '', phone: ''
     }
   });
+
+  useEffect(() => {
+    const fetchPageData = async () => {
+      setLoadingSettings(true);
+      try {
+        const [appSettings, vipUsersSnapshot] = await Promise.all([
+          getAppSettings(),
+          getCountFromServer(query(collection(db, 'users'), where('isVip', '==', true)))
+        ]);
+        setSettings(appSettings);
+        setVipCount(vipUsersSnapshot.data().count);
+      } catch (error) {
+        console.error("Failed to fetch page settings:", error);
+        toast.error("Could not load page settings.");
+      }
+      setLoadingSettings(false);
+    };
+
+    if (!authLoading && user) {
+      fetchPageData();
+    }
+  }, [authLoading, user]);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -351,6 +313,7 @@ ${profile.name}`
   const finalizeVipJoin = async () => {
     try {
       await joinVip();
+      setVipCount(v => v + 1); // Optimistic update
       toast.success("Welcome to the VIP list! 👑 You're now a founding member.");
     } catch (e) {
       toast.error('There was an issue updating your VIP status. Please contact support.');
@@ -371,7 +334,7 @@ ${profile.name}`
     setIsSubmitting(false);
   };
   
-  const handleOpenRedeemDialog = (reward: (typeof rewardTiers)[0]) => {
+  const handleOpenRedeemDialog = (reward: any) => {
     setSelectedReward(reward);
     addressForm.reset({ fullName: profile?.name || '', phone: '' });
     setRedeemDialogOpen(true);
@@ -406,7 +369,7 @@ ${profile.name}`
     }
   };
 
-  if (authLoading) {
+  if (authLoading || loadingSettings || !user || !profile) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -417,9 +380,9 @@ ${profile.name}`
     );
   }
 
-  if (!user || !profile) {
-    return null;
-  }
+  const referralTiers = settings?.referralTiers || [];
+  const rewardTiers = settings?.rewardTiers || [];
+  const spotsLeft = Math.max(0, (settings?.vipConfig?.totalSpots || 100) - vipCount);
 
   return (
     <>
@@ -427,10 +390,11 @@ ${profile.name}`
         <Header />
         
         <div className="flex-grow max-w-7xl mx-auto px-4 py-8 w-full">
-          {!profile.isVip && (
+          {!profile.isVip && spotsLeft > 0 && (
             <VipBanner 
               userName={profile.name.split(' ')[0]} 
               onJoinClick={handleOpenVipDialog}
+              spotsLeft={spotsLeft}
             />
           )}
 

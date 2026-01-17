@@ -16,7 +16,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
 import { Skeleton } from '@/app/components/ui/skeleton';
 import { toast } from 'sonner';
-import { User, Mail, Send, Truck, Package, PackageCheck, FileText, Plus, Edit, Trash2, Eye, Lock } from 'lucide-react';
+import { User, Mail, Send, Truck, Package, PackageCheck, FileText, Plus, Edit, Trash2, Eye, Lock, SettingsIcon } from 'lucide-react';
 import { markRewardShipped } from '@/app/actions/users';
 import { sendAdminBroadcast, sendShippingNotificationEmail } from '@/app/actions/email';
 import type { UserProfile, Reward } from '@/app/context/AuthContext';
@@ -25,6 +25,9 @@ import { Header } from '@/app/components/header';
 import { Footer } from '@/app/components/footer';
 import { db } from '@/firebase/config';
 import { collection, query, orderBy, getDocs, doc, setDoc, deleteDoc, updateDoc } from 'firebase/firestore';
+import { getAppSettings, updateAppSettings, type AppSettings, type ReferralTier, type RewardTier } from '@/app/actions/settings';
+import { defaultTemplates } from '@/lib/email-templates';
+import imageData from '@/app/lib/placeholder-images.json';
 
 type UserWithId = UserProfile & { id: string };
 type RewardWithUser = Reward & { user: { id: string; name: string; email: string }, rewardTitle: string };
@@ -54,22 +57,25 @@ export default function AdminPage() {
   const [trackingCode, setTrackingCode] = useState('');
   const [sendingShipping, setSendingShipping] = useState(false);
 
-  // Email template management state
   const [emailTemplates, setEmailTemplates] = useState<EmailTemplate[]>([]);
   const [loadingTemplates, setLoadingTemplates] = useState(true);
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<EmailTemplate | null>(null);
   
-  // Template form state
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
   const [templateSubject, setTemplateSubject] = useState('');
   const [templateHtml, setTemplateHtml] = useState('');
   const [templateVariables, setTemplateVariables] = useState('');
   
-  // Preview State
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewContent, setPreviewContent] = useState({ subject: '', html: '' });
+
+  const [settings, setSettings] = useState<AppSettings | null>(null);
+  const [loadingSettings, setLoadingSettings] = useState(true);
+  const [localVipSpots, setLocalVipSpots] = useState(100);
+  const [localReferralTiers, setLocalReferralTiers] = useState<ReferralTier[]>([]);
+  const [localRewardTiers, setLocalRewardTiers] = useState<RewardTier[]>([]);
 
   useEffect(() => {
     if (!authLoading && (!user || profile?.email !== 'pawme@ayvalabs.com')) {
@@ -119,10 +125,45 @@ export default function AdminPage() {
     }
   }
 
+  const fetchSettings = async () => {
+    setLoadingSettings(true);
+    try {
+      const appSettings = await getAppSettings();
+      if (appSettings) {
+        setSettings(appSettings);
+        setLocalVipSpots(appSettings.vipConfig.totalSpots);
+        setLocalReferralTiers(appSettings.referralTiers);
+        setLocalRewardTiers(appSettings.rewardTiers);
+      } else {
+        // Fallback to hardcoded defaults if nothing in DB
+        const defaultSettings = {
+          vipConfig: { totalSpots: 100 },
+          referralTiers: [
+            { count: 1, tier: 'Bronze', reward: '15% OFF Early Bird Discount', icon: '🥉' },
+            { count: 5, tier: 'Silver', reward: '30% OFF Early Bird Discount', icon: '🥈' },
+            { count: 10, tier: 'Gold', reward: '50% OFF Early Bird Discount', icon: '🥇' },
+            { count: 25, tier: 'Platinum', reward: 'Limited Edition PawMe', icon: '💎' },
+          ],
+          rewardTiers: Object.values(imageData).filter(img => img.alt.toLowerCase().includes('reward'))
+            .map((img: any, i: number) => ({...img, id: `reward${i+1}`, title: img.alt, requiredPoints: (i+1) * 1000, reward: `A nice ${img.alt.toLowerCase()}`}))
+        };
+        setSettings(defaultSettings as any);
+        setLocalVipSpots(defaultSettings.vipConfig.totalSpots);
+        setLocalReferralTiers(defaultSettings.referralTiers);
+        setLocalRewardTiers(defaultSettings.rewardTiers as any);
+      }
+    } catch (error) {
+      console.error('Error fetching settings:', error);
+      toast.error('Failed to load settings.');
+    }
+    setLoadingSettings(false);
+  }
+
   useEffect(() => {
     if (user && profile?.email === 'pawme@ayvalabs.com') {
       fetchAllUsers();
       fetchEmailTemplates();
+      fetchSettings();
     }
   }, [user, profile]);
 
@@ -290,6 +331,11 @@ export default function AdminPage() {
   };
 
   const handleDeleteTemplate = async (templateId: string) => {
+    if(Object.keys(defaultTemplates).includes(templateId)){
+      toast.error("Cannot delete a default system template.");
+      return;
+    }
+    
     if (!confirm(`Are you sure you want to delete the template "${templateId}"? This cannot be undone.`)) {
       return;
     }
@@ -331,6 +377,45 @@ export default function AdminPage() {
     setPreviewContent({ subject: previewSubject, html: previewHtml });
     setPreviewOpen(true);
   };
+  
+  const handleSaveSettings = async (settingsToSave: Partial<AppSettings>) => {
+    try {
+      await updateAppSettings(settingsToSave);
+      toast.success("Settings saved successfully!");
+      await fetchSettings();
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to save settings.");
+    }
+  };
+
+  const handleReferralTierChange = (index: number, field: keyof ReferralTier, value: string | number) => {
+    const newTiers = [...localReferralTiers];
+    (newTiers[index] as any)[field] = field === 'count' ? Number(value) : value;
+    setLocalReferralTiers(newTiers);
+  };
+
+  const handleAddReferralTier = () => {
+    setLocalReferralTiers([...localReferralTiers, { count: 0, icon: '🎉', reward: '', tier: '' }]);
+  };
+
+  const handleRemoveReferralTier = (index: number) => {
+    setLocalReferralTiers(localReferralTiers.filter((_, i) => i !== index));
+  };
+  
+  const handleRewardTierChange = (index: number, field: keyof RewardTier, value: string | number) => {
+    const newTiers = [...localRewardTiers];
+    (newTiers[index] as any)[field] = field === 'requiredPoints' ? Number(value) : value;
+    setLocalRewardTiers(newTiers);
+  };
+
+  const handleAddRewardTier = () => {
+    setLocalRewardTiers([...localRewardTiers, { id: `new-reward-${Date.now()}`, title: '', requiredPoints: 0, reward: '', image: '', alt: '', 'data-ai-hint': '' }]);
+  };
+
+  const handleRemoveRewardTier = (index: number) => {
+    setLocalRewardTiers(localRewardTiers.filter((_, i) => i !== index));
+  };
 
   if (authLoading || !user || !profile) {
     return (
@@ -351,12 +436,79 @@ export default function AdminPage() {
           </div>
 
           <Tabs defaultValue="users" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="users">Users ({filteredUsers.length})</TabsTrigger>
               <TabsTrigger value="rewards">Rewards ({pendingRewards.length})</TabsTrigger>
               <TabsTrigger value="email">Broadcast</TabsTrigger>
               <TabsTrigger value="templates">Templates ({emailTemplates.length})</TabsTrigger>
+              <TabsTrigger value="settings">Settings</TabsTrigger>
             </TabsList>
+
+            <TabsContent value="settings" className="mt-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Application Settings</CardTitle>
+                  <CardDescription>Manage referral tiers, rewards, and other application settings. Changes will be live immediately.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-8">
+                  {loadingSettings ? <Skeleton className="h-64 w-full" /> : (
+                    <>
+                      <div className="space-y-4 p-4 border rounded-lg">
+                        <h3 className="font-semibold text-lg">VIP Settings</h3>
+                        <div className="flex items-center gap-4">
+                          <Label htmlFor="vip-spots">Total VIP Spots</Label>
+                          <Input id="vip-spots" type="number" value={localVipSpots} onChange={(e) => setLocalVipSpots(Number(e.target.value))} className="w-24" />
+                          <Button onClick={() => handleSaveSettings({ vipConfig: { totalSpots: localVipSpots } })}>Save VIP Spots</Button>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-4 p-4 border rounded-lg">
+                        <h3 className="font-semibold text-lg">Referral Tiers (by referral count)</h3>
+                        <div className="space-y-2">
+                          {localReferralTiers.map((tier, index) => (
+                            <div key={index} className="grid grid-cols-[auto_1fr_1fr_1fr_auto] gap-2 items-center">
+                              <Input value={tier.icon} onChange={(e) => handleReferralTierChange(index, 'icon', e.target.value)} className="w-16 text-center" placeholder="Icon"/>
+                              <Input type="number" value={tier.count} onChange={(e) => handleReferralTierChange(index, 'count', e.target.value)} placeholder="Count"/>
+                              <Input value={tier.tier} onChange={(e) => handleReferralTierChange(index, 'tier', e.target.value)} placeholder="Tier Name (e.g., Bronze)"/>
+                              <Input value={tier.reward} onChange={(e) => handleReferralTierChange(index, 'reward', e.target.value)} placeholder="Reward Description"/>
+                              <Button size="icon" variant="ghost" onClick={() => handleRemoveReferralTier(index)}><Trash2 className="w-4 h-4 text-destructive"/></Button>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="flex gap-2">
+                          <Button variant="outline" onClick={handleAddReferralTier}>Add Referral Tier</Button>
+                          <Button onClick={() => handleSaveSettings({ referralTiers: localReferralTiers })}>Save Referral Tiers</Button>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-4 p-4 border rounded-lg">
+                        <h3 className="font-semibold text-lg">Point Rewards</h3>
+                        <div className="space-y-2">
+                          {localRewardTiers.map((tier, index) => (
+                            <div key={index} className="space-y-2 border-b pb-2">
+                                <div className="grid grid-cols-2 gap-2">
+                                  <Input value={tier.title} onChange={(e) => handleRewardTierChange(index, 'title', e.target.value)} placeholder="Title"/>
+                                  <Input type="number" value={tier.requiredPoints} onChange={(e) => handleRewardTierChange(index, 'requiredPoints', e.target.value)} placeholder="Points"/>
+                                </div>
+                                <Input value={tier.reward} onChange={(e) => handleRewardTierChange(index, 'reward', e.target.value)} placeholder="Description"/>
+                                <div className="grid grid-cols-2 gap-2">
+                                <Input value={tier.image} onChange={(e) => handleRewardTierChange(index, 'image', e.target.value)} placeholder="Image URL"/>
+                                <Input value={tier.alt} onChange={(e) => handleRewardTierChange(index, 'alt', e.target.value)} placeholder="Image Alt Text"/>
+                                </div>
+                                <Button size="sm" variant="ghost" onClick={() => handleRemoveRewardTier(index)} className="text-destructive hover:text-destructive"><Trash2 className="w-4 h-4 mr-2"/>Remove</Button>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="flex gap-2">
+                          <Button variant="outline" onClick={handleAddRewardTier}>Add Point Reward</Button>
+                          <Button onClick={() => handleSaveSettings({ rewardTiers: localRewardTiers })}>Save Point Rewards</Button>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
             
             <TabsContent value="email" className="mt-4">
                <Card>
@@ -638,7 +790,7 @@ export default function AdminPage() {
                                   <Button size="icon" variant="ghost" onClick={() => handleOpenTemplateDialog(template)}>
                                     <Edit className="w-4 h-4"/>
                                   </Button>
-                                  <Button size="icon" variant="ghost" onClick={() => handleDeleteTemplate(template.id)}>
+                                  <Button size="icon" variant="ghost" onClick={() => handleDeleteTemplate(template.id)} disabled={Object.keys(defaultTemplates).includes(template.id)}>
                                     <Trash2 className="w-4 h-4 text-destructive"/>
                                   </Button>
                                 </div>
