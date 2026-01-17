@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -138,12 +139,11 @@ export default function AdminPage() {
       const appSettings = await getAppSettings();
       if (appSettings) {
         setSettings(appSettings);
-        setLocalVipSpots(appSettings.vipConfig.totalSpots);
-        setLocalReferralTiers(appSettings.referralTiers);
-
-        // Filter out tiers with blob URLs that might have been saved erroneously
+        setLocalVipSpots(appSettings.vipConfig?.totalSpots || 100);
+        setLocalReferralTiers(appSettings.referralTiers || []);
+        
         const validRewardTiers = (appSettings.rewardTiers || []).filter(tier => tier.image && !tier.image.startsWith('blob:'));
-        if (validRewardTiers.length < (appSettings.rewardTiers || []).length) {
+        if (appSettings.rewardTiers && validRewardTiers.length < appSettings.rewardTiers.length) {
           toast.warning("Corrupt reward data found", {
             description: "Some rewards had invalid image URLs and were ignored. Please re-save your rewards.",
           });
