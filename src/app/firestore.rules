@@ -1,0 +1,85 @@
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper function to check if user is admin
+    function isAdmin() {
+      return request.auth != null && 
+             (request.auth.token.admin == true || request.auth.token.email == 'pawme@ayvalabs.com');
+    }
+
+    // Rules for the 'users' collection
+    match /users/{userId} {
+
+      // Any authenticated user can read public user data for leaderboards and referrals.
+      // Admin can read all user data.
+      allow read: if request.auth != null;
+
+      // New users can create their own user document upon signup.
+      // The document ID must match the user's UID.
+      allow create: if request.auth != null && request.auth.uid == userId;
+
+      // Users can update their own document or referral updates
+      // Admin can update any user document
+      allow update: if
+        // Admin has full update access
+        isAdmin() ||
+        
+        // Allow a user to update their own document (theme, profile, etc.)
+        (request.auth != null && request.auth.uid == userId) ||
+
+        // Allow a new signup to credit their referrer.
+        // This is scoped to only allow incrementing points and referral count by the correct amounts.
+        (
+          request.auth != null &&
+          request.resource.data.diff(resource.data).affectedKeys().hasAll(['points', 'referralCount']) &&
+          request.resource.data.diff(resource.data).affectedKeys().size() == 2 &&
+          request.resource.data.referralCount == resource.data.referralCount + 1 &&
+          (
+            request.resource.data.points == resource.data.points + 100 ||
+            request.resource.data.points == resource.data.points + 150
+          )
+        );
+    }
+
+    // Rules for the 'verifications' collection
+    match /verifications/{docId} {
+      // Allow anyone to create a verification document with proper structure
+      // This is needed for email verification during signup (before user is authenticated)
+      allow create: if request.resource.data.keys().hasAll(['email', 'code', 'expiresAt']) &&
+                      request.resource.data.size() == 3 &&
+                      request.resource.data.email is string &&
+                      request.resource.data.code is string &&
+                      request.resource.data.expiresAt is timestamp;
+
+      // Allow anyone to read verification codes (needed to verify the code during signup)
+      // Security: codes are short-lived
+      allow read: if true;
+
+      // Allow anyone to delete verification codes (cleanup after successful verification)
+      allow delete: if true;
+      
+      // No updates allowed - codes should be created and deleted, not modified
+      allow update: if false;
+    }
+
+    // Rules for the 'emailTemplates' collection
+    match /emailTemplates/{templateId} {
+      // Only admin can read email templates
+      allow read: if isAdmin();
+      
+      // Only admin can create, update, or delete email templates
+      allow write: if isAdmin();
+    }
+
+    // Rules for the 'app-settings' collection
+    match /app-settings/{settingId} {
+      // Anyone can read app settings (for public display of referral tiers, rewards, etc.)
+      allow read: if true;
+      
+      // Only admin can create, update, or delete app settings
+      allow write: if isAdmin();
+    }
+  }
+}

@@ -21,7 +21,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/app/components/ui/form';
-import Image from 'next/image';
+import { ImageWithFallback } from '@/app/components/figma/ImageWithFallback';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/ui/table';
 import { loadStripe, type Stripe as StripeType } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
@@ -539,13 +539,10 @@ ${profile.name}`
                 return (
                   <Card key={tier.id} className={`flex flex-col overflow-hidden transition-all ${!isUnlocked && 'opacity-60'}`}>
                      <div className="relative">
-                      <Image 
+                      <ImageWithFallback 
                         src={tier.image}
                         alt={tier.alt}
-                        width={600}
-                        height={400}
-                        data-ai-hint={tier['data-ai-hint']}
-                        className="object-cover aspect-[3/2]"
+                        className="object-cover aspect-[3/2] w-full"
                       />
                       {!isUnlocked && (
                         <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
