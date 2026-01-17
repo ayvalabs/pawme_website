@@ -36,5 +36,40 @@
     "src": "https://picsum.photos/seed/reward5/600/400",
     "alt": "A cozy premium pet bed",
     "data-ai-hint": "dog bed"
+  },
+  "rewardFeeder": {
+    "src": "https://picsum.photos/seed/reward6/600/400",
+    "alt": "A smart automated pet feeder",
+    "data-ai-hint": "smart feeder"
+  },
+  "instaFeed1": {
+    "src": "https://picsum.photos/seed/insta1/300/300",
+    "alt": "A cute dog playing with PawMe robot",
+    "data-ai-hint": "dog playing"
+  },
+  "instaFeed2": {
+    "src": "https://picsum.photos/seed/insta2/300/300",
+    "alt": "A cat sleeping in a sunbeam",
+    "data-ai-hint": "cat sleeping"
+  },
+  "instaFeed3": {
+    "src": "https://picsum.photos/seed/insta3/300/300",
+    "alt": "Close up of PawMe robot's camera lens",
+    "data-ai-hint": "robot closeup"
+  },
+  "instaFeed4": {
+    "src": "https://picsum.photos/seed/insta4/300/300",
+    "alt": "A happy customer with their pet and PawMe",
+    "data-ai-hint": "person pet"
+  },
+  "instaFeed5": {
+    "src": "https://picsum.photos/seed/insta5/300/300",
+    "alt": "PawMe robot dispensing a treat to a dog",
+    "data-ai-hint": "robot treat"
+  },
+  "instaFeed6": {
+    "src": "https://picsum.photos/seed/insta6/300/300",
+    "alt": "Behind the scenes look at PawMe development",
+    "data-ai-hint": "tech office"
   }
 }

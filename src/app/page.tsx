@@ -16,6 +16,7 @@ import { FloatingActions } from '@/app/components/floating-actions';
 import { BottomFloatingCTA } from '@/app/components/bottom-floating-cta';
 import { AuthDialog } from '@/app/components/auth-dialog';
 import { Skeleton } from '@/app/components/ui/skeleton';
+import { InstagramFeed } from '@/app/components/instagram-feed';
 
 export default function HomePage() {
   const { user, loading } = useAuth();
@@ -64,6 +65,7 @@ export default function HomePage() {
         <Timeline />
         <CTA onEmailSubmit={handleOpenAuthDialog} />
       </main>
+      <InstagramFeed />
       <Footer />
       <FloatingActions />
       {!user && <BottomFloatingCTA onClick={handleOpenAuthDialog} />}
