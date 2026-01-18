@@ -80,6 +80,10 @@
     "@stripe/react-stripe-js": {
       "react": "$react",
       "react-dom": "$react-dom"
+    },
+    "react-quill": {
+      "react": "$react",
+      "react-dom": "$react-dom"
     }
   }
 }
