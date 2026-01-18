@@ -8,7 +8,6 @@ import { defaultTemplates } from '@/lib/email-templates';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const fromEmail = 'PawMe <pawme@ayvalabs.com>';
-const adminDb = getAdminFirestore();
 
 function getAppUrl(): string {
   // Use the explicitly set public app URL if available
@@ -24,18 +23,20 @@ function getAppUrl(): string {
 }
 
 async function getTemplate(templateId: string) {
+  const adminDb = getAdminFirestore();
   try {
     const templateRef = doc(adminDb, 'emailTemplates', templateId);
     const templateSnap = await getDoc(templateRef);
 
     if (templateSnap.exists()) {
+      console.log(`✅ [EMAIL_ACTION] Fetched template '${templateId}' from Firestore.`);
       return templateSnap.data() as { subject: string, html: string };
     } else {
-      console.warn(`Email template '${templateId}' not found in Firestore, using default.`);
+      console.warn(`⚠️ [EMAIL_ACTION] Email template '${templateId}' not found in Firestore, using default.`);
       return defaultTemplates[templateId];
     }
   } catch (error) {
-    console.error(`Error fetching email template '${templateId}' from Firestore, using default fallback.`, error);
+    console.error(`❌ [EMAIL_ACTION] Error fetching email template '${templateId}' from Firestore, using default fallback.`, error);
     return defaultTemplates[templateId];
   }
 }
@@ -46,6 +47,7 @@ async function renderAndSend(templateId: string, to: string, variables: Record<s
     throw new Error('Server is missing API key for email service.');
   }
 
+  const adminDb = getAdminFirestore();
   const [template, settingsSnap] = await Promise.all([
     getTemplate(templateId),
     getDoc(doc(adminDb, 'app-settings', 'rewards'))
@@ -137,6 +139,7 @@ export async function sendCustomPasswordResetEmail({ email }: { email: string })
 
 export async function sendAdminBroadcast(users: {email: string, name: string}[], subject: string, bodyTemplate: string) {
     const appUrl = getAppUrl();
+    const adminDb = getAdminFirestore();
     const settingsSnap = await getDoc(doc(adminDb, 'app-settings', 'rewards'));
     const appSettings = settingsSnap.exists() ? settingsSnap.data() : {};
     const headerHtml = (appSettings.emailHeader || '').replace(/{{emailTitle}}/g, subject);
