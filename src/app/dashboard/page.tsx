@@ -313,11 +313,10 @@ export default function AdminPage() {
       const appSettings = await getAppSettings();
       setSettings(appSettings);
 
-      // Prioritize Firestore data, then fall back to hardcoded defaults
       if (appSettings && appSettings.rewardTiers && appSettings.rewardTiers.length > 0) {
         setLocalRewardTiers(appSettings.rewardTiers);
       } else {
-        setLocalRewardTiers(defaultRewardTiers); // `defaultRewardTiers` is the hardcoded list
+        setLocalRewardTiers(defaultRewardTiers);
       }
 
       if (appSettings) {
@@ -326,7 +325,6 @@ export default function AdminPage() {
         setLocalEmailHeader(appSettings.emailHeader || DEFAULT_HEADER);
         setLocalEmailFooter(appSettings.emailFooter || DEFAULT_FOOTER);
       } else {
-        // Also set defaults if no settings exist at all
         setLocalRewardTiers(defaultRewardTiers);
         setLocalEmailHeader(DEFAULT_HEADER);
         setLocalEmailFooter(DEFAULT_FOOTER);
@@ -334,7 +332,7 @@ export default function AdminPage() {
     } catch (error) {
       console.error('Error fetching settings:', error);
       toast.error('Failed to load settings.');
-      setLocalRewardTiers(defaultRewardTiers); // Fallback on error
+      setLocalRewardTiers(defaultRewardTiers);
       setLocalEmailHeader(DEFAULT_HEADER);
       setLocalEmailFooter(DEFAULT_FOOTER);
     }
@@ -618,44 +616,42 @@ export default function AdminPage() {
     }
   };
 
-  const handleSaveRewardFromDialog = () => {
+  const handleSaveRewardFromDialog = async () => {
     if (!editingReward) return;
 
+    setSavingSettings(true);
+    
+    // Create a new array with the updated/new reward
     const newLocalTiers = [...localRewardTiers];
-
     if (editingRewardIndex !== null) {
-      // Update existing reward
       newLocalTiers[editingRewardIndex] = editingReward;
     } else {
-      // Add new reward
       newLocalTiers.push(editingReward);
     }
 
-    setLocalRewardTiers(newLocalTiers);
-    setRewardDialogOpen(false);
+    try {
+      // Upload images and save all tiers to Firestore
+      const tiersWithUploadedImages = await uploadRewardImages(newLocalTiers, rewardImageFiles);
+      await saveAppSettings({ rewardTiers: tiersWithUploadedImages });
+
+      toast.success("Rewards updated successfully!");
+      setLocalRewardTiers(tiersWithUploadedImages); // Update local state with final data
+      setRewardImageFiles({}); // Clear staged files after successful upload
+      setRewardDialogOpen(false); // Close dialog on success
+    } catch (error: any) {
+      console.error("Error saving reward:", error);
+      toast.error(`Failed to save reward: ${error.message}`);
+    } finally {
+      setSavingSettings(false);
+    }
   };
   
   const handleRemoveRewardTier = (index: number) => {
     if (confirm('Are you sure you want to remove this reward tier?')) {
       const newTiers = localRewardTiers.filter((_, i) => i !== index);
       setLocalRewardTiers(newTiers);
-    }
-  };
-
-  const handleSaveRewardTiers = async () => {
-    setSavingSettings(true);
-    try {
-      const tiersWithUploadedImages = await uploadRewardImages(localRewardTiers, rewardImageFiles);
-      await saveAppSettings({ rewardTiers: tiersWithUploadedImages });
-
-      toast.success("Point Rewards saved successfully!");
-      await fetchSettings();
-      setRewardImageFiles({}); // Clear the staged files
-    } catch (error: any) {
-      console.error("Error saving point rewards:", error);
-      toast.error(`Failed to save point rewards. ${error.message}`);
-    } finally {
-      setSavingSettings(false);
+      // Immediately persist this change
+      handleSaveSettings({ rewardTiers: newTiers });
     }
   };
   
@@ -807,11 +803,6 @@ export default function AdminPage() {
                               )}
                             </TableBody>
                           </Table>
-                        </div>
-                        <div className="flex justify-end gap-2 mt-4">
-                          <Button onClick={handleSaveRewardTiers} disabled={savingSettings}>
-                            {savingSettings ? 'Saving...' : 'Save All Point Rewards'}
-                          </Button>
                         </div>
                       </div>
                     </>
@@ -1282,8 +1273,10 @@ export default function AdminPage() {
             </div>
           )}
           <DialogFooterComponent>
-            <Button variant="outline" onClick={() => setRewardDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleSaveRewardFromDialog}>Save</Button>
+            <Button variant="outline" onClick={() => setRewardDialogOpen(false)} disabled={savingSettings}>Cancel</Button>
+            <Button onClick={handleSaveRewardFromDialog} disabled={savingSettings}>
+              {savingSettings ? 'Saving...' : 'Save'}
+            </Button>
           </DialogFooterComponent>
         </DialogContent>
       </Dialog>
