@@ -261,21 +261,15 @@ export default function AdminPage() {
     setLoadingSettings(true);
     try {
       const appSettings = await getAppSettings();
+
+      // ALWAYS load the hardcoded list for now, as requested.
+      setLocalRewardTiers(defaultRewardTiers);
+
       if (appSettings) {
         setSettings(appSettings);
         setLocalVipSpots(appSettings.vipConfig?.totalSpots || 100);
         setLocalReferralTiers(appSettings.referralTiers || []);
-        
-        const validRewardTiers = (appSettings.rewardTiers || []).filter(tier => tier.id && tier.image && !tier.image.startsWith('blob:'));
-        
-        if (validRewardTiers.length > 0) {
-            setLocalRewardTiers(validRewardTiers);
-        } else {
-            setLocalRewardTiers(defaultRewardTiers);
-        }
-      } else {
-        // If no settings are in Firestore, use the hardcoded defaults
-        setLocalRewardTiers(defaultRewardTiers);
+        // Intentionally ignoring appSettings.rewardTiers to show the hardcoded ones.
       }
     } catch (error) {
       console.error('Error fetching settings:', error);
@@ -780,7 +774,9 @@ export default function AdminPage() {
                                     <TooltipProvider>
                                       <Tooltip>
                                         <TooltipTrigger>
+                                          <div tabIndex={0}>
                                           <Lock className="w-4 h-4 text-muted-foreground" />
+                                          </div>
                                         </TooltipTrigger>
                                         <TooltipContent>
                                           <p>{u.name} has unsubscribed.</p>
@@ -1103,7 +1099,7 @@ export default function AdminPage() {
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setRewardDialogOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={()={() => setRewardDialogOpen(false)}>Cancel</Button>
             <Button onClick={handleSaveRewardFromDialog}>Save</Button>
           </DialogFooter>
         </DialogContent>
@@ -1259,3 +1255,5 @@ export default function AdminPage() {
     </>
   );
 }
+
+    
