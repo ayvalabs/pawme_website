@@ -7,13 +7,7 @@ export interface EmailTemplate {
   variables: string[];
 }
 
-export const defaultTemplates: Record<string, EmailTemplate> = {
-  header: {
-    id: 'header',
-    name: 'Default Email Header',
-    subject: '',
-    variables: ['emailTitle'],
-    html: `<!DOCTYPE html>
+const header = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -35,14 +29,9 @@ export const defaultTemplates: Record<string, EmailTemplate> = {
                 Your Pet's AI Companion
               </p>
             </td>
-          </tr>`
-  },
-  footer: {
-    id: 'footer',
-    name: 'Default Email Footer',
-    subject: '',
-    variables: ['unsubscribeLink'],
-    html: `          <!-- Footer -->
+          </tr>`;
+
+const footer = `          <!-- Footer -->
           <tr>
             <td style="background-color: #f8f8fc; padding: 30px; text-align: center; border-top: 1px solid #e8e8f0;">
               <p style="margin: 0 0 15px; color: #666666; font-size: 14px; line-height: 1.6;">
@@ -70,14 +59,29 @@ export const defaultTemplates: Record<string, EmailTemplate> = {
     </tr>
   </table>
 </body>
-</html>`
+</html>`;
+
+export const defaultTemplates: Record<string, EmailTemplate> = {
+  header: {
+    id: 'header',
+    name: 'Default Email Header',
+    subject: '',
+    variables: ['emailTitle'],
+    html: header,
+  },
+  footer: {
+    id: 'footer',
+    name: 'Default Email Footer',
+    subject: '',
+    variables: ['unsubscribeLink'],
+    html: footer,
   },
   welcome: {
     id: 'welcome',
     name: 'Welcome Email',
     subject: '🐾 Welcome to PawMe! Your referral link is ready',
     variables: ['userName', 'referralCode', 'referralLink'],
-    html: `{{header}}
+    html: `${header}
 <tr>
   <td style="padding: 40px;">
     <p style="margin: 0 0 20px; color: #333333; font-size: 16px; line-height: 1.6;">
@@ -127,14 +131,14 @@ export const defaultTemplates: Record<string, EmailTemplate> = {
     </table>
   </td>
 </tr>
-{{footer}}`
+${footer}`,
   },
   referralSuccess: {
     id: 'referralSuccess',
     name: 'Referral Success',
     subject: "🎉 You've earned points! Someone joined using your referral link",
     variables: ['referrerName', 'newReferralCount', 'newPoints'],
-    html: `{{header}}
+    html: `${header}
 <tr>
   <td style="padding: 40px;">
     <p style="margin: 0 0 20px; color: #333333; font-size: 16px; line-height: 1.6;">
@@ -178,14 +182,14 @@ export const defaultTemplates: Record<string, EmailTemplate> = {
     </table>
   </td>
 </tr>
-{{footer}}`
+${footer}`,
   },
   verificationCode: {
     id: 'verificationCode',
     name: 'Verification Code',
     subject: 'Your PawMe Verification Code',
     variables: ['userName', 'code'],
-    html: `{{header}}
+    html: `${header}
 <tr>
   <td style="padding: 40px;">
     <p style="margin: 0 0 20px; color: #333333; font-size: 16px; line-height: 1.6;">
@@ -196,6 +200,7 @@ export const defaultTemplates: Record<string, EmailTemplate> = {
       Here is your 4-digit verification code to complete your PawMe signup.
     </p>
     
+    <!-- Code Box -->
     <table role="presentation" style="width: 100%; margin-bottom: 30px;">
       <tr>
         <td style="background-color: #f8f8fc; border-radius: 8px; padding: 30px; text-align: center;">
@@ -213,14 +218,14 @@ export const defaultTemplates: Record<string, EmailTemplate> = {
     </p>
   </td>
 </tr>
-{{footer}}`
+${footer}`,
   },
   passwordReset: {
     id: 'passwordReset',
     name: 'Password Reset',
     subject: 'Reset Your PawMe Password',
     variables: ['userName', 'link'],
-    html: `{{header}}
+    html: `${header}
 <tr>
   <td style="padding: 40px;">
     <p style="margin: 0 0 20px; color: #333333; font-size: 16px; line-height: 1.6;">
@@ -244,14 +249,14 @@ export const defaultTemplates: Record<string, EmailTemplate> = {
     </p>
   </td>
 </tr>
-{{footer}}`
+${footer}`,
   },
   shippingNotification: {
     id: 'shippingNotification',
     name: 'Reward Shipped',
     subject: '🎁 Your PawMe Reward has Shipped!',
     variables: ['userName', 'rewardTitle', 'trackingCode'],
-    html: `{{header}}
+    html: `${header}
 <tr>
   <td style="padding: 40px;">
     <h2 style="color: #7678EE;">🚀 It's on its way, {{userName}}!</h2>
@@ -263,14 +268,14 @@ export const defaultTemplates: Record<string, EmailTemplate> = {
     <p>Thank you for being an essential part of the PawMe community. We appreciate your support!</p>
   </td>
 </tr>
-{{footer}}`
+${footer}`,
   },
   productUpdate: {
     id: 'productUpdate',
     name: 'Product Update',
     subject: '🚀 An Update from PawMe!',
     variables: ['userName'],
-    html: `{{header}}
+    html: `${header}
 <tr>
   <td style="padding: 40px;">
     <p style="margin: 0 0 20px; color: #333333; font-size: 16px; line-height: 1.6;">
@@ -286,6 +291,6 @@ export const defaultTemplates: Record<string, EmailTemplate> = {
     </p>
   </td>
 </tr>
-{{footer}}`
+${footer}`,
   },
 };

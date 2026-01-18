@@ -2,9 +2,7 @@
 'use server';
 
 import { Resend } from 'resend';
-import { doc, getDoc } from 'firebase/firestore';
-import { getAdminFirestore } from '@/lib/firebase-admin';
-import { defaultTemplates, EmailTemplate } from '@/lib/email-templates';
+import { defaultTemplates } from '@/lib/email-templates';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const fromEmail = 'PawMe <pawme@ayvalabs.com>';
@@ -19,31 +17,6 @@ function getAppUrl(): string {
   return 'http://localhost:9008';
 }
 
-async function getTemplate(templateId: string): Promise<{ subject: string; html: string; } | null> {
-  try {
-    console.log(`🔵 [EMAIL_ACTION] Attempting to load template '${templateId}' from Firestore.`);
-    const db = getAdminFirestore();
-    const templateRef = doc(db, 'emailTemplates', templateId);
-    const docSnap = await getDoc(templateRef);
-    if (docSnap.exists()) {
-      const data = docSnap.data() as EmailTemplate;
-      console.log(`✅ [EMAIL_ACTION] Successfully loaded template '${templateId}' from Firestore.`);
-      return { subject: data.subject, html: data.html };
-    }
-    console.log(`🟡 [EMAIL_ACTION] Template '${templateId}' not found in Firestore. Falling back to local default.`);
-  } catch (error: any) {
-    console.warn(`⚠️ [EMAIL_ACTION] Could not connect to Firestore to get template '${templateId}'. This is likely due to missing admin credentials. Falling back to local default. Error: ${error.message}`);
-  }
-
-  // Fallback to local templates
-  if (defaultTemplates[templateId]) {
-    const template = defaultTemplates[templateId];
-    return { subject: template.subject, html: template.html };
-  }
-
-  return null;
-}
-
 async function renderAndSend(templateId: string, to: string, variables: Record<string, any>) {
   console.log(`🔵 [EMAIL_ACTION] Starting renderAndSend for template: ${templateId}, to: ${to}`);
 
@@ -52,17 +25,15 @@ async function renderAndSend(templateId: string, to: string, variables: Record<s
     throw new Error('Server is missing API key for email service.');
   }
 
-  const template = await getTemplate(templateId);
+  const template = defaultTemplates[templateId];
 
   if (!template) {
-    console.error(`❌ [EMAIL_ACTION] FATAL: Email template "${templateId}" is missing from both Firestore and local fallbacks.`);
+    console.error(`❌ [EMAIL_ACTION] FATAL: Email template "${templateId}" is missing from local defaults.`);
     throw new Error(`Email template "${templateId}" is missing.`);
   }
 
   let subject = template.subject;
-  let bodyHtml = template.html
-    .replace(/{{header}}/g, defaultTemplates.header.html)
-    .replace(/{{footer}}/g, defaultTemplates.footer.html);
+  let bodyHtml = template.html;
 
   const allVariables = {
     ...variables,
