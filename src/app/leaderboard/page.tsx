@@ -514,6 +514,11 @@ ${profile.name}`
                         alt={tier.alt}
                         className="object-cover aspect-[3/2] w-full"
                       />
+                      {tier.price && (
+                        <div className="absolute top-2 right-2 bg-black/50 text-white text-xs font-bold py-1 px-2 rounded-full backdrop-blur-sm">
+                          ${tier.price.toFixed(2)} Value
+                        </div>
+                      )}
                       {!isUnlocked && (
                         <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                           <Lock className="h-12 w-12 text-white/70" />

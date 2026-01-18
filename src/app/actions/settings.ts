@@ -16,6 +16,7 @@ export interface RewardTier {
   title: string;
   requiredPoints: number;
   reward: string;
+  price?: number;
   image: string;
   alt: string;
   'data-ai-hint': string;

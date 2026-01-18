@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -50,6 +51,7 @@ const defaultRewardTiers: RewardTier[] = [
       title: "Chewy Starter Treats Pouch 🦴",
       reward: "A mixed pouch of bite-sized dog or cat treats, perfect for training sessions or robot-assisted playtime. Soft, high-value nibbles to keep tails wagging while PawMe works its magic.",
       requiredPoints: 10,
+      price: 12.99,
       image: "https://picsum.photos/seed/chewytreats/600/400",
       alt: "Use a clean flatlay of a small resealable pouch spilling out assorted treats on a neutral background.",
       "data-ai-hint": "dog cat treats"
@@ -59,6 +61,7 @@ const defaultRewardTiers: RewardTier[] = [
       title: "Eco Poop-Bag Holder & Rolls 🌱",
       reward: "Clip-on poop-bag holder with a starter roll of eco-friendly bags. Attach it to your leash or PawMe robot leash handle so you never forget cleanup duty on walks.",
       requiredPoints: 12,
+      price: 8.50,
       image: "https://picsum.photos/seed/poopbag/600/400",
       alt: "Show a small dispenser with colorful rolls of bags next to a leash.",
       "data-ai-hint": "poop bag holder"
@@ -68,6 +71,7 @@ const defaultRewardTiers: RewardTier[] = [
       title: "Feather Teaser Wand For Cats 🪶",
       reward: "A flexible teaser wand with soft feathers and bells to spark your cat’s hunting instincts. Great for interactive play before PawMe takes over nighttime monitoring.",
       requiredPoints: 14,
+      price: 7.99,
       image: "https://picsum.photos/seed/featherwand/600/400",
       alt: "Capture a simple feather wand being played with by a cat or laid diagonally on a pastel background.",
       "data-ai-hint": "cat feather toy"
@@ -77,6 +81,7 @@ const defaultRewardTiers: RewardTier[] = [
       title: "Plush Squeaky Friend 🧸",
       reward: "A soft, durable plush toy with an internal squeaker for dogs that love to pounce, shake, and cuddle. Designed to pair perfectly with PawMe’s playtime reminders.",
       requiredPoints: 18,
+      price: 15.00,
       image: "https://picsum.photos/seed/plushdogtoy/600/400",
       alt: "Use a bright photo of a single plush dog toy (bone, animal, or robot theme).",
       "data-ai-hint": "dog plush toy"
@@ -86,6 +91,7 @@ const defaultRewardTiers: RewardTier[] = [
       title: "Interactive Treat Ball Puzzle 🧠",
       reward: "A rolling treat-dispensing ball that turns snack time into a brain game. Fill it with kibble or small treats and let your pet nudge and chase it while PawMe keeps watch.",
       requiredPoints: 20,
+      price: 18.50,
       image: "https://picsum.photos/seed/dogtreatball/600/400",
       alt: "Show a translucent or colorful treat ball with a few kibbles around it.",
       "data-ai-hint": "dog treat puzzle"
@@ -95,6 +101,7 @@ const defaultRewardTiers: RewardTier[] = [
       title: "Natural Jerky Treat Pack 🍗",
       reward: "Grain-free, limited-ingredient jerky strips made for sensitive tummies. Ideal as a high-value reward after successful training sessions with your PawMe companion.",
       requiredPoints: 24,
+      price: 16.00,
       image: "https://picsum.photos/seed/dogjerky/600/400",
       alt: "Use a kraft paper pouch with visible jerky strips for an artisanal look.",
       "data-ai-hint": "dog jerky"
@@ -104,6 +111,7 @@ const defaultRewardTiers: RewardTier[] = [
       title: "Aloe & Coconut Grooming Wipes 🧼",
       reward: "Gentle, hypoallergenic wipes for quick paw, coat, and muzzle cleanups after walks or playtime. Keep your pet camera-ready for every PawMe selfie.",
       requiredPoints: 26,
+      price: 10.00,
       image: "https://picsum.photos/seed/petwipes/600/400",
       alt: "Show a packet of wipes with a dog or cat illustration on the label.",
       "data-ai-hint": "pet grooming wipes"
@@ -113,6 +121,7 @@ const defaultRewardTiers: RewardTier[] = [
       title: "Durable Tug & Fetch Rope 💪",
       reward: "A tough cotton rope toy for tug-of-war and fetch sessions. Great for high-energy pups who need a good workout before settling down with PawMe.",
       requiredPoints: 30,
+      price: 12.00,
       image: "https://picsum.photos/seed/dogropetoy/600/400",
       alt: "Rope toy in a simple composition; braided, with bright colors for visual pop.",
       "data-ai-hint": "dog rope toy"
@@ -122,6 +131,7 @@ const defaultRewardTiers: RewardTier[] = [
       title: "Snuffle Treasure Hunt Mat 🌿",
       reward: "A fleece snuffle mat that hides treats in its folds, encouraging natural foraging instincts. Perfect enrichment while PawMe monitors relaxation and stress levels.",
       requiredPoints: 36,
+      price: 25.00,
       image: "https://picsum.photos/seed/snufflemat/600/400",
       alt: "Top-down view of a colorful snuffle mat with a few treats tucked inside.",
       "data-ai-hint": "dog snuffle mat"
@@ -131,6 +141,7 @@ const defaultRewardTiers: RewardTier[] = [
       title: "Smart Laser Chase Toy 🔦",
       reward: "An automatic laser toy that projects unpredictable patterns across the floor and walls, turning your living room into a cat playground while PawMe captures the action.",
       requiredPoints: 48,
+      price: 30.00,
       image: "https://picsum.photos/seed/catlasertoy/600/400",
       alt: "Show a compact laser device on the ground with a cat chasing the dot.",
       "data-ai-hint": "cat laser toy"
@@ -140,6 +151,7 @@ const defaultRewardTiers: RewardTier[] = [
       title: "Deluxe Variety Treat Box 🎁",
       reward: "A curated selection of premium dog or cat treats: crunchy biscuits, soft chews, and lickable rewards. A perfect way to celebrate hitting a big referral milestone.",
       requiredPoints: 60,
+      price: 40.00,
       image: "https://picsum.photos/seed/pettreatbox/600/400",
       alt: "Use a gift-style box with dividers showing different treat types.",
       "data-ai-hint": "pet gift box"
@@ -149,6 +161,7 @@ const defaultRewardTiers: RewardTier[] = [
       title: "Custom Name Tag & Collar Set 👑",
       reward: "A personalized collar and engraved name tag so your pet can show off their PawMe fame. Choose colors and fonts that match your robot’s personality.",
       requiredPoints: 80,
+      price: 35.00,
       image: "https://picsum.photos/seed/dogcollartag/600/400",
       alt: "Photograph a collar and tag on a soft fabric or wooden surface, tag facing camera.",
       "data-ai-hint": "custom dog collar"
@@ -158,6 +171,7 @@ const defaultRewardTiers: RewardTier[] = [
       title: "PawMe Mini Celebration Box 🎉",
       reward: "A one-off mini box inspired by premium pet subscriptions: 2 toys + 2 full-size treats tailored to your pet’s size and species. A taste of the VIP experience.",
       requiredPoints: 100,
+      price: 25.00,
       image: "https://picsum.photos/seed/petsubscriptionbox/600/400",
       alt: "Show an open box with toys and treat bags neatly arranged, similar to top pet subscription boxes.",
       "data-ai-hint": "pet subscription box"
@@ -509,7 +523,7 @@ export default function AdminPage() {
       toast.error("Failed to save template.");
     }
   };
-
+  
   const handleDeleteTemplate = async (templateId: string) => {
     if(Object.keys(defaultTemplates).includes(templateId)){
       toast.error("Cannot delete a default system template.");
@@ -561,9 +575,9 @@ export default function AdminPage() {
       await saveAppSettings(settingsToSave);
       toast.success("Settings saved successfully!");
       await fetchSettings();
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      toast.error("Failed to save settings.");
+      toast.error(error.message || "Failed to save settings.");
     } finally {
       setSavingSettings(false);
     }
@@ -592,6 +606,7 @@ export default function AdminPage() {
         id: `new-reward-${Date.now()}`,
         title: '',
         requiredPoints: 0,
+        price: 0,
         reward: '',
         image: '',
         alt: '',
@@ -621,7 +636,6 @@ export default function AdminPage() {
 
     setSavingSettings(true);
     
-    // Create a new array with the updated/new reward
     const newLocalTiers = [...localRewardTiers];
     if (editingRewardIndex !== null) {
       newLocalTiers[editingRewardIndex] = editingReward;
@@ -630,14 +644,13 @@ export default function AdminPage() {
     }
 
     try {
-      // Upload images and save all tiers to Firestore
       const tiersWithUploadedImages = await uploadRewardImages(newLocalTiers, rewardImageFiles);
       await saveAppSettings({ rewardTiers: tiersWithUploadedImages });
 
       toast.success("Rewards updated successfully!");
-      setLocalRewardTiers(tiersWithUploadedImages); // Update local state with final data
-      setRewardImageFiles({}); // Clear staged files after successful upload
-      setRewardDialogOpen(false); // Close dialog on success
+      setLocalRewardTiers(tiersWithUploadedImages);
+      setRewardImageFiles({});
+      setRewardDialogOpen(false);
     } catch (error: any) {
       console.error("Error saving reward:", error);
       toast.error(`Failed to save reward: ${error.message}`);
@@ -650,7 +663,6 @@ export default function AdminPage() {
     if (confirm('Are you sure you want to remove this reward tier?')) {
       const newTiers = localRewardTiers.filter((_, i) => i !== index);
       setLocalRewardTiers(newTiers);
-      // Immediately persist this change
       handleSaveSettings({ rewardTiers: newTiers });
     }
   };
@@ -773,6 +785,7 @@ export default function AdminPage() {
                                 <TableHead className="w-20">Image</TableHead>
                                 <TableHead>Title</TableHead>
                                 <TableHead>Points</TableHead>
+                                <TableHead>Price ($)</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
                               </TableRow>
                             </TableHeader>
@@ -784,6 +797,7 @@ export default function AdminPage() {
                                   </TableCell>
                                   <TableCell className="font-medium">{tier.title}</TableCell>
                                   <TableCell>{tier.requiredPoints}</TableCell>
+                                  <TableCell>${tier.price ? tier.price.toFixed(2) : '0.00'}</TableCell>
                                   <TableCell className="text-right">
                                     <div className='inline-flex'>
                                       <Button variant="ghost" size="icon" onClick={() => handleOpenRewardDialog(tier, index)}>
@@ -798,7 +812,7 @@ export default function AdminPage() {
                               ))}
                               {localRewardTiers.length === 0 && (
                                 <TableRow>
-                                  <TableCell colSpan={4} className="h-24 text-center">No point rewards configured.</TableCell>
+                                  <TableCell colSpan={5} className="h-24 text-center">No point rewards configured.</TableCell>
                                 </TableRow>
                               )}
                             </TableBody>
@@ -1189,7 +1203,6 @@ export default function AdminPage() {
           </DialogHeader>
 
           <div className="flex-grow flex min-h-0">
-            {/* Left Panel - Editor */}
             <div className="w-1/2 flex flex-col border-r">
               <div className="p-6 flex-grow flex flex-col">
                 <div className="space-y-2 flex-grow flex flex-col">
@@ -1209,7 +1222,6 @@ export default function AdminPage() {
               </div>
             </div>
 
-            {/* Right Panel - Live Preview */}
             <div className="w-1/2 flex flex-col bg-muted/30">
               <div className="p-6 pb-4 border-b bg-background flex-shrink-0">
                 <h3 className="text-lg font-semibold">Live Preview</h3>
@@ -1256,6 +1268,10 @@ export default function AdminPage() {
                 <Input id="reward-points" type="number" value={editingReward.requiredPoints} onChange={(e) => handleDialogFieldChange('requiredPoints', Number(e.target.value))} className="col-span-3"/>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="reward-price" className="text-right">Price ($)</Label>
+                <Input id="reward-price" type="number" value={editingReward.price || ''} onChange={(e) => handleDialogFieldChange('price', Number(e.target.value))} placeholder="e.g. 25.99" className="col-span-3"/>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="reward-desc" className="text-right">Description</Label>
                 <Textarea id="reward-desc" value={editingReward.reward} onChange={(e) => handleDialogFieldChange('reward', e.target.value)} className="col-span-3"/>
               </div>
@@ -1281,7 +1297,6 @@ export default function AdminPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Template Editor Dialog */}
       <Dialog open={templateDialogOpen} onOpenChange={setTemplateDialogOpen}>
         <DialogContent className="max-w-7xl h-[90vh] p-0 flex flex-col">
           <DialogHeader className="p-6 pb-4 border-b flex-shrink-0">
@@ -1292,7 +1307,6 @@ export default function AdminPage() {
           </DialogHeader>
 
           <div className="flex-grow flex min-h-0">
-            {/* Left Panel - Editor */}
             <div className="w-1/2 flex flex-col border-r">
               <ScrollArea className="flex-grow">
                 <div className="space-y-4 p-6 pr-4">
@@ -1356,7 +1370,6 @@ export default function AdminPage() {
               </DialogFooterComponent>
             </div>
 
-            {/* Right Panel - Live Preview */}
             <div className="w-1/2 flex flex-col bg-muted/30">
               <div className="p-6 pb-4 border-b bg-background flex-shrink-0">
                 <h3 className="text-lg font-semibold">Live Preview</h3>
