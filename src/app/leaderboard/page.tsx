@@ -287,10 +287,12 @@ ${profile.name}`
     const subject = encodeURIComponent(`🐾 ${profile?.name} invited you to join PawMe!`);
     const body = encodeURIComponent(shareMessage);
 
-    window.location.href = `mailto:${emailAddress}?subject=${subject}&body=${body}`;
+    const mailtoLink = `mailto:${emailAddress}?subject=${subject}&body=${body}`;
+    window.open(mailtoLink);
+
     setEmailAddress('');
     setReceiverName('');
-    toast.success('Your email client has been opened!');
+    toast.success('Your email client should be open!');
   };
 
   const handleWhatsAppShare = () => {
