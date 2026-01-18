@@ -225,22 +225,3 @@ export const defaultTemplates: Record<string, EmailTemplate> = {
     variables: ['userName'],
   },
 };
-
-export function renderTemplate(templateId: string, variables: Record<string, string>): { subject: string; html: string } {
-  const template = defaultTemplates[templateId];
-  if (!template) {
-    throw new Error(`Template ${templateId} not found`);
-  }
-
-  let html = template.html;
-  let subject = template.subject;
-
-  // Replace variables in both subject and HTML
-  Object.entries(variables).forEach(([key, value]) => {
-    const regex = new RegExp(`{{${key}}}`, 'g');
-    html = html.replace(regex, value);
-    subject = subject.replace(regex, value);
-  });
-
-  return { subject, html };
-}

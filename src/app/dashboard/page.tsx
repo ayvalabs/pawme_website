@@ -1,18 +1,17 @@
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/app/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/app/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/app/components/ui/card';
 import { Input } from '@/app/components/ui/input';
 import { Label } from '@/app/components/ui/label';
 import { Textarea } from '@/app/components/ui/textarea';
 import { Checkbox } from '@/app/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/tabs';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/app/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter as DialogFooterComponent } from '@/app/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
 import { Skeleton } from '@/app/components/ui/skeleton';
 import { toast } from 'sonner';
@@ -165,6 +164,50 @@ const defaultRewardTiers: RewardTier[] = [
     }
 ];
 
+const DEFAULT_HEADER = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{emailTitle}}</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
+  <table role="presentation" style="width: 100%; border-collapse: collapse;">
+    <tr>
+      <td align="center" style="padding: 40px 0;">
+        <table role="presentation" style="width: 600px; max-width: 100%; background-color: #ffffff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
+          <!-- Header -->
+          <tr>
+            <td style="padding: 40px 40px 30px; text-align: center; background: linear-gradient(135deg, #7678EE 0%, #9673D6 100%); border-radius: 8px 8px 0 0;">
+              <h1 style="margin: 0; color: #ffffff; font-size: 32px; font-weight: 600;">{{emailTitle}}</h1>
+            </td>
+          </tr>`;
+
+const DEFAULT_FOOTER = `          <!-- Footer -->
+          <tr>
+            <td style="padding: 30px 40px; background-color: #f8f8fc; border-radius: 0 0 8px 8px; text-align: center;">
+              <p style="margin: 0 0 15px; color: #666666; font-size: 14px;">
+                Follow us on social media! @pawme
+              </p>
+              <p style="margin: 0 0 15px;">
+                <a href="https://twitter.com/pawme" style="text-decoration: none; margin: 0 5px;">X</a>
+                <a href="https://facebook.com/pawme" style="text-decoration: none; margin: 0 5px;">FB</a>
+                <a href="https://instagram.com/pawme" style="text-decoration: none; margin: 0 5px;">IG</a>
+              </p>
+              <p style="margin: 0 0 10px; color: #666666; font-size: 14px;">
+                &copy; 2026 PawMe by Ayva Labs Limited.
+              </p>
+              <p style="margin: 0; color: #999999; font-size: 12px;">
+                If you no longer wish to receive these emails, you can <a href="{{unsubscribeLink}}" style="color: #999999;">unsubscribe here</a>.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
 
 export default function AdminPage() {
   const { user, profile, loading: authLoading } = useAuth();
@@ -203,6 +246,8 @@ export default function AdminPage() {
   const [localVipSpots, setLocalVipSpots] = useState(100);
   const [localReferralTiers, setLocalReferralTiers] = useState<ReferralTier[]>([]);
   const [localRewardTiers, setLocalRewardTiers] = useState<RewardTier[]>([]);
+  const [localEmailHeader, setLocalEmailHeader] = useState('');
+  const [localEmailFooter, setLocalEmailFooter] = useState('');
   
   const [isRewardDialogOpen, setRewardDialogOpen] = useState(false);
   const [editingReward, setEditingReward] = useState<RewardTier | null>(null);
@@ -268,11 +313,18 @@ export default function AdminPage() {
         setSettings(appSettings);
         setLocalVipSpots(appSettings.vipConfig?.totalSpots || 100);
         setLocalReferralTiers(appSettings.referralTiers || []);
+        setLocalEmailHeader(appSettings.emailHeader || DEFAULT_HEADER);
+        setLocalEmailFooter(appSettings.emailFooter || DEFAULT_FOOTER);
+      } else {
+        setLocalEmailHeader(DEFAULT_HEADER);
+        setLocalEmailFooter(DEFAULT_FOOTER);
       }
     } catch (error) {
       console.error('Error fetching settings:', error);
       toast.error('Failed to load settings.');
       setLocalRewardTiers(defaultRewardTiers);
+      setLocalEmailHeader(DEFAULT_HEADER);
+      setLocalEmailFooter(DEFAULT_FOOTER);
     }
     setLoadingSettings(false);
   }
@@ -489,10 +541,7 @@ export default function AdminPage() {
       return;
     }
     
-    let previewHtml = body.replace(/{{userName}}/g, 'John Doe');
-    let previewSubject = subject.replace(/{{userName}}/g, 'John Doe');
-    
-    setPreviewContent({ subject: previewSubject, html: previewHtml });
+    setPreviewContent({ subject: subject, html: body });
     setPreviewOpen(true);
   };
   
@@ -590,9 +639,9 @@ export default function AdminPage() {
       toast.success("Point Rewards saved successfully!");
       await fetchSettings();
       setRewardImageFiles({}); // Clear the staged files
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving point rewards:", error);
-      toast.error("Failed to save point rewards. Check the console for details.");
+      toast.error(`Failed to save point rewards. ${error.message}`);
     } finally {
       setSavingSettings(false);
     }
@@ -967,7 +1016,30 @@ export default function AdminPage() {
                 </Card>
               </div>
             </TabsContent>
-            <TabsContent value="templates" className="mt-4">
+            <TabsContent value="templates" className="mt-4 space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Global Email Branding</CardTitle>
+                  <CardDescription>Define a consistent header and footer for all outgoing emails. The content of each template will be inserted between them.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email-header">Email Header HTML</Label>
+                    <Textarea id="email-header" value={localEmailHeader} onChange={(e) => setLocalEmailHeader(e.target.value)} className="min-h-[200px] font-mono"/>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email-footer">Email Footer HTML</Label>
+                    <Textarea id="email-footer" value={localEmailFooter} onChange={(e) => setLocalEmailFooter(e.target.value)} className="min-h-[200px] font-mono"/>
+                    <p className="text-xs text-muted-foreground">Use {'{{unsubscribeLink}}'} to insert the unsubscribe link.</p>
+                  </div>
+                </CardContent>
+                <CardFooter>
+                  <Button onClick={() => handleSaveSettings({ emailHeader: localEmailHeader, emailFooter: localEmailFooter })} disabled={savingSettings}>
+                    {savingSettings ? 'Saving Branding...' : 'Save Branding'}
+                  </Button>
+                </CardFooter>
+              </Card>
+
               <Card>
                 <CardHeader>
                   <div className="flex items-center justify-between">
@@ -1095,10 +1167,10 @@ export default function AdminPage() {
               </div>
             </div>
           )}
-          <DialogFooter>
+          <DialogFooterComponent>
             <Button variant="outline" onClick={() => setRewardDialogOpen(false)}>Cancel</Button>
             <Button onClick={handleSaveRewardFromDialog}>Save</Button>
-          </DialogFooter>
+          </DialogFooterComponent>
         </DialogContent>
       </Dialog>
 
@@ -1169,12 +1241,12 @@ export default function AdminPage() {
                 </div>
               </ScrollArea>
               
-              <DialogFooter className="p-6 pt-4 border-t flex-shrink-0">
+              <DialogFooterComponent className="p-6 pt-4 border-t flex-shrink-0">
                 <Button variant="outline" onClick={() => setTemplateDialogOpen(false)}>Cancel</Button>
                 <Button onClick={handleSaveTemplate}>
                   {editingTemplate ? 'Update Template' : 'Create Template'}
                 </Button>
-              </DialogFooter>
+              </DialogFooterComponent>
             </div>
 
             {/* Right Panel - Live Preview */}
@@ -1187,6 +1259,8 @@ export default function AdminPage() {
                 <EmailPreview
                   subject={templateSubject}
                   html={templateHtml}
+                  headerHtml={localEmailHeader}
+                  footerHtml={localEmailFooter}
                 />
               </div>
             </div>
@@ -1217,12 +1291,12 @@ export default function AdminPage() {
               T: {shippingReward?.shippingAddress?.phone}
             </pre>
           </div>
-          <DialogFooter>
+          <DialogFooterComponent>
             <Button variant="outline" onClick={() => setShippingDialogOpen(false)}>Cancel</Button>
             <Button onClick={handleMarkAsShipped} disabled={sendingShipping || !trackingCode}>
               {sendingShipping ? 'Sending...' : 'Mark Shipped & Notify'}
             </Button>
-          </DialogFooter>
+          </DialogFooterComponent>
         </DialogContent>
       </Dialog>
       
@@ -1244,9 +1318,9 @@ export default function AdminPage() {
               title="Email Preview"
             />
           </div>
-          <DialogFooter className="p-6 pt-4">
+          <DialogFooterComponent className="p-6 pt-4">
             <Button variant="outline" onClick={() => setPreviewOpen(false)}>Close</Button>
-          </DialogFooter>
+          </DialogFooterComponent>
         </DialogContent>
       </Dialog>
     </>
