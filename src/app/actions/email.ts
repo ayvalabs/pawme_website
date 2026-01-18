@@ -57,13 +57,9 @@ async function renderAndSend(templateId: string, to: string, variables: Record<s
   let headerHtml = (appSettings.emailHeader || '').replace(/{{emailTitle}}/g, subject);
   let footerHtml = (appSettings.emailFooter || '');
 
-  // Add unsubscribe link logic if not present
-  if (variables.unsubscribeLink) {
-    footerHtml = footerHtml.replace(/{{unsubscribeLink}}/g, variables.unsubscribeLink);
-  } else {
-    // Fallback for system emails without a specific unsubscribe context
-    footerHtml = footerHtml.replace(/{{unsubscribeLink}}/g, `https://pawme.com/settings`);
-  }
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9008';
+  const unsubscribeUrl = `${appUrl}/unsubscribe?email=${encodeURIComponent(to)}`;
+  footerHtml = footerHtml.replace(/{{unsubscribeLink}}/g, unsubscribeUrl);
 
   const finalHtml = `${headerHtml}${bodyHtml}${footerHtml}`;
   
@@ -127,14 +123,24 @@ export async function sendCustomPasswordResetEmail({ email }: { email: string })
 }
 
 export async function sendAdminBroadcast(users: {email: string, name: string}[], subject: string, bodyTemplate: string) {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9008';
+    const settingsSnap = await getDoc(doc(adminDb, 'app-settings', 'rewards'));
+    const appSettings = settingsSnap.exists() ? settingsSnap.data() : {};
+    const headerHtml = (appSettings.emailHeader || '').replace(/{{emailTitle}}/g, subject);
+    const footerHtmlTemplate = (appSettings.emailFooter || '');
+
     for (const user of users) {
         const body = bodyTemplate.replace(/{{userName}}/g, user.name);
+        const unsubscribeUrl = `${appUrl}/unsubscribe?email=${encodeURIComponent(user.email)}`;
+        const footerHtml = footerHtmlTemplate.replace(/{{unsubscribeLink}}/g, unsubscribeUrl);
+        const finalHtml = `${headerHtml}${body}${footerHtml}`;
+
         try {
             await resend.emails.send({
                 from: fromEmail,
                 to: user.email,
                 subject,
-                html: body,
+                html: finalHtml,
             });
         } catch (error) {
             console.error(`Failed to send broadcast to ${user.email}:`, error);
