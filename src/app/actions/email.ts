@@ -22,21 +22,70 @@ function getAppUrl(): string {
   return 'http://localhost:9008';
 }
 
+// Convert camelCase template ID to kebab-case filename
+function templateIdToFilename(templateId: string): string {
+  // Convert camelCase to kebab-case: verificationCode -> verification-code
+  return templateId.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
+}
+
 async function getTemplateFromFile(templateId: string): Promise<{ subject: string, html: string } | null> {
     try {
+        console.log(`🔵 [EMAIL_ACTION] ========== LOADING TEMPLATE: '${templateId}' ==========`);
+        console.log(`🔵 [EMAIL_ACTION] Step 1: Looking up metadata for template ID: '${templateId}'`);
         const metadata = defaultTemplates[templateId];
         if (!metadata) {
-            console.warn(`⚠️ [EMAIL_ACTION] No file metadata found for template '${templateId}'`);
+            console.error(`❌ [EMAIL_ACTION] No metadata found for template '${templateId}'`);
+            console.error(`❌ [EMAIL_ACTION] Available template IDs:`, Object.keys(defaultTemplates));
             return null;
         }
+        console.log(`✅ [EMAIL_ACTION] Found metadata:`, { id: templateId, subject: metadata.subject, variables: metadata.variables });
 
-        const filePath = path.join(process.cwd(), 'src', 'lib', 'email-assets', `${templateId}.html`);
+        console.log(`🔵 [EMAIL_ACTION] Step 2: Converting template ID to filename...`);
+        const filename = templateIdToFilename(templateId);
+        console.log(`✅ [EMAIL_ACTION] Template ID '${templateId}' → filename '${filename}.html'`);
+        
+        console.log(`🔵 [EMAIL_ACTION] Step 3: Building file path...`);
+        const cwd = process.cwd();
+        console.log(`🔵 [EMAIL_ACTION] Current working directory: ${cwd}`);
+        const filePath = path.join(cwd, 'src', 'lib', 'email-assets', `${filename}.html`);
+        console.log(`🔵 [EMAIL_ACTION] Full file path: ${filePath}`);
+        
+        // Check if file exists before trying to read
+        console.log(`🔵 [EMAIL_ACTION] Step 4: Checking if file exists...`);
+        try {
+            await fs.access(filePath);
+            console.log(`✅ [EMAIL_ACTION] File exists and is accessible`);
+        } catch (accessError: any) {
+            console.error(`❌ [EMAIL_ACTION] File does NOT exist or is not accessible`);
+            console.error(`❌ [EMAIL_ACTION] Access error:`, accessError.message);
+            
+            // Try to list directory contents to help debug
+            try {
+                const dirPath = path.join(cwd, 'src', 'lib', 'email-assets');
+                console.log(`🔵 [EMAIL_ACTION] Attempting to list directory: ${dirPath}`);
+                const files = await fs.readdir(dirPath);
+                console.log(`📁 [EMAIL_ACTION] Files in email-assets directory:`, files);
+            } catch (dirError: any) {
+                console.error(`❌ [EMAIL_ACTION] Could not list directory:`, dirError.message);
+            }
+            
+            throw accessError;
+        }
+        
+        console.log(`🔵 [EMAIL_ACTION] Step 5: Reading file contents...`);
         const html = await fs.readFile(filePath, 'utf-8');
-        console.log(`✅ [EMAIL_ACTION] Fetched template '${templateId}' from file system.`);
+        console.log(`✅ [EMAIL_ACTION] Successfully read file: ${html.length} characters`);
+        console.log(`✅ [EMAIL_ACTION] ========== TEMPLATE LOADED SUCCESSFULLY ==========`);
 
         return { subject: metadata.subject, html };
     } catch (fileError: any) {
-        console.error(`❌ [EMAIL_ACTION] Failed to read template file for '${templateId}':`, fileError);
+        console.error(`❌ [EMAIL_ACTION] ========== TEMPLATE LOADING FAILED ==========`);
+        console.error(`❌ [EMAIL_ACTION] Template ID: '${templateId}'`);
+        console.error(`❌ [EMAIL_ACTION] Error message:`, fileError.message);
+        console.error(`❌ [EMAIL_ACTION] Error code:`, fileError.code);
+        console.error(`❌ [EMAIL_ACTION] Error name:`, fileError.name);
+        console.error(`❌ [EMAIL_ACTION] Stack trace:`, fileError.stack);
+        console.error(`❌ [EMAIL_ACTION] Full error object:`, JSON.stringify(fileError, null, 2));
         return null;
     }
 }
@@ -56,15 +105,20 @@ async function renderAndSend(templateId: string, to: string, variables: Record<s
     throw new Error('Server is missing API key for email service.');
   }
 
+  console.log(`🔵 [EMAIL_ACTION] Step 1: Loading template '${templateId}'...`);
   const template = await getTemplate(templateId);
   const settings = {}; // No dynamic settings without Admin SDK
 
-
   if (!template) {
-    console.error(`❌ [EMAIL_ACTION] Email template "${templateId}" is missing from both Firestore and local files.`);
+    console.error(`❌ [EMAIL_ACTION] FATAL: Email template "${templateId}" is missing.`);
+    console.error(`❌ [EMAIL_ACTION] This means the file could not be loaded from src/lib/email-assets/`);
     throw new Error(`Email template "${templateId}" is missing.`);
   }
+  console.log(`✅ [EMAIL_ACTION] Step 1 complete: Template loaded successfully`);
 
+  console.log(`🔵 [EMAIL_ACTION] Step 2: Processing template variables...`);
+  console.log(`🔵 [EMAIL_ACTION] Variables provided:`, Object.keys(variables));
+  
   let subject = template.subject;
   let bodyHtml = template.html;
 
@@ -74,21 +128,39 @@ async function renderAndSend(templateId: string, to: string, variables: Record<s
     subject = subject.replace(regex, value);
     bodyHtml = bodyHtml.replace(regex, value);
   }
+  console.log(`✅ [EMAIL_ACTION] Step 2 complete: Variables replaced in subject and body`);
   
-  const headerHtmlTemplate = settings.emailHeader || defaultTemplates['header']?.html || '';
-  const footerHtmlTemplate = settings.emailFooter || defaultTemplates['footer']?.html || '';
+  console.log(`🔵 [EMAIL_ACTION] Step 3: Loading header and footer templates...`);
+  const headerTemplate = await getTemplateFromFile('header');
+  const footerTemplate = await getTemplateFromFile('footer');
   
+  if (!headerTemplate) {
+    console.warn(`⚠️ [EMAIL_ACTION] Header template not found, using empty header`);
+  }
+  if (!footerTemplate) {
+    console.warn(`⚠️ [EMAIL_ACTION] Footer template not found, using empty footer`);
+  }
+  
+  const headerHtmlTemplate = headerTemplate?.html || '';
+  const footerHtmlTemplate = footerTemplate?.html || '';
+  console.log(`✅ [EMAIL_ACTION] Step 3 complete: Header (${headerHtmlTemplate.length} chars) and footer (${footerHtmlTemplate.length} chars) loaded`);
+  
+  console.log(`🔵 [EMAIL_ACTION] Step 4: Assembling final email HTML...`);
   let headerHtml = headerHtmlTemplate.replace(/{{emailTitle}}/g, subject);
   
   const appUrl = getAppUrl();
+  console.log(`🔵 [EMAIL_ACTION] App URL: ${appUrl}`);
   const unsubscribeUrl = `${appUrl}/unsubscribe?email=${encodeURIComponent(to)}`;
   let footerHtml = footerHtmlTemplate.replace(/{{unsubscribeLink}}/g, unsubscribeUrl);
 
   const finalHtml = `${headerHtml}${bodyHtml}${footerHtml}`;
+  console.log(`✅ [EMAIL_ACTION] Step 4 complete: Final HTML assembled (${finalHtml.length} total characters)`);
   
   try {
-    console.log(`🔵 [EMAIL_ACTION] Sending email '${templateId}' to: ${to}`);
-    console.log(`🔵 [EMAIL_ACTION] From address: ${fromEmail}`);
+    console.log(`🔵 [EMAIL_ACTION] Step 5: Sending email via Resend API...`);
+    console.log(`🔵 [EMAIL_ACTION] Template: ${templateId}`);
+    console.log(`🔵 [EMAIL_ACTION] To: ${to}`);
+    console.log(`🔵 [EMAIL_ACTION] From: ${fromEmail}`);
     console.log(`🔵 [EMAIL_ACTION] Subject: ${subject}`);
     console.log(`🔵 [EMAIL_ACTION] HTML length: ${finalHtml.length} characters`);
     
@@ -102,10 +174,12 @@ async function renderAndSend(templateId: string, to: string, variables: Record<s
     if (error) {
       console.error(`❌ [EMAIL_ACTION] Resend API returned an error for template '${templateId}':`, JSON.stringify(error, null, 2));
       console.error(`❌ [EMAIL_ACTION] Error details - name: ${error.name}, message: ${error.message}`);
+      console.error(`❌ [EMAIL_ACTION] This is a Resend API error, not a template loading error`);
       throw error;
     }
     
-    console.log(`✅ [EMAIL_ACTION] Email '${templateId}' sent successfully via Resend. Email ID:`, data?.id);
+    console.log(`✅ [EMAIL_ACTION] ✅ SUCCESS! Email '${templateId}' sent via Resend. Email ID:`, data?.id);
+    console.log(`✅ [EMAIL_ACTION] Step 5 complete: Email delivery initiated`);
     return data;
   } catch (error: any) {
     console.error(`❌ [EMAIL_ACTION] A catch-block error occurred while sending email '${templateId}':`, error);
@@ -147,8 +221,20 @@ export async function sendAdminBroadcast(users: {email: string, name: string}[],
     const appUrl = getAppUrl();
     const settings = {}; // No dynamic settings without Admin SDK
 
-    const headerHtmlTemplate = defaultTemplates['header']?.html || '';
-    const footerHtmlTemplate = defaultTemplates['footer']?.html || '';
+    console.log(`🔵 [EMAIL_ACTION] Step 3: Loading header and footer templates...`);
+  const headerTemplate = await getTemplateFromFile('header');
+  const footerTemplate = await getTemplateFromFile('footer');
+  
+  if (!headerTemplate) {
+    console.warn(`⚠️ [EMAIL_ACTION] Header template not found, using empty header`);
+  }
+  if (!footerTemplate) {
+    console.warn(`⚠️ [EMAIL_ACTION] Footer template not found, using empty footer`);
+  }
+  
+  const headerHtmlTemplate = headerTemplate?.html || '';
+  const footerHtmlTemplate = footerTemplate?.html || '';
+  console.log(`✅ [EMAIL_ACTION] Step 3 complete: Header (${headerHtmlTemplate.length} chars) and footer (${footerHtmlTemplate.length} chars) loaded`);
 
     const headerHtml = headerHtmlTemplate.replace(/{{emailTitle}}/g, subject);
 
