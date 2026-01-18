@@ -32,44 +32,47 @@ export function EmailTemplateEditor({ value, onChange, placeholder }: EmailTempl
 interface EmailPreviewProps {
   subject: string;
   html: string;
+  headerHtml?: string;
+  footerHtml?: string;
   variables?: Record<string, string>;
 }
 
-export function EmailPreview({ subject, html, variables = {} }: EmailPreviewProps) {
-  const previewHtml = useMemo(() => {
-    let processed = html;
-    
-    const defaultVariables = {
-      userName: 'John Doe',
-      referralCode: 'PAWME123',
-      trackingCode: '1Z999AA10123456784',
-      rewardTitle: 'Premium Pet Collar',
-      ...variables
-    };
+export function EmailPreview({ subject, html, headerHtml, footerHtml, variables = {} }: EmailPreviewProps) {
+  const defaultVariables = useMemo(() => ({
+    userName: 'John Doe',
+    referralCode: 'PAWME123',
+    trackingCode: '1Z999AA10123456784',
+    rewardTitle: 'Premium Pet Collar',
+    emailTitle: subject,
+    link: '#',
+    code: '1234',
+    unsubscribeLink: '#',
+    ...variables
+  }), [subject, variables]);
 
+  const previewHtml = useMemo(() => {
+    let processedHeader = headerHtml || '';
+    let processedBody = html || '';
+    let processedFooter = footerHtml || '';
+    
     Object.entries(defaultVariables).forEach(([key, value]) => {
       const regex = new RegExp(`{{${key}}}`, 'g');
-      processed = processed.replace(regex, value);
+      processedHeader = processedHeader.replace(regex, value as string);
+      processedBody = processedBody.replace(regex, value as string);
+      processedFooter = processedFooter.replace(regex, value as string);
     });
 
-    return processed;
-  }, [html, variables]);
+    return processedHeader + processedBody + processedFooter;
+  }, [html, headerHtml, footerHtml, defaultVariables]);
 
   const previewSubject = useMemo(() => {
     let processed = subject;
-    
-    const defaultVariables = {
-      userName: 'John Doe',
-      ...variables
-    };
-
     Object.entries(defaultVariables).forEach(([key, value]) => {
       const regex = new RegExp(`{{${key}}}`, 'g');
-      processed = processed.replace(regex, value);
+      processed = processed.replace(regex, value as string);
     });
-
     return processed;
-  }, [subject, variables]);
+  }, [subject, defaultVariables]);
 
   return (
     <div className="flex flex-col h-full border rounded-lg overflow-hidden bg-background">
@@ -79,7 +82,7 @@ export function EmailPreview({ subject, html, variables = {} }: EmailPreviewProp
           <span className="text-muted-foreground">Subject:</span> {previewSubject || '(No subject)'}
         </div>
       </div>
-      <div className="flex-grow overflow-y-auto overflow-x-hidden">
+      <div className="flex-grow overflow-auto min-h-0">
         <iframe
           srcDoc={previewHtml || '<p style="padding: 1rem; color: #999;">Email preview will appear here...</p>'}
           className="w-full min-h-full border-0"

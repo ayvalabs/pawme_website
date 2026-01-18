@@ -2,6 +2,7 @@
 'use server';
 
 import { db } from '@/firebase/config';
+import { getAdminAuth, getAdminFirestore } from '@/lib/firebase-admin';
 import { collection, query, orderBy, limit, getDocs, where, getCountFromServer, doc, updateDoc, getDoc } from 'firebase/firestore';
 import type { UserProfile, Reward } from '@/app/context/AuthContext';
 
@@ -73,5 +74,38 @@ export async function markRewardShipped(userId: string, rewardId: string, redeem
     await updateDoc(userRef, { rewards: updatedRewards });
   } else {
     throw new Error('User not found');
+  }
+}
+
+export async function unsubscribeUser(email: string): Promise<{ success: boolean; message?: string }> {
+  if (!email) {
+    return { success: false, message: 'Email address is required.' };
+  }
+
+  try {
+    const adminAuth = getAdminAuth();
+    const adminDb = getAdminFirestore();
+    
+    // Find user by email
+    const userRecord = await adminAuth.getUserByEmail(email);
+    const userId = userRecord.uid;
+
+    const userDocRef = doc(adminDb, 'users', userId);
+    
+    // Update the marketingOptIn flag
+    await updateDoc(userDocRef, {
+      marketingOptIn: false,
+    });
+
+    console.log(`Successfully unsubscribed user: ${email}`);
+    return { success: true };
+  } catch (error: any) {
+    if (error.code === 'auth/user-not-found') {
+      console.warn(`Attempted to unsubscribe non-existent user: ${email}`);
+      // Return success to avoid leaking information about user existence
+      return { success: true, message: 'Your email address was not found in our system.' };
+    }
+    console.error(`Error unsubscribing user ${email}:`, error);
+    return { success: false, message: 'Could not process unsubscribe request.' };
   }
 }

@@ -11,28 +11,24 @@ import { toast } from 'sonner';
 
 const rewards = [
   {
-    points: 1,
-    reward: 'Early Bird Badge',
-    description: '1 successful referral',
-    icon: '🥉',
+    icon: '🦴',
+    reward: 'Starter Treats',
+    description: '10 Points',
   },
   {
-    points: 5,
-    reward: '30% Kickstarter Discount',
-    description: '5 successful referrals',
-    icon: '🥈',
+    icon: '🧸',
+    reward: 'Plush Squeaky Toy',
+    description: '18 Points',
   },
   {
-    points: 10,
-    reward: '50% Kickstarter Discount',
-    description: '10 successful referrals',
-    icon: '🥇',
+    icon: '🌿',
+    reward: 'Snuffle Mat',
+    description: '36 Points',
   },
   {
-    points: 25,
-    reward: 'Limited Edition PawMe',
-    description: '25 successful referrals',
-    icon: '💎',
+    icon: '👑',
+    reward: 'Custom Collar Set',
+    description: '80 Points',
   },
 ];
 

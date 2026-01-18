@@ -10,7 +10,6 @@ import {
   signInWithPopup,
   GoogleAuthProvider,
   signOut as firebaseSignOut,
-  sendPasswordResetEmail as firebaseSendPasswordResetEmail,
   User as FirebaseUser,
   updateProfile as updateUserProfile,
 } from 'firebase/auth';
@@ -27,7 +26,7 @@ import {
   deleteDoc,
 } from 'firebase/firestore';
 import { auth, db } from '@/firebase/config';
-import { sendWelcomeEmail, sendReferralSuccessEmail } from '@/app/actions/email';
+import { sendWelcomeEmail, sendReferralSuccessEmail, sendCustomPasswordResetEmail } from '@/app/actions/email';
 import { isDisposableEmail } from '@/lib/disposable-domains';
 
 export interface Reward {
@@ -151,7 +150,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           throw "Referrer document does not exist!";
         }
         const newReferralCount = (referrerDoc.data().referralCount || 0) + 1;
-        const pointsToAdd = referrerDoc.data().isVip ? 150 : 100;
+        const pointsToAdd = referrerDoc.data().isVip ? 3 : 2;
         const newPoints = (referrerDoc.data().points || 0) + pointsToAdd;
         
         transaction.update(referrerRef, { 
@@ -227,7 +226,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email: newUser.email!,
         name: name || newUser.email!.split('@')[0],
         referralCode,
-        points: 100,
+        points: 0,
         referralCount: 0,
         referredBy: referredByCode || null,
         theme: 'purple',
@@ -285,18 +284,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const sendPasswordReset = async (email: string) => {
     try {
-      const actionCodeSettings = {
-        url: `${window.location.origin}/`,
-        handleCodeInApp: false,
-      };
-      await firebaseSendPasswordResetEmail(auth, email, actionCodeSettings);
-      return { success: true };
+      const result = await sendCustomPasswordResetEmail({ email });
+      return result;
     } catch (error: any) {
-      if (error.code === 'auth/user-not-found') {
-        return { success: true };
-      }
       console.error('Password reset error:', error);
-      return { success: false, message: 'Failed to send password reset email. Please try again later.' };
+      return { success: false, message: 'An unexpected client-side error occurred.' };
     }
   };
 
@@ -315,7 +307,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email: user.email!,
         name: user.displayName || user.email!.split('@')[0],
         referralCode,
-        points: 100,
+        points: 0,
         referralCount: 0,
         referredBy: null,
         theme: 'purple',

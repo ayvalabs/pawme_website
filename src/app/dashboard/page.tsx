@@ -5,14 +5,14 @@ import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/app/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/app/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/app/components/ui/card';
 import { Input } from '@/app/components/ui/input';
 import { Label } from '@/app/components/ui/label';
 import { Textarea } from '@/app/components/ui/textarea';
 import { Checkbox } from '@/app/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/tabs';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/app/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter as DialogFooterComponent } from '@/app/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
 import { Skeleton } from '@/app/components/ui/skeleton';
 import { toast } from 'sonner';
@@ -46,53 +46,182 @@ const getReferralTierIcon = (referralCount: number) => {
 };
 
 const defaultRewardTiers: RewardTier[] = [
-  {
-    id: 'treats-1',
-    title: 'Premium Organic Treats',
-    reward: '🐾 A bag of delicious, high-quality organic treats.',
-    requiredPoints: 500,
-    image: 'https://picsum.photos/seed/reward1/600/400',
-    alt: 'A pack of premium organic pet treats',
-    'data-ai-hint': 'pet treats'
-  },
-  {
-    id: 'toy-1',
-    title: 'Interactive Puzzle Toy',
-    reward: '🧠 A fun and engaging puzzle toy to keep your pet\'s mind sharp.',
-    requiredPoints: 1000,
-    image: 'https://picsum.photos/seed/reward2/600/400',
-    alt: 'An interactive smart puzzle toy for pets',
-    'data-ai-hint': 'pet toy'
-  },
-  {
-    id: 'collar-1',
-    title: 'Stylish Personalized Collar',
-    reward: '✨ A stylish and durable leather collar, personalized with your pet\'s name.',
-    requiredPoints: 1500,
-    image: 'https://picsum.photos/seed/reward3/600/400',
-    alt: 'A stylish personalized leather pet collar',
-    'data-ai-hint': 'dog collar'
-  },
-  {
-    id: 'bed-1',
-    title: 'Orthopedic Pet Bed',
-    reward: '😴 A luxurious and comfortable orthopedic bed for the perfect nap.',
-    requiredPoints: 3000,
-    image: 'https://picsum.photos/seed/reward5/600/400',
-    alt: 'A luxurious orthopedic memory foam pet bed',
-    'data-ai-hint': 'dog bed'
-  },
-  {
-    id: 'feeder-1',
-    title: 'Automated Smart Feeder',
-    reward: '🍽️ A smart feeder that automates feeding schedules with portion control.',
-    requiredPoints: 5000,
-    image: 'https://picsum.photos/seed/reward6/600/400',
-    alt: 'A smart automated pet feeder with portion control',
-    'data-ai-hint': 'smart feeder'
-  }
+    {
+      id: "chewy_starter_treats",
+      title: "Chewy Starter Treats Pouch 🦴",
+      reward: "A mixed pouch of bite-sized dog or cat treats, perfect for training sessions or robot-assisted playtime. Soft, high-value nibbles to keep tails wagging while PawMe works its magic.",
+      requiredPoints: 10,
+      price: 12.99,
+      image: "https://picsum.photos/seed/chewytreats/600/400",
+      alt: "Use a clean flatlay of a small resealable pouch spilling out assorted treats on a neutral background.",
+      "data-ai-hint": "dog cat treats"
+    },
+    {
+      id: "eco_poop_bag_holder",
+      title: "Eco Poop-Bag Holder & Rolls 🌱",
+      reward: "Clip-on poop-bag holder with a starter roll of eco-friendly bags. Attach it to your leash or PawMe robot leash handle so you never forget cleanup duty on walks.",
+      requiredPoints: 12,
+      price: 8.50,
+      image: "https://picsum.photos/seed/poopbag/600/400",
+      alt: "Show a small dispenser with colorful rolls of bags next to a leash.",
+      "data-ai-hint": "poop bag holder"
+    },
+    {
+      id: "feather_teaser_wand",
+      title: "Feather Teaser Wand For Cats 🪶",
+      reward: "A flexible teaser wand with soft feathers and bells to spark your cat’s hunting instincts. Great for interactive play before PawMe takes over nighttime monitoring.",
+      requiredPoints: 14,
+      price: 7.99,
+      image: "https://picsum.photos/seed/featherwand/600/400",
+      alt: "Capture a simple feather wand being played with by a cat or laid diagonally on a pastel background.",
+      "data-ai-hint": "cat feather toy"
+    },
+    {
+      id: "plush_squeaky_friend",
+      title: "Plush Squeaky Friend 🧸",
+      reward: "A soft, durable plush toy with an internal squeaker for dogs that love to pounce, shake, and cuddle. Designed to pair perfectly with PawMe’s playtime reminders.",
+      requiredPoints: 18,
+      price: 15.00,
+      image: "https://picsum.photos/seed/plushdogtoy/600/400",
+      alt: "Use a bright photo of a single plush dog toy (bone, animal, or robot theme).",
+      "data-ai-hint": "dog plush toy"
+    },
+    {
+      id: "interactive_treat_ball",
+      title: "Interactive Treat Ball Puzzle 🧠",
+      reward: "A rolling treat-dispensing ball that turns snack time into a brain game. Fill it with kibble or small treats and let your pet nudge and chase it while PawMe keeps watch.",
+      requiredPoints: 20,
+      price: 18.50,
+      image: "https://picsum.photos/seed/dogtreatball/600/400",
+      alt: "Show a translucent or colorful treat ball with a few kibbles around it.",
+      "data-ai-hint": "dog treat puzzle"
+    },
+    {
+      id: "natural_jerky_pack",
+      title: "Natural Jerky Treat Pack 🍗",
+      reward: "Grain-free, limited-ingredient jerky strips made for sensitive tummies. Ideal as a high-value reward after successful training sessions with your PawMe companion.",
+      requiredPoints: 24,
+      price: 16.00,
+      image: "https://picsum.photos/seed/dogjerky/600/400",
+      alt: "Use a kraft paper pouch with visible jerky strips for an artisanal look.",
+      "data-ai-hint": "dog jerky"
+    },
+    {
+      id: "grooming_wipes_bundle",
+      title: "Aloe & Coconut Grooming Wipes 🧼",
+      reward: "Gentle, hypoallergenic wipes for quick paw, coat, and muzzle cleanups after walks or playtime. Keep your pet camera-ready for every PawMe selfie.",
+      requiredPoints: 26,
+      price: 10.00,
+      image: "https://picsum.photos/seed/petwipes/600/400",
+      alt: "Show a packet of wipes with a dog or cat illustration on the label.",
+      "data-ai-hint": "pet grooming wipes"
+    },
+    {
+      id: "durable_tug_rope",
+      title: "Durable Tug & Fetch Rope 💪",
+      reward: "A tough cotton rope toy for tug-of-war and fetch sessions. Great for high-energy pups who need a good workout before settling down with PawMe.",
+      requiredPoints: 30,
+      price: 12.00,
+      image: "https://picsum.photos/seed/dogropetoy/600/400",
+      alt: "Rope toy in a simple composition; braided, with bright colors for visual pop.",
+      "data-ai-hint": "dog rope toy"
+    },
+    {
+      id: "snuffle_mat",
+      title: "Snuffle Treasure Hunt Mat 🌿",
+      reward: "A fleece snuffle mat that hides treats in its folds, encouraging natural foraging instincts. Perfect enrichment while PawMe monitors relaxation and stress levels.",
+      requiredPoints: 36,
+      price: 25.00,
+      image: "https://picsum.photos/seed/snufflemat/600/400",
+      alt: "Top-down view of a colorful snuffle mat with a few treats tucked inside.",
+      "data-ai-hint": "dog snuffle mat"
+    },
+    {
+      id: "smart_laser_cat_toy",
+      title: "Smart Laser Chase Toy 🔦",
+      reward: "An automatic laser toy that projects unpredictable patterns across the floor and walls, turning your living room into a cat playground while PawMe captures the action.",
+      requiredPoints: 48,
+      price: 30.00,
+      image: "https://picsum.photos/seed/catlasertoy/600/400",
+      alt: "Show a compact laser device on the ground with a cat chasing the dot.",
+      "data-ai-hint": "cat laser toy"
+    },
+    {
+      id: "deluxe_treat_variety_box",
+      title: "Deluxe Variety Treat Box 🎁",
+      reward: "A curated selection of premium dog or cat treats: crunchy biscuits, soft chews, and lickable rewards. A perfect way to celebrate hitting a big referral milestone.",
+      requiredPoints: 60,
+      price: 40.00,
+      image: "https://picsum.photos/seed/pettreatbox/600/400",
+      alt: "Use a gift-style box with dividers showing different treat types.",
+      "data-ai-hint": "pet gift box"
+    },
+    {
+      id: "custom_name_tag_collar",
+      title: "Custom Name Tag & Collar Set 👑",
+      reward: "A personalized collar and engraved name tag so your pet can show off their PawMe fame. Choose colors and fonts that match your robot’s personality.",
+      requiredPoints: 80,
+      price: 35.00,
+      image: "https://picsum.photos/seed/dogcollartag/600/400",
+      alt: "Photograph a collar and tag on a soft fabric or wooden surface, tag facing camera.",
+      "data-ai-hint": "custom dog collar"
+    },
+    {
+      id: "pawme_mini_box",
+      title: "PawMe Mini Celebration Box 🎉",
+      reward: "A one-off mini box inspired by premium pet subscriptions: 2 toys + 2 full-size treats tailored to your pet’s size and species. A taste of the VIP experience.",
+      requiredPoints: 100,
+      price: 25.00,
+      image: "https://picsum.photos/seed/petsubscriptionbox/600/400",
+      alt: "Show an open box with toys and treat bags neatly arranged, similar to top pet subscription boxes.",
+      "data-ai-hint": "pet subscription box"
+    }
 ];
 
+const DEFAULT_HEADER = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{emailTitle}}</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
+  <table role="presentation" style="width: 100%; border-collapse: collapse;">
+    <tr>
+      <td align="center" style="padding: 40px 0;">
+        <table role="presentation" style="width: 600px; max-width: 100%; background-color: #ffffff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
+          <!-- Header -->
+          <tr>
+            <td style="padding: 40px 40px 30px; text-align: center; background: linear-gradient(135deg, #7678EE 0%, #9673D6 100%); border-radius: 8px 8px 0 0;">
+              <h1 style="margin: 0; color: #ffffff; font-size: 32px; font-weight: 600;">{{emailTitle}}</h1>
+            </td>
+          </tr>`;
+
+const DEFAULT_FOOTER = `          <!-- Footer -->
+          <tr>
+            <td style="padding: 30px 40px; background-color: #f8f8fc; border-radius: 0 0 8px 8px; text-align: center;">
+              <p style="margin: 0 0 15px; color: #666666; font-size: 14px;">
+                Follow us on social media! @pawme
+              </p>
+              <p style="margin: 0 0 15px;">
+                <a href="https://twitter.com/pawme" style="text-decoration: none; margin: 0 5px;">X</a>
+                <a href="https://facebook.com/pawme" style="text-decoration: none; margin: 0 5px;">FB</a>
+                <a href="https://instagram.com/pawme" style="text-decoration: none; margin: 0 5px;">IG</a>
+              </p>
+              <p style="margin: 0 0 10px; color: #666666; font-size: 14px;">
+                &copy; 2026 PawMe by Ayva Labs Limited.
+              </p>
+              <p style="margin: 0; color: #999999; font-size: 12px;">
+                If you no longer wish to receive these emails, you can <a href="{{unsubscribeLink}}" style="color: #999999;">unsubscribe here</a>.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
 
 export default function AdminPage() {
   const { user, profile, loading: authLoading } = useAuth();
@@ -131,11 +260,18 @@ export default function AdminPage() {
   const [localVipSpots, setLocalVipSpots] = useState(100);
   const [localReferralTiers, setLocalReferralTiers] = useState<ReferralTier[]>([]);
   const [localRewardTiers, setLocalRewardTiers] = useState<RewardTier[]>([]);
+  const [localEmailHeader, setLocalEmailHeader] = useState('');
+  const [localEmailFooter, setLocalEmailFooter] = useState('');
   
   const [isRewardDialogOpen, setRewardDialogOpen] = useState(false);
   const [editingReward, setEditingReward] = useState<RewardTier | null>(null);
   const [editingRewardIndex, setEditingRewardIndex] = useState<number | null>(null);
   const [rewardImageFiles, setRewardImageFiles] = useState<Record<string, File>>({});
+
+  const [isBrandingDialogOpen, setBrandingDialogOpen] = useState(false);
+  const [editingBrandingPart, setEditingBrandingPart] = useState<'header' | 'footer' | null>(null);
+  const [brandingEditorContent, setBrandingEditorContent] = useState('');
+
 
   useEffect(() => {
     if (!authLoading && (!user || profile?.email !== 'pawme@ayvalabs.com')) {
@@ -189,29 +325,30 @@ export default function AdminPage() {
     setLoadingSettings(true);
     try {
       const appSettings = await getAppSettings();
-      if (appSettings) {
-        setSettings(appSettings);
-        setLocalVipSpots(appSettings.vipConfig?.totalSpots || 100);
-        setLocalReferralTiers(appSettings.referralTiers || []);
-        
-        const validRewardTiers = (appSettings.rewardTiers || []).filter(tier => tier.image && !tier.image.startsWith('blob:'));
-        if (appSettings.rewardTiers && validRewardTiers.length < appSettings.rewardTiers.length) {
-          toast.warning("Corrupt reward data found", {
-            description: "Some rewards had invalid image URLs and were ignored. Please re-save your rewards.",
-          });
-        }
-        
-        if (validRewardTiers.length > 0) {
-            setLocalRewardTiers(validRewardTiers);
-        } else {
-            setLocalRewardTiers(defaultRewardTiers);
-        }
+      setSettings(appSettings);
+
+      if (appSettings && appSettings.rewardTiers && appSettings.rewardTiers.length > 0) {
+        setLocalRewardTiers(appSettings.rewardTiers);
       } else {
         setLocalRewardTiers(defaultRewardTiers);
+      }
+
+      if (appSettings) {
+        setLocalVipSpots(appSettings.vipConfig?.totalSpots || 100);
+        setLocalReferralTiers(appSettings.referralTiers || []);
+        setLocalEmailHeader(appSettings.emailHeader || DEFAULT_HEADER);
+        setLocalEmailFooter(appSettings.emailFooter || DEFAULT_FOOTER);
+      } else {
+        setLocalRewardTiers(defaultRewardTiers);
+        setLocalEmailHeader(DEFAULT_HEADER);
+        setLocalEmailFooter(DEFAULT_FOOTER);
       }
     } catch (error) {
       console.error('Error fetching settings:', error);
       toast.error('Failed to load settings.');
+      setLocalRewardTiers(defaultRewardTiers);
+      setLocalEmailHeader(DEFAULT_HEADER);
+      setLocalEmailFooter(DEFAULT_FOOTER);
     }
     setLoadingSettings(false);
   }
@@ -386,7 +523,7 @@ export default function AdminPage() {
       toast.error("Failed to save template.");
     }
   };
-
+  
   const handleDeleteTemplate = async (templateId: string) => {
     if(Object.keys(defaultTemplates).includes(templateId)){
       toast.error("Cannot delete a default system template.");
@@ -428,10 +565,7 @@ export default function AdminPage() {
       return;
     }
     
-    let previewHtml = body.replace(/{{userName}}/g, 'John Doe');
-    let previewSubject = subject.replace(/{{userName}}/g, 'John Doe');
-    
-    setPreviewContent({ subject: previewSubject, html: previewHtml });
+    setPreviewContent({ subject: subject, html: body });
     setPreviewOpen(true);
   };
   
@@ -441,9 +575,9 @@ export default function AdminPage() {
       await saveAppSettings(settingsToSave);
       toast.success("Settings saved successfully!");
       await fetchSettings();
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      toast.error("Failed to save settings.");
+      toast.error(error.message || "Failed to save settings.");
     } finally {
       setSavingSettings(false);
     }
@@ -472,6 +606,7 @@ export default function AdminPage() {
         id: `new-reward-${Date.now()}`,
         title: '',
         requiredPoints: 0,
+        price: 0,
         reward: '',
         image: '',
         alt: '',
@@ -496,47 +631,74 @@ export default function AdminPage() {
     }
   };
 
-  const handleSaveRewardFromDialog = () => {
+  const handleSaveRewardFromDialog = async () => {
     if (!editingReward) return;
 
+    setSavingSettings(true);
+    
     const newLocalTiers = [...localRewardTiers];
-
     if (editingRewardIndex !== null) {
-      // Update existing reward
       newLocalTiers[editingRewardIndex] = editingReward;
     } else {
-      // Add new reward
       newLocalTiers.push(editingReward);
     }
 
-    setLocalRewardTiers(newLocalTiers);
-    setRewardDialogOpen(false);
+    try {
+      const tiersWithUploadedImages = await uploadRewardImages(newLocalTiers, rewardImageFiles);
+      await saveAppSettings({ rewardTiers: tiersWithUploadedImages });
+
+      toast.success("Rewards updated successfully!");
+      setLocalRewardTiers(tiersWithUploadedImages);
+      setRewardImageFiles({});
+      setRewardDialogOpen(false);
+    } catch (error: any) {
+      console.error("Error saving reward:", error);
+      toast.error(`Failed to save reward: ${error.message}`);
+    } finally {
+      setSavingSettings(false);
+    }
   };
   
   const handleRemoveRewardTier = (index: number) => {
     if (confirm('Are you sure you want to remove this reward tier?')) {
       const newTiers = localRewardTiers.filter((_, i) => i !== index);
       setLocalRewardTiers(newTiers);
+      handleSaveSettings({ rewardTiers: newTiers });
     }
   };
+  
+  const handleOpenBrandingDialog = (part: 'header' | 'footer') => {
+    setEditingBrandingPart(part);
+    setBrandingEditorContent(part === 'header' ? localEmailHeader : localEmailFooter);
+    setBrandingDialogOpen(true);
+  };
 
-  const handleSaveRewardTiers = async () => {
+  const handleSaveBranding = async () => {
+    if (!editingBrandingPart) return;
     setSavingSettings(true);
     try {
-      const tiersWithUploadedImages = await uploadRewardImages(localRewardTiers, rewardImageFiles);
-      await saveAppSettings({ rewardTiers: tiersWithUploadedImages });
-
-      toast.success("Point Rewards saved successfully!");
-      await fetchSettings();
-      setRewardImageFiles({}); // Clear the staged files
-    } catch (error) {
-      console.error("Error saving point rewards:", error);
-      toast.error("Failed to save point rewards. Check the console for details.");
+      const settingsToSave = editingBrandingPart === 'header'
+        ? { emailHeader: brandingEditorContent }
+        : { emailFooter: brandingEditorContent };
+      
+      await saveAppSettings(settingsToSave);
+      
+      if (editingBrandingPart === 'header') {
+        setLocalEmailHeader(brandingEditorContent);
+      } else {
+        setLocalEmailFooter(brandingEditorContent);
+      }
+      
+      toast.success(`Email ${editingBrandingPart} updated successfully!`);
+      setBrandingDialogOpen(false);
+    } catch (error: any) {
+      toast.error(`Failed to save ${editingBrandingPart}.`);
+      console.error(error);
     } finally {
       setSavingSettings(false);
     }
   };
-  
+
   if (authLoading || !user || !profile) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -623,6 +785,7 @@ export default function AdminPage() {
                                 <TableHead className="w-20">Image</TableHead>
                                 <TableHead>Title</TableHead>
                                 <TableHead>Points</TableHead>
+                                <TableHead>Price ($)</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
                               </TableRow>
                             </TableHeader>
@@ -634,6 +797,7 @@ export default function AdminPage() {
                                   </TableCell>
                                   <TableCell className="font-medium">{tier.title}</TableCell>
                                   <TableCell>{tier.requiredPoints}</TableCell>
+                                  <TableCell>${tier.price ? tier.price.toFixed(2) : '0.00'}</TableCell>
                                   <TableCell className="text-right">
                                     <div className='inline-flex'>
                                       <Button variant="ghost" size="icon" onClick={() => handleOpenRewardDialog(tier, index)}>
@@ -648,16 +812,11 @@ export default function AdminPage() {
                               ))}
                               {localRewardTiers.length === 0 && (
                                 <TableRow>
-                                  <TableCell colSpan={4} className="h-24 text-center">No point rewards configured.</TableCell>
+                                  <TableCell colSpan={5} className="h-24 text-center">No point rewards configured.</TableCell>
                                 </TableRow>
                               )}
                             </TableBody>
                           </Table>
-                        </div>
-                        <div className="flex justify-end gap-2 mt-4">
-                          <Button onClick={handleSaveRewardTiers} disabled={savingSettings}>
-                            {savingSettings ? 'Saving...' : 'Save All Point Rewards'}
-                          </Button>
                         </div>
                       </div>
                     </>
@@ -710,7 +869,9 @@ export default function AdminPage() {
                                     <TooltipProvider>
                                       <Tooltip>
                                         <TooltipTrigger>
+                                          <div tabIndex={0}>
                                           <Lock className="w-4 h-4 text-muted-foreground" />
+                                          </div>
                                         </TooltipTrigger>
                                         <TooltipContent>
                                           <p>{u.name} has unsubscribed.</p>
@@ -904,7 +1065,42 @@ export default function AdminPage() {
                 </Card>
               </div>
             </TabsContent>
-            <TabsContent value="templates" className="mt-4">
+            <TabsContent value="templates" className="mt-4 space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Global Email Branding</CardTitle>
+                  <CardDescription>Define a consistent header and footer for all emails. Click a section to edit.</CardDescription>
+                </CardHeader>
+                <CardContent className="grid md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label>Email Header</Label>
+                    <div className="relative group border rounded-lg h-64 cursor-pointer" onClick={() => handleOpenBrandingDialog('header')}>
+                      <div className="h-full overflow-auto p-4 bg-muted/30 pointer-events-none">
+                        <iframe srcDoc={localEmailHeader} className="w-full h-full border-0" title="Header Preview" sandbox="allow-same-origin"/>
+                      </div>
+                      <div className="absolute inset-0 bg-transparent group-hover:bg-black/40 transition-all flex items-center justify-center">
+                        <Button variant="secondary" className="opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Edit className="w-4 h-4 mr-2"/> Edit Header
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Email Footer</Label>
+                    <div className="relative group border rounded-lg h-64 cursor-pointer" onClick={() => handleOpenBrandingDialog('footer')}>
+                      <div className="h-full overflow-auto p-4 bg-muted/30 pointer-events-none">
+                        <iframe srcDoc={localEmailFooter} className="w-full h-full border-0" title="Footer Preview" sandbox="allow-same-origin"/>
+                      </div>
+                      <div className="absolute inset-0 bg-transparent group-hover:bg-black/40 transition-all flex items-center justify-center">
+                        <Button variant="secondary" className="opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Edit className="w-4 h-4 mr-2"/> Edit Footer
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
               <Card>
                 <CardHeader>
                   <div className="flex items-center justify-between">
@@ -996,6 +1192,62 @@ export default function AdminPage() {
         </main>
         <Footer />
       </div>
+      
+      <Dialog open={isBrandingDialogOpen} onOpenChange={setBrandingDialogOpen}>
+        <DialogContent className="max-w-7xl h-[90vh] p-0 flex flex-col">
+          <DialogHeader className="p-6 pb-4 border-b flex-shrink-0">
+            <DialogTitle>Edit Email {editingBrandingPart === 'header' ? 'Header' : 'Footer'}</DialogTitle>
+            <DialogDescription>
+              Update the global email {editingBrandingPart}. This will appear on all automated emails.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex-grow flex min-h-0">
+            <div className="w-1/2 flex flex-col border-r">
+              <div className="p-6 flex-grow flex flex-col">
+                <div className="space-y-2 flex-grow flex flex-col">
+                  <Label htmlFor="branding-editor-html">HTML Content</Label>
+                  <Textarea
+                    id="branding-editor-html"
+                    value={brandingEditorContent}
+                    onChange={(e) => setBrandingEditorContent(e.target.value)}
+                    className="font-mono text-sm flex-grow"
+                  />
+                  {editingBrandingPart === 'footer' && (
+                    <p className="text-xs text-muted-foreground">
+                      Use {'{{unsubscribeLink}}'} to insert the unsubscribe link.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="w-1/2 flex flex-col bg-muted/30">
+              <div className="p-6 pb-4 border-b bg-background flex-shrink-0">
+                <h3 className="text-lg font-semibold">Live Preview</h3>
+              </div>
+              <div className="flex-grow p-6 min-h-0">
+                <div className="border rounded-lg overflow-hidden bg-background h-full">
+                  <iframe
+                    srcDoc={brandingEditorContent}
+                    className="w-full h-full border-0"
+                    title="Branding Preview"
+                    sandbox="allow-same-origin"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooterComponent className="p-6 pt-4 border-t flex-shrink-0">
+            <Button variant="outline" onClick={() => setBrandingDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleSaveBranding} disabled={savingSettings}>
+              {savingSettings ? 'Saving...' : 'Save ' + (editingBrandingPart === 'header' ? 'Header' : 'Footer')}
+            </Button>
+          </DialogFooterComponent>
+        </DialogContent>
+      </Dialog>
+
 
       <Dialog open={isRewardDialogOpen} onOpenChange={setRewardDialogOpen}>
         <DialogContent className="sm:max-w-lg">
@@ -1016,6 +1268,10 @@ export default function AdminPage() {
                 <Input id="reward-points" type="number" value={editingReward.requiredPoints} onChange={(e) => handleDialogFieldChange('requiredPoints', Number(e.target.value))} className="col-span-3"/>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="reward-price" className="text-right">Price ($)</Label>
+                <Input id="reward-price" type="number" value={editingReward.price || ''} onChange={(e) => handleDialogFieldChange('price', Number(e.target.value))} placeholder="e.g. 25.99" className="col-span-3"/>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="reward-desc" className="text-right">Description</Label>
                 <Textarea id="reward-desc" value={editingReward.reward} onChange={(e) => handleDialogFieldChange('reward', e.target.value)} className="col-span-3"/>
               </div>
@@ -1032,26 +1288,26 @@ export default function AdminPage() {
               </div>
             </div>
           )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setRewardDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleSaveRewardFromDialog}>Save</Button>
-          </DialogFooter>
+          <DialogFooterComponent>
+            <Button variant="outline" onClick={() => setRewardDialogOpen(false)} disabled={savingSettings}>Cancel</Button>
+            <Button onClick={handleSaveRewardFromDialog} disabled={savingSettings}>
+              {savingSettings ? 'Saving...' : 'Save'}
+            </Button>
+          </DialogFooterComponent>
         </DialogContent>
       </Dialog>
 
-      {/* Template Editor Dialog */}
       <Dialog open={templateDialogOpen} onOpenChange={setTemplateDialogOpen}>
-        <DialogContent className="max-w-7xl h-[90vh] p-0">
-          <div className="flex h-full">
-            {/* Left Panel - Editor */}
+        <DialogContent className="max-w-7xl h-[90vh] p-0 flex flex-col">
+          <DialogHeader className="p-6 pb-4 border-b flex-shrink-0">
+            <DialogTitle>{editingTemplate ? 'Edit Template' : 'Create New Template'}</DialogTitle>
+            <DialogDescription>
+              {editingTemplate ? 'Update the email template details.' : 'Create a new reusable email template.'}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex-grow flex min-h-0">
             <div className="w-1/2 flex flex-col border-r">
-              <DialogHeader className="p-6 pb-4 border-b">
-                <DialogTitle>{editingTemplate ? 'Edit Template' : 'Create New Template'}</DialogTitle>
-                <DialogDescription>
-                  {editingTemplate ? 'Update the email template details.' : 'Create a new reusable email template.'}
-                </DialogDescription>
-              </DialogHeader>
-              
               <ScrollArea className="flex-grow">
                 <div className="space-y-4 p-6 pr-4">
                   <div className="grid grid-cols-2 gap-4">
@@ -1106,24 +1362,25 @@ export default function AdminPage() {
                 </div>
               </ScrollArea>
               
-              <DialogFooter className="p-6 pt-4 border-t">
+              <DialogFooterComponent className="p-6 pt-4 border-t flex-shrink-0">
                 <Button variant="outline" onClick={() => setTemplateDialogOpen(false)}>Cancel</Button>
                 <Button onClick={handleSaveTemplate}>
                   {editingTemplate ? 'Update Template' : 'Create Template'}
                 </Button>
-              </DialogFooter>
+              </DialogFooterComponent>
             </div>
 
-            {/* Right Panel - Live Preview */}
             <div className="w-1/2 flex flex-col bg-muted/30">
-              <div className="p-6 pb-4 border-b bg-background">
+              <div className="p-6 pb-4 border-b bg-background flex-shrink-0">
                 <h3 className="text-lg font-semibold">Live Preview</h3>
                 <p className="text-sm text-muted-foreground">See how your email will look with sample data</p>
               </div>
-              <div className="flex-grow p-6">
+              <div className="flex-grow p-6 min-h-0">
                 <EmailPreview
                   subject={templateSubject}
                   html={templateHtml}
+                  headerHtml={localEmailHeader}
+                  footerHtml={localEmailFooter}
                 />
               </div>
             </div>
@@ -1154,12 +1411,12 @@ export default function AdminPage() {
               T: {shippingReward?.shippingAddress?.phone}
             </pre>
           </div>
-          <DialogFooter>
+          <DialogFooterComponent>
             <Button variant="outline" onClick={() => setShippingDialogOpen(false)}>Cancel</Button>
             <Button onClick={handleMarkAsShipped} disabled={sendingShipping || !trackingCode}>
               {sendingShipping ? 'Sending...' : 'Mark Shipped & Notify'}
             </Button>
-          </DialogFooter>
+          </DialogFooterComponent>
         </DialogContent>
       </Dialog>
       
@@ -1181,12 +1438,13 @@ export default function AdminPage() {
               title="Email Preview"
             />
           </div>
-          <DialogFooter className="p-6 pt-4">
+          <DialogFooterComponent className="p-6 pt-4">
             <Button variant="outline" onClick={() => setPreviewOpen(false)}>Close</Button>
-          </DialogFooter>
+          </DialogFooterComponent>
         </DialogContent>
       </Dialog>
     </>
   );
 }
 
+    
