@@ -117,10 +117,6 @@ async function getTemplateFromFile(templateId: string): Promise<{ subject: strin
     return null;
 }
 
-async function getTemplate(templateId: string) {
-  return await getTemplateFromFile(templateId);
-}
-
 async function renderAndSend(templateId: string, to: string, variables: Record<string, any>) {
   console.log(`🔵 [EMAIL_ACTION - ${BUILD_VERSION}] Starting renderAndSend for template: ${templateId}, to: ${to}`);
   
@@ -130,7 +126,7 @@ async function renderAndSend(templateId: string, to: string, variables: Record<s
   }
 
   console.log(`🔵 [EMAIL_ACTION - ${BUILD_VERSION}] Step 1: Loading template '${templateId}'...`);
-  const template = await getTemplate(templateId);
+  const template = await getTemplateFromFile(templateId);
   
   if (!template) {
     console.error(`❌ [EMAIL_ACTION - ${BUILD_VERSION}] FATAL: Email template "${templateId}" is missing.`);
