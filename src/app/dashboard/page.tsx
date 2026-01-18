@@ -266,12 +266,7 @@ export default function AdminPage() {
         setLocalVipSpots(appSettings.vipConfig?.totalSpots || 100);
         setLocalReferralTiers(appSettings.referralTiers || []);
         
-        const validRewardTiers = (appSettings.rewardTiers || []).filter(tier => tier.image && !tier.image.startsWith('blob:'));
-        if (appSettings.rewardTiers && validRewardTiers.length < appSettings.rewardTiers.length) {
-          toast.warning("Corrupt reward data found", {
-            description: "Some rewards had invalid image URLs and were ignored. Please re-save your rewards.",
-          });
-        }
+        const validRewardTiers = (appSettings.rewardTiers || []).filter(tier => tier.id && tier.image && !tier.image.startsWith('blob:'));
         
         if (validRewardTiers.length > 0) {
             setLocalRewardTiers(validRewardTiers);
@@ -279,11 +274,14 @@ export default function AdminPage() {
             setLocalRewardTiers(defaultRewardTiers);
         }
       } else {
+        // If no settings are in Firestore, use the hardcoded defaults
         setLocalRewardTiers(defaultRewardTiers);
       }
     } catch (error) {
       console.error('Error fetching settings:', error);
       toast.error('Failed to load settings.');
+      // Fallback to defaults if settings fetch fails
+      setLocalRewardTiers(defaultRewardTiers);
     }
     setLoadingSettings(false);
   }
