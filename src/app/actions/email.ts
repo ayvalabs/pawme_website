@@ -55,7 +55,6 @@ async function getTemplateFromFile(templateId: string): Promise<{ subject: strin
         // public/ folder is guaranteed to be included in Vercel builds
         const possiblePaths = [
             path.join(cwd, 'public', 'email-templates', `${filename}.html`),
-            path.join(cwd, 'src', 'lib', 'email-assets', `${filename}.html`), // fallback for local dev
             path.join(cwd, '.next', 'server', 'public', 'email-templates', `${filename}.html`),
             path.join(cwd, 'email-templates', `${filename}.html`),
         ];
@@ -119,16 +118,6 @@ async function getTemplateFromFile(templateId: string): Promise<{ subject: strin
                 console.log(`   ❌ Cannot read public/: ${e.message}`);
             }
             
-            // Check src directory
-            try {
-                const srcPath = path.join(cwd, 'src');
-                console.log(`📁 [EMAIL_ACTION] Src directory (${srcPath}):`);
-                const srcFiles = await fs.readdir(srcPath);
-                console.log(`   Files/folders:`, srcFiles);
-            } catch (e: any) {
-                console.log(`   ❌ Cannot read src/: ${e.message}`);
-            }
-            
             // Check .next directory
             try {
                 const nextPath = path.join(cwd, '.next');
@@ -183,7 +172,7 @@ async function renderAndSend(templateId: string, to: string, variables: Record<s
 
   if (!template) {
     console.error(`❌ [EMAIL_ACTION] FATAL: Email template "${templateId}" is missing.`);
-    console.error(`❌ [EMAIL_ACTION] This means the file could not be loaded from src/lib/email-assets/`);
+    console.error(`❌ [EMAIL_ACTION] This means the file could not be loaded from public/email-assets/`);
     throw new Error(`Email template "${templateId}" is missing.`);
   }
   console.log(`✅ [EMAIL_ACTION] Step 1 complete: Template loaded successfully`);

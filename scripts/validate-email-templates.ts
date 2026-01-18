@@ -1,10 +1,11 @@
+
 #!/usr/bin/env tsx
 
 /**
  * Email Template Validation Script
  * 
  * This script validates that all email templates are correctly set up:
- * - Checks that template files exist
+ * - Checks that template files exist in the `public` directory
  * - Verifies filename mapping (camelCase ID → kebab-case filename)
  * - Ensures all required variables are present in templates
  */
@@ -74,9 +75,7 @@ async function validateTemplates() {
   console.log('=' .repeat(60));
   
   const templateDir = path.join(process.cwd(), 'public', 'email-templates');
-  const fallbackDir = path.join(process.cwd(), 'src', 'lib', 'email-assets');
-  console.log(`📁 Primary template directory: ${templateDir}`);
-  console.log(`📁 Fallback template directory: ${fallbackDir}\n`);
+  console.log(`📁 Checking template directory: ${templateDir}\n`);
   
   let allValid = true;
   const results: { id: string; filename: string; exists: boolean; variables: string[]; found: string[] }[] = [];
@@ -91,31 +90,17 @@ async function validateTemplates() {
     console.log(`   Filename: ${filename}.html`);
     console.log(`   Path: ${filePath}`);
     
-    // Check if file exists (try both locations)
     let exists = false;
     let html = '';
-    let foundLocation = '';
     
-    // Try primary location (public/)
     try {
       html = await fs.readFile(filePath, 'utf-8');
       exists = true;
-      foundLocation = 'public/email-templates';
-      console.log(`   ✅ File exists in public/ (${html.length} characters)`);
+      console.log(`   ✅ File exists in public/email-templates (${html.length} characters)`);
     } catch (error: any) {
-      // Try fallback location (src/)
-      const fallbackPath = path.join(fallbackDir, `${filename}.html`);
-      try {
-        html = await fs.readFile(fallbackPath, 'utf-8');
-        exists = true;
-        foundLocation = 'src/lib/email-assets';
-        console.log(`   ✅ File exists in src/ (${html.length} characters)`);
-        console.log(`   ⚠️  Should copy to public/email-templates for production`);
-      } catch (fallbackError: any) {
-        exists = false;
-        console.log(`   ❌ File NOT found in either location`);
-        allValid = false;
-      }
+      exists = false;
+      console.log(`   ❌ File NOT found in public/email-templates`);
+      allValid = false;
     }
     
     // Check for required variables
