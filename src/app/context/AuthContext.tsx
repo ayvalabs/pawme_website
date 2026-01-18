@@ -25,6 +25,7 @@ import {
   updateDoc,
   runTransaction,
   deleteDoc,
+  onSnapshot,
 } from 'firebase/firestore';
 import { auth, db } from '@/firebase/config';
 import { sendWelcomeEmail, sendReferralSuccessEmail } from '@/app/actions/email';
@@ -108,28 +109,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    let profileListenerUnsubscribe: (() => void) | undefined;
+
+    const authUnsubscribe = onAuthStateChanged(auth, (user) => {
+      if (profileListenerUnsubscribe) {
+        profileListenerUnsubscribe();
+        profileListenerUnsubscribe = undefined;
+      }
+      
       setUser(user);
+      
       if (user) {
-        await fetchProfile(user.uid);
+        setLoading(true);
+        const userDocRef = doc(db, 'users', user.uid);
+        profileListenerUnsubscribe = onSnapshot(userDocRef, (docSnap) => {
+          if (docSnap.exists()) {
+            setProfile(docSnap.data() as UserProfile);
+          } else {
+            console.warn("User profile document doesn't exist for UID:", user.uid);
+            setProfile(null);
+          }
+          setLoading(false);
+        }, (error) => {
+          console.error("Error listening to profile updates:", error);
+          setProfile(null);
+          setLoading(false);
+        });
       } else {
         setProfile(null);
+        setLoading(false);
       }
-      setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      authUnsubscribe();
+      if (profileListenerUnsubscribe) {
+        profileListenerUnsubscribe();
+      }
+    };
   }, []);
-
-  const fetchProfile = async (uid: string) => {
-    const docRef = doc(db, 'users', uid);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      setProfile(docSnap.data() as UserProfile);
-    } else {
-      console.log('No such profile!');
-    }
-  };
 
   const creditReferrer = async (referralCode: string, newSignedUpEmail: string) => {
     const referralsRef = collection(db, 'users');
@@ -247,7 +265,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = async (email: string, password: string) => {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      await fetchProfile(userCredential.user.uid);
 
       if (userCredential.user.email === 'pawme@ayvalabs.com') {
         router.push('/dashboard');
@@ -301,8 +318,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       };
       await setDoc(userDocRef, userProfile);
       setProfile(userProfile);
-    } else {
-      await fetchProfile(user.uid);
     }
     
     if (user.email === 'pawme@ayvalabs.com') {
@@ -320,9 +335,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const refreshProfile = async () => {
-    if (user) {
-      await fetchProfile(user.uid);
-    }
+    // With real-time updates via onSnapshot, this function is no longer needed
+    // for data consistency, but is kept for any UI that might want to provide
+    // a manual refresh action for user peace of mind.
+    console.log('Profile data is updated in real-time.');
   };
 
   const updateTheme = async (theme: string) => {
@@ -330,7 +346,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const userDocRef = doc(db, 'users', user.uid);
       try {
         await updateDoc(userDocRef, { theme });
-        await fetchProfile(user.uid);
       } catch (error) {
         console.error('Error updating theme:', error);
       }
@@ -342,7 +357,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const userDocRef = doc(db, 'users', user.uid);
       try {
         await updateDoc(userDocRef, { isVip: true });
-        await fetchProfile(user.uid);
       } catch (error) {
         console.error('Error joining VIP:', error);
         throw error;
@@ -362,7 +376,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const updatedRewards = [...(profile.rewards || []), newReward];
       try {
         await updateDoc(userDocRef, { rewards: updatedRewards });
-        await fetchProfile(user.uid);
       } catch (error) {
         console.error('Error redeeming reward:', error);
         throw error;
@@ -375,7 +388,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const userDocRef = doc(db, 'users', user.uid);
       try {
         await updateDoc(userDocRef, { marketingOptIn: optIn });
-        await fetchProfile(user.uid);
       } catch (error) {
         console.error('Error updating marketing preference:', error);
         throw error;
