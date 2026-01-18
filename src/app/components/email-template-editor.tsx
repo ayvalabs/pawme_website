@@ -79,12 +79,13 @@ export function EmailPreview({ subject, html, variables = {} }: EmailPreviewProp
           <span className="text-muted-foreground">Subject:</span> {previewSubject || '(No subject)'}
         </div>
       </div>
-      <div className="flex-grow overflow-auto">
+      <div className="flex-grow overflow-y-auto overflow-x-hidden">
         <iframe
           srcDoc={previewHtml || '<p style="padding: 1rem; color: #999;">Email preview will appear here...</p>'}
-          className="w-full h-full border-0"
+          className="w-full min-h-full border-0"
           title="Email Preview"
           sandbox="allow-same-origin"
+          style={{ height: '100%' }}
         />
       </div>
     </div>

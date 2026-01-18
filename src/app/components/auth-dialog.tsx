@@ -28,11 +28,11 @@ function AuthMarketingPanel() {
     <div className="relative flex w-2/5 flex-col justify-between rounded-r-lg bg-gradient-to-br from-primary/20 via-secondary to-primary/20 p-8">
       <div className="absolute inset-0 z-0">
         <ImageWithFallback
-          src="/images/feature-ai-companion.jpg"
-          alt="PawMe robot with a pet"
-          className="size-full object-cover opacity-20"
+          src="/hero-slide-1.png"
+          alt="PawMe AI companion robot with pet"
+          className="size-full object-cover opacity-30"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent" />
       </div>
       <div className="relative z-10">
         <div className="mb-4 text-2xl font-bold">
