@@ -170,7 +170,7 @@ const addressSchema = z.object({
 });
 
 export default function LeaderboardPage() {
-  const { user, profile, loading: authLoading, joinVip, redeemReward, updateMarketingPreference } = useAuth();
+  const { user, profile, loading: authLoading, joinVip, redeemReward, updateMarketingPreference, refreshProfile } = useAuth();
   const router = useRouter();
 
   const [settings, setSettings] = useState<AppSettings | null>(null);
@@ -233,6 +233,18 @@ export default function LeaderboardPage() {
       router.push('/');
     }
   }, [user, authLoading, router]);
+
+  // Auto-refresh profile data every 30 seconds to keep points updated
+  useEffect(() => {
+    if (!authLoading && user && profile && refreshProfile) {
+      const intervalId = setInterval(() => {
+        console.log('[LEADERBOARD] Auto-refreshing profile data...');
+        refreshProfile();
+      }, 30000); // 30 seconds
+
+      return () => clearInterval(intervalId);
+    }
+  }, [authLoading, user, profile, refreshProfile]);
 
   useEffect(() => {
     if (profile && referralUrl) {
@@ -462,7 +474,18 @@ ${profile.name}`
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Points</CardTitle>
-                <Trophy className="h-4 w-4 text-muted-foreground" />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={async () => {
+                    await refreshProfile();
+                    toast.success('Points refreshed!');
+                  }}
+                  title="Refresh points"
+                >
+                  <Trophy className="h-4 w-4 text-muted-foreground" />
+                </Button>
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-primary">{profile.points || 0}</div>
