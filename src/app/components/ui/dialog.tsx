@@ -58,7 +58,7 @@ function DialogContent({
     data-slot="dialog-content"
     className={cn(
       "fixed top-[50%] left-[50%] z-50 grid w-full " +
-        "max-w-[calc(100%-6rem)] sm:max-w-5xl " +
+        "max-w-lg " +
         "translate-x-[-50%] translate-y-[-50%] gap-4 " +
         "rounded-lg border bg-background p-6 shadow-lg duration-200 " +
         "data-[state=open]:animate-in data-[state=closed]:animate-out " +
