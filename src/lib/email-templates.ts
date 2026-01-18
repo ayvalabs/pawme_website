@@ -61,7 +61,7 @@ const footer = `          <!-- Footer -->
 </body>
 </html>`;
 
-export const defaultTemplates: Record<string, EmailTemplate> = {
+export const defaultTemplates: { [key: string]: EmailTemplate } = {
   header: {
     id: 'header',
     name: 'Default Email Header',
@@ -220,37 +220,6 @@ ${footer}`,
 </tr>
 ${footer}`,
   },
-  passwordReset: {
-    id: 'passwordReset',
-    name: 'Password Reset',
-    subject: 'Reset Your PawMe Password',
-    variables: ['userName', 'link'],
-    html: `${header}
-<tr>
-  <td style="padding: 40px;">
-    <p style="margin: 0 0 20px; color: #333333; font-size: 16px; line-height: 1.6;">
-      Hello {{userName}},
-    </p>
-    
-    <p style="margin: 0 0 30px; color: #333333; font-size: 16px; line-height: 1.6;">
-      We received a request to reset your password. Click the button below to choose a new one. This link is only valid for one hour.
-    </p>
-    
-    <table role="presentation" style="width: 100%; text-align: center;">
-      <tr>
-        <td>
-          <a href="{{link}}" target="_blank" style="display: inline-block; padding: 14px 32px; background-color: #7678EE; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">Set New Password</a>
-        </td>
-      </tr>
-    </table>
-    
-    <p style="margin: 30px 0 0; color: #666666; font-size: 14px; line-height: 1.6;">
-      If you didn't request a password reset, you can safely ignore this email. Your account is secure.
-    </p>
-  </td>
-</tr>
-${footer}`,
-  },
   shippingNotification: {
     id: 'shippingNotification',
     name: 'Reward Shipped',
@@ -266,29 +235,6 @@ ${footer}`,
       {{trackingCode}}
     </p>
     <p>Thank you for being an essential part of the PawMe community. We appreciate your support!</p>
-  </td>
-</tr>
-${footer}`,
-  },
-  productUpdate: {
-    id: 'productUpdate',
-    name: 'Product Update',
-    subject: '🚀 An Update from PawMe!',
-    variables: ['userName'],
-    html: `${header}
-<tr>
-  <td style="padding: 40px;">
-    <p style="margin: 0 0 20px; color: #333333; font-size: 16px; line-height: 1.6;">
-      Hi {{userName}},
-    </p>
-    
-    <p style="margin: 0 0 30px; color: #333333; font-size: 16px; line-height: 1.6;">
-      This is a product update from the PawMe team. We're working hard to bring you the best AI companion for your pet.
-    </p>
-    
-    <p style="margin: 30px 0 0; color: #666666; font-size: 14px; line-height: 1.6;">
-      Stay tuned for more news!
-    </p>
   </td>
 </tr>
 ${footer}`,

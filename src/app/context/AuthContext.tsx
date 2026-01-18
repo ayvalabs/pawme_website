@@ -151,7 +151,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           throw "Referrer document does not exist!";
         }
         const newReferralCount = (referrerDoc.data().referralCount || 0) + 1;
-        const pointsToAdd = referrerDoc.data().isVip ? 3 : 2;
+        const pointsToAdd = referrerDoc.data().isVip ? 150 : 100;
         const newPoints = (referrerDoc.data().points || 0) + pointsToAdd;
         
         transaction.update(referrerRef, { 
@@ -176,58 +176,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signUp = async (email: string, password: string, name: string, code: string, referredByCode: string | undefined, privacyPolicyAgreed: boolean, marketingOptIn: boolean) => {
-    console.log('🔵 [SIGNUP] Starting signup process for:', email);
+    console.log('[SIGNUP] Starting signup process for:', email);
     
     try {
-      // 1. Verify code
-      console.log('🔵 [SIGNUP] Step 1: Verifying code...');
+      console.log('[SIGNUP] Step 1: Verifying code...');
       const verificationsRef = collection(db, 'verifications');
       const q = query(verificationsRef, where('email', '==', email), where('code', '==', code));
       const querySnapshot = await getDocs(q);
-      console.log('✅ [SIGNUP] Code verification query completed');
 
       if (querySnapshot.empty) {
-        console.error('❌ [SIGNUP] Invalid verification code');
         throw new Error('Invalid verification code.');
       }
 
       const verificationDoc = querySnapshot.docs[0];
       const verificationData = verificationDoc.data();
-      console.log('✅ [SIGNUP] Verification document found');
 
       if (verificationData.expiresAt.toMillis() < Date.now()) {
-        console.error('❌ [SIGNUP] Verification code expired');
         await deleteDoc(verificationDoc.ref);
         throw new Error('Verification code has expired. Please try again.');
       }
       
-      // 2. If valid, proceed with signup
-      console.log('🔵 [SIGNUP] Step 2: Checking disposable email...');
       if (isDisposableEmail(email)) {
-        console.error('❌ [SIGNUP] Disposable email detected');
         throw new Error("Disposable email addresses are not allowed. Please use a permanent email address.");
       }
-      console.log('✅ [SIGNUP] Email validation passed');
       
-      console.log('🔵 [SIGNUP] Step 3: Creating Firebase Auth user...');
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const newUser = userCredential.user;
-      console.log('✅ [SIGNUP] Firebase Auth user created:', newUser.uid);
       
-      console.log('🔵 [SIGNUP] Step 4: Updating user profile...');
       await updateUserProfile(newUser, { displayName: name });
-      console.log('✅ [SIGNUP] User profile updated');
 
-      console.log('🔵 [SIGNUP] Step 5: Generating referral code...');
       const referralCode = await generateReferralCode(email, newUser.uid);
-      console.log('✅ [SIGNUP] Referral code generated:', referralCode);
       
       const userProfile: UserProfile = {
         id: newUser.uid,
         email: newUser.email!,
         name: name || newUser.email!.split('@')[0],
         referralCode,
-        points: 0,
+        points: 100, // Starting points
         referralCount: 0,
         referredBy: referredByCode || null,
         theme: 'purple',
@@ -238,33 +223,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         marketingOptIn,
       };
 
-      console.log('🔵 [SIGNUP] Step 6: Creating user document in Firestore...');
       await setDoc(doc(db, 'users', newUser.uid), userProfile);
-      console.log('✅ [SIGNUP] User document created in Firestore');
       
-      // 7. Clean up and post-signup tasks
-      console.log('🔵 [SIGNUP] Step 7: Cleaning up verification code...');
       await deleteDoc(verificationDoc.ref);
-      console.log('✅ [SIGNUP] Verification code deleted');
       
       if (referredByCode) {
-        console.log('🔵 [SIGNUP] Step 8: Crediting referrer...');
         await creditReferrer(referredByCode, email);
-        console.log('✅ [SIGNUP] Referrer credited');
       }
       
-      console.log('🔵 [SIGNUP] Step 9: Sending welcome email...');
       await sendWelcomeEmail({ to: email, name, referralCode });
-      console.log('✅ [SIGNUP] Welcome email sent');
 
       setUser(newUser);
       setProfile(userProfile);
-      console.log('✅ [SIGNUP] Signup process completed successfully!');
     } catch (error: any) {
-      console.error('❌ [SIGNUP] Error during signup:', error);
-      console.error('❌ [SIGNUP] Error code:', error.code);
-      console.error('❌ [SIGNUP] Error message:', error.message);
-      console.error('❌ [SIGNUP] Full error:', error);
+      console.error('[SIGNUP] Error during signup:', error);
       if (error.code === 'auth/email-already-in-use') {
         throw new Error('An account with this email already exists. Please sign in.');
       }
@@ -273,37 +245,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signIn = async (email: string, password: string) => {
-    console.log('🔵 [SIGNIN] Attempting to sign in for:', email);
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      console.log('✅ [SIGNIN] Firebase authentication successful for:', email);
-      
-      console.log('🔵 [SIGNIN] Fetching user profile...');
       await fetchProfile(userCredential.user.uid);
-      console.log('✅ [SIGNIN] User profile fetched.');
 
       if (userCredential.user.email === 'pawme@ayvalabs.com') {
         router.push('/dashboard');
       } else {
         router.push('/leaderboard');
       }
-      console.log('✅ [SIGNIN] Sign-in process complete.');
       return userCredential.user;
     } catch (error: any) {
-        console.error('❌ [SIGNIN] Firebase sign-in failed for:', email, 'Code:', error.code, 'Message:', error.message);
-        throw error; // Re-throw to be handled by the UI
+        console.error('[SIGNIN] Firebase sign-in failed for:', email, 'Code:', error.code, 'Message:', error.message);
+        throw error;
     }
   };
 
   const sendPasswordReset = async (email: string) => {
     try {
       await sendPasswordResetEmail(auth, email);
-      console.log(`Password reset email sent to: ${email}`);
       return { success: true, message: 'Password reset email sent! Check your inbox.' };
     } catch (error: any) {
       console.error('Password reset error:', error);
       if (error.code === 'auth/user-not-found') {
-        // Don't reveal if user exists or not for security
         return { success: true, message: 'If an account exists with this email, a password reset link has been sent.' };
       }
       return { success: false, message: 'Failed to send password reset email.' };
@@ -325,7 +289,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email: user.email!,
         name: user.displayName || user.email!.split('@')[0],
         referralCode,
-        points: 0,
+        points: 100,
         referralCount: 0,
         referredBy: null,
         theme: 'purple',

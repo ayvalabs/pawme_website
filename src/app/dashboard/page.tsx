@@ -27,7 +27,6 @@ import { getAppSettings, type AppSettings, type ReferralTier, type RewardTier } 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/app/components/ui/tooltip';
 import Image from 'next/image';
 import { uploadRewardImages, saveAppSettings } from '@/app/services/adminService';
-import { EmailPreview } from '@/app/components/email-template-editor';
 import { ImageWithFallback } from '@/app/components/figma/ImageWithFallback';
 
 type UserWithId = UserProfile & { id: string };

@@ -17,18 +17,18 @@ function getAppUrl(): string {
   return 'http://localhost:9008';
 }
 
-async function renderAndSend(templateId: string, to: string, variables: Record<string, any>) {
-  console.log(`🔵 [EMAIL_ACTION] Starting renderAndSend for template: ${templateId}, to: ${to}`);
-
+async function renderAndSend(templateId: keyof typeof defaultTemplates, to: string, variables: Record<string, any>) {
+  console.log(`[EMAIL] Rendering and sending template "${templateId}" to ${to}`);
+  
   if (!process.env.RESEND_API_KEY) {
-    console.error(`❌ [EMAIL_ACTION] FATAL: RESEND_API_KEY is not set.`);
-    throw new Error('Server is missing API key for email service.');
+    console.error(`[EMAIL] FATAL: RESEND_API_KEY is not set.`);
+    throw new Error('Server is not configured to send emails. [Missing API Key]');
   }
 
   const template = defaultTemplates[templateId];
 
   if (!template) {
-    console.error(`❌ [EMAIL_ACTION] FATAL: Email template "${templateId}" is missing from local defaults.`);
+    console.error(`[EMAIL] FATAL: Email template "${templateId}" is not defined in defaultTemplates.`);
     throw new Error(`Email template "${templateId}" is missing.`);
   }
 
@@ -49,7 +49,7 @@ async function renderAndSend(templateId: string, to: string, variables: Record<s
   }
 
   try {
-    console.log(`🔵 [EMAIL_ACTION] Sending email via Resend... To: ${to}, Subject: ${subject}`);
+    console.log(`[EMAIL] Sending email via Resend... (To: ${to}, Subject: ${subject})`);
     const { data, error } = await resend.emails.send({
       from: fromEmail,
       to,
@@ -58,14 +58,14 @@ async function renderAndSend(templateId: string, to: string, variables: Record<s
     });
 
     if (error) {
-      console.error(`❌ [EMAIL_ACTION] Resend API error for '${templateId}':`, JSON.stringify(error, null, 2));
-      throw error;
+      console.error(`[EMAIL] RESEND_API_ERROR for template '${templateId}':`, JSON.stringify(error, null, 2));
+      throw new Error(`Failed to send email. Provider returned error: ${error.message}`);
     }
     
-    console.log(`✅ [EMAIL_ACTION] SUCCESS! Email sent. ID:`, data?.id);
+    console.log(`[EMAIL] SUCCESS! Email sent. ID:`, data?.id);
     return data;
   } catch (error: any) {
-    console.error(`❌ [EMAIL_ACTION] Catch-block error sending '${templateId}':`, error);
+    console.error(`[EMAIL] CATCH_BLOCK_ERROR sending template '${templateId}':`, error);
     throw error;
   }
 }
@@ -85,20 +85,19 @@ export async function sendReferralSuccessEmail({ to, referrerName, newReferralCo
 }
 
 export async function sendAdminBroadcast(users: {email: string, name: string}[], subject: string, bodyTemplate: string) {
-    const header = defaultTemplates.header.html.replace(/{{emailTitle}}/g, subject);
+    const fullBodyHtml = `${defaultTemplates.header.html}${bodyTemplate}${defaultTemplates.footer.html}`.replace(/{{emailTitle}}/g, subject);
 
     for (const user of users) {
-        const body = bodyTemplate.replace(/{{userName}}/g, user.name);
-        const unsubscribeUrl = `${getAppUrl()}/unsubscribe?email=${encodeURIComponent(user.email)}`;
-        const footer = defaultTemplates.footer.html.replace(/{{unsubscribeLink}}/g, unsubscribeUrl);
-        const finalHtml = `${header}${body}${footer}`;
+        const personalizedBody = fullBodyHtml
+          .replace(/{{userName}}/g, user.name)
+          .replace(/{{unsubscribeLink}}/g, `${getAppUrl()}/unsubscribe?email=${encodeURIComponent(user.email)}`);
 
         try {
             await resend.emails.send({
                 from: fromEmail,
                 to: user.email,
                 subject,
-                html: finalHtml,
+                html: personalizedBody,
             });
         } catch (error) {
             console.error(`Failed to send broadcast to ${user.email}:`, error);
