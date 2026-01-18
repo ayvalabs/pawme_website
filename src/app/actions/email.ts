@@ -28,17 +28,17 @@ async function getTemplateFromFile(templateId: string): Promise<{ subject: strin
     try {
         const metadata = defaultTemplates[templateId];
         if (!metadata) {
-            console.warn(`[EMAIL_ACTION] No file metadata found for template '${templateId}'`);
+            console.warn(`⚠️ [EMAIL_ACTION] No file metadata found for template '${templateId}'`);
             return null;
         }
 
         const filePath = path.join(process.cwd(), 'src', 'lib', 'email-assets', `${templateId}.html`);
         const html = await fs.readFile(filePath, 'utf-8');
-        console.log(`[EMAIL_ACTION] Fetched template '${templateId}' from file system.`);
+        console.log(`✅ [EMAIL_ACTION] Fetched template '${templateId}' from file system.`);
 
         return { subject: metadata.subject, html };
     } catch (fileError: any) {
-        console.error(`[EMAIL_ACTION] Failed to read template file for '${templateId}':`, fileError);
+        console.error(`❌ [EMAIL_ACTION] Failed to read template file for '${templateId}':`, fileError);
         return null;
     }
 }
@@ -78,7 +78,7 @@ async function renderAndSend(templateId: string, to: string, variables: Record<s
         const settingsData = settingsSnap.exists() ? settingsSnap.data() : {};
         return [template, settingsData];
       } catch (e) {
-        console.warn('Could not fetch app-settings or templates from Firestore, using file-based fallbacks. This is likely a Firebase Admin auth issue.');
+        console.warn('⚠️ [EMAIL_ACTION] Could not fetch app-settings or templates from Firestore, using file-based fallbacks. This is likely a Firebase Admin auth issue.');
         const [template] = await Promise.all([ getTemplateFromFile(templateId) ]);
         return [template, {}];
       }
@@ -177,7 +177,7 @@ export async function sendAdminBroadcast(users: {email: string, name: string}[],
       const settingsSnap = await getDoc(doc(adminDb, 'app-settings', 'rewards'));
       settings = settingsSnap.exists() ? settingsSnap.data() : {};
     } catch(e) {
-      console.warn("Could not load branding from Firestore for broadcast. Using file fallbacks.");
+      console.warn("⚠️ [EMAIL_ACTION] Could not load branding from Firestore for broadcast. Using file fallbacks.");
     }
 
     const headerHtmlTemplate = settings.emailHeader || defaultTemplates['header']?.html || '';

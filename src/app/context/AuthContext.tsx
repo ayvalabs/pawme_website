@@ -272,14 +272,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signIn = async (email: string, password: string) => {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    await fetchProfile(userCredential.user.uid);
-    if (userCredential.user.email === 'pawme@ayvalabs.com') {
-      router.push('/dashboard');
-    } else {
-      router.push('/leaderboard');
+    console.log('🔵 [SIGNIN] Attempting to sign in for:', email);
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      console.log('✅ [SIGNIN] Firebase authentication successful for:', email);
+      
+      console.log('🔵 [SIGNIN] Fetching user profile...');
+      await fetchProfile(userCredential.user.uid);
+      console.log('✅ [SIGNIN] User profile fetched.');
+
+      if (userCredential.user.email === 'pawme@ayvalabs.com') {
+        router.push('/dashboard');
+      } else {
+        router.push('/leaderboard');
+      }
+      console.log('✅ [SIGNIN] Sign-in process complete.');
+      return userCredential.user;
+    } catch (error: any) {
+        console.error('❌ [SIGNIN] Firebase sign-in failed for:', email, 'Code:', error.code, 'Message:', error.message);
+        throw error; // Re-throw to be handled by the UI
     }
-    return userCredential.user;
   };
 
   const sendPasswordReset = async (email: string) => {
