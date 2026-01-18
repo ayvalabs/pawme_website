@@ -51,17 +51,25 @@ export async function sendSignUpVerificationCode({ email, name }: { email: strin
     console.log('✅ [ACTION] (2/2) Verification email sent successfully.');
   } catch (error: any) {
     console.error('❌ [ACTION] EMAIL_ERROR: The operation to send the verification email failed.');
-    console.error('Full error object received from email service:', error);
+    console.error('❌ [ACTION] Error type:', typeof error);
+    console.error('❌ [ACTION] Error name:', error?.name);
+    console.error('❌ [ACTION] Error message:', error?.message);
+    console.error('❌ [ACTION] Error code:', error?.code);
+    console.error('❌ [ACTION] Error stack:', error?.stack);
+    console.error('❌ [ACTION] Full error object:', JSON.stringify(error, null, 2));
 
     if (error.message && (error.message.includes('API key') || error.message.includes('RESEND_API_KEY'))) {
+        console.error('❌ [ACTION] Detected missing API key error');
         return { success: false, message: 'Email service is not configured on the server. Please contact support.' };
     }
 
     if (error.message && (error.message.includes('domain is not verified') || error.message.includes('is not a verified sender'))) {
-        return { success: false, message: 'Email sending failed: The sending domain is not verified. Please configure it in your email provider (Resend).'}
+        console.error('❌ [ACTION] Detected domain verification error');
+        return { success: false, message: 'Email sending failed: The sending domain is not verified. Please configure it in your email provider (Resend).'};
     }
     
-    return { success: false, message: 'Could not send verification code. Please try again later.' };
+    console.error('❌ [ACTION] Returning generic error message to client');
+    return { success: false, message: `Could not send verification code. Error: ${error?.message || 'Unknown error'}` };
   }
     
   return { success: true, message: 'Verification code sent.' };

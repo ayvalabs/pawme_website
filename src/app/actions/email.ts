@@ -2,8 +2,6 @@
 'use server';
 
 import { Resend } from 'resend';
-import { getAdminFirestore } from '@/lib/firebase-admin';
-import { doc, getDoc } from 'firebase/firestore';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { defaultTemplates } from '@/lib/email-templates';
@@ -44,45 +42,22 @@ async function getTemplateFromFile(templateId: string): Promise<{ subject: strin
 }
 
 async function getTemplate(templateId: string) {
-  try {
-    const adminDb = getAdminFirestore();
-    const templateRef = doc(adminDb, 'emailTemplates', templateId);
-    const templateSnap = await getDoc(templateRef);
-
-    if (templateSnap.exists()) {
-      console.log(`✅ [EMAIL_ACTION] Fetched template '${templateId}' from Firestore.`);
-      return templateSnap.data() as { subject: string, html: string };
-    } else {
-      console.warn(`⚠️ [EMAIL_ACTION] Email template '${templateId}' not found in Firestore, falling back to file.`);
-      return await getTemplateFromFile(templateId);
-    }
-  } catch (error: any) {
-    console.error(`❌ [EMAIL_ACTION] Error fetching email template '${templateId}' from Firestore. This is likely a permissions issue. Falling back to file system.`, error);
-    return await getTemplateFromFile(templateId);
-  }
+  console.log(`🔵 [EMAIL_ACTION] Fetching template '${templateId}' from file system.`);
+  return await getTemplateFromFile(templateId);
 }
 
 async function renderAndSend(templateId: string, to: string, variables: Record<string, any>) {
+  console.log(`🔵 [EMAIL_ACTION] Starting renderAndSend for template: ${templateId}, to: ${to}`);
+  console.log(`🔵 [EMAIL_ACTION] Environment check - RESEND_API_KEY exists: ${!!process.env.RESEND_API_KEY}`);
+  console.log(`🔵 [EMAIL_ACTION] Environment check - FIREBASE_SERVICE_ACCOUNT_KEY exists: ${!!process.env.FIREBASE_SERVICE_ACCOUNT_KEY}`);
+  
   if (!process.env.RESEND_API_KEY) {
     console.error(`❌ [EMAIL_ACTION] FATAL: RESEND_API_KEY is not set. Email '${templateId}' to '${to}' cannot be sent.`);
     throw new Error('Server is missing API key for email service.');
   }
 
-  const [template, settings] = await (async () => {
-      try {
-        const adminDb = getAdminFirestore();
-        const [template, settingsSnap] = await Promise.all([
-          getTemplate(templateId),
-          getDoc(doc(adminDb, 'app-settings', 'rewards'))
-        ]);
-        const settingsData = settingsSnap.exists() ? settingsSnap.data() : {};
-        return [template, settingsData];
-      } catch (e) {
-        console.warn('⚠️ [EMAIL_ACTION] Could not fetch app-settings or templates from Firestore, using file-based fallbacks. This is likely a Firebase Admin auth issue.');
-        const [template] = await Promise.all([ getTemplateFromFile(templateId) ]);
-        return [template, {}];
-      }
-    })();
+  const template = await getTemplate(templateId);
+  const settings = {}; // No dynamic settings without Admin SDK
 
 
   if (!template) {
@@ -113,6 +88,10 @@ async function renderAndSend(templateId: string, to: string, variables: Record<s
   
   try {
     console.log(`🔵 [EMAIL_ACTION] Sending email '${templateId}' to: ${to}`);
+    console.log(`🔵 [EMAIL_ACTION] From address: ${fromEmail}`);
+    console.log(`🔵 [EMAIL_ACTION] Subject: ${subject}`);
+    console.log(`🔵 [EMAIL_ACTION] HTML length: ${finalHtml.length} characters`);
+    
     const { data, error } = await resend.emails.send({
       from: fromEmail,
       to,
@@ -122,13 +101,16 @@ async function renderAndSend(templateId: string, to: string, variables: Record<s
 
     if (error) {
       console.error(`❌ [EMAIL_ACTION] Resend API returned an error for template '${templateId}':`, JSON.stringify(error, null, 2));
+      console.error(`❌ [EMAIL_ACTION] Error details - name: ${error.name}, message: ${error.message}`);
       throw error;
     }
     
     console.log(`✅ [EMAIL_ACTION] Email '${templateId}' sent successfully via Resend. Email ID:`, data?.id);
     return data;
-  } catch (error) {
+  } catch (error: any) {
     console.error(`❌ [EMAIL_ACTION] A catch-block error occurred while sending email '${templateId}':`, error);
+    console.error(`❌ [EMAIL_ACTION] Error stack trace:`, error?.stack);
+    console.error(`❌ [EMAIL_ACTION] Error name: ${error?.name}, message: ${error?.message}`);
     throw error;
   }
 }
@@ -140,7 +122,15 @@ export async function sendWelcomeEmail({ to, name, referralCode }: { to: string,
 }
 
 export async function sendVerificationCodeEmail({ to, name, code }: { to: string, name: string, code: string }) {
-  await renderAndSend('verificationCode', to, { userName: name, code, emailTitle: "Verify Your Email" });
+  console.log(`🔵 [EMAIL_ACTION] sendVerificationCodeEmail called for: ${to}`);
+  try {
+    await renderAndSend('verificationCode', to, { userName: name, code, emailTitle: "Verify Your Email" });
+    console.log(`✅ [EMAIL_ACTION] Verification email completed successfully for: ${to}`);
+  } catch (error: any) {
+    console.error(`❌ [EMAIL_ACTION] sendVerificationCodeEmail failed for ${to}:`, error);
+    console.error(`❌ [EMAIL_ACTION] Full error object:`, JSON.stringify(error, null, 2));
+    throw error;
+  }
 }
 
 export async function sendReferralSuccessEmail({ to, referrerName, newReferralCount, newPoints }: { to: string, referrerName: string, newReferralCount: number, newPoints: number }) {
@@ -148,40 +138,17 @@ export async function sendReferralSuccessEmail({ to, referrerName, newReferralCo
 }
 
 export async function sendCustomPasswordResetEmail({ email }: { email: string }): Promise<{ success: boolean; message?: string }> {
-  try {
-    const adminAuth = (await import('@/lib/firebase-admin')).getAdminAuth();
-    const user = await adminAuth.getUserByEmail(email);
-    const link = await adminAuth.generatePasswordResetLink(email);
-    
-    await renderAndSend('passwordReset', email, { 
-      userName: user.displayName || user.email,
-      link 
-    });
-    
-    return { success: true, message: 'Password reset email sent!' };
-  } catch (error: any) {
-    if (error.code === 'auth/user-not-found') {
-      console.log(`Password reset requested for non-existent user: ${email}`);
-      return { success: true, message: 'If an account with this email exists, a password reset link has been sent.' };
-    }
-    console.error('Error sending password reset email:', error);
-    return { success: false, message: 'Could not send password reset email.' };
-  }
+  console.log('⚠️ [EMAIL_ACTION] Custom password reset email not available without Firebase Admin SDK.');
+  console.log('⚠️ [EMAIL_ACTION] Use Firebase client SDK sendPasswordResetEmail() instead.');
+  return { success: false, message: 'Password reset must be handled client-side. Please use the built-in Firebase password reset.' };
 }
 
 export async function sendAdminBroadcast(users: {email: string, name: string}[], subject: string, bodyTemplate: string) {
     const appUrl = getAppUrl();
-    let settings = {};
-    try {
-      const adminDb = getAdminFirestore();
-      const settingsSnap = await getDoc(doc(adminDb, 'app-settings', 'rewards'));
-      settings = settingsSnap.exists() ? settingsSnap.data() : {};
-    } catch(e) {
-      console.warn("⚠️ [EMAIL_ACTION] Could not load branding from Firestore for broadcast. Using file fallbacks.");
-    }
+    const settings = {}; // No dynamic settings without Admin SDK
 
-    const headerHtmlTemplate = settings.emailHeader || defaultTemplates['header']?.html || '';
-    const footerHtmlTemplate = settings.emailFooter || defaultTemplates['footer']?.html || '';
+    const headerHtmlTemplate = defaultTemplates['header']?.html || '';
+    const footerHtmlTemplate = defaultTemplates['footer']?.html || '';
 
     const headerHtml = headerHtmlTemplate.replace(/{{emailTitle}}/g, subject);
 

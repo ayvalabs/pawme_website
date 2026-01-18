@@ -12,6 +12,7 @@ import {
   signOut as firebaseSignOut,
   User as FirebaseUser,
   updateProfile as updateUserProfile,
+  sendPasswordResetEmail,
 } from 'firebase/auth';
 import {
   doc,
@@ -26,7 +27,7 @@ import {
   deleteDoc,
 } from 'firebase/firestore';
 import { auth, db } from '@/firebase/config';
-import { sendWelcomeEmail, sendReferralSuccessEmail, sendCustomPasswordResetEmail } from '@/app/actions/email';
+import { sendWelcomeEmail, sendReferralSuccessEmail } from '@/app/actions/email';
 import { isDisposableEmail } from '@/lib/disposable-domains';
 
 export interface Reward {
@@ -296,11 +297,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const sendPasswordReset = async (email: string) => {
     try {
-      const result = await sendCustomPasswordResetEmail({ email });
-      return result;
+      await sendPasswordResetEmail(auth, email);
+      console.log(`Password reset email sent to: ${email}`);
+      return { success: true, message: 'Password reset email sent! Check your inbox.' };
     } catch (error: any) {
       console.error('Password reset error:', error);
-      return { success: false, message: 'An unexpected client-side error occurred.' };
+      if (error.code === 'auth/user-not-found') {
+        // Don't reveal if user exists or not for security
+        return { success: true, message: 'If an account exists with this email, a password reset link has been sent.' };
+      }
+      return { success: false, message: 'Failed to send password reset email.' };
     }
   };
 

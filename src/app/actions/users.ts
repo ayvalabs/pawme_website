@@ -2,7 +2,6 @@
 'use server';
 
 import { db } from '@/firebase/config';
-import { getAdminAuth, getAdminFirestore } from '@/lib/firebase-admin';
 import { collection, query, orderBy, limit, getDocs, where, getCountFromServer, doc, updateDoc, getDoc } from 'firebase/firestore';
 import type { UserProfile, Reward } from '@/app/context/AuthContext';
 
@@ -83,14 +82,19 @@ export async function unsubscribeUser(email: string): Promise<{ success: boolean
   }
 
   try {
-    const adminAuth = getAdminAuth();
-    const adminDb = getAdminFirestore();
+    // Find user by email using client SDK
+    const usersRef = collection(db, 'users');
+    const q = query(usersRef, where('email', '==', email), limit(1));
+    const querySnapshot = await getDocs(q);
     
-    // Find user by email
-    const userRecord = await adminAuth.getUserByEmail(email);
-    const userId = userRecord.uid;
-
-    const userDocRef = doc(adminDb, 'users', userId);
+    if (querySnapshot.empty) {
+      console.warn(`Attempted to unsubscribe non-existent user: ${email}`);
+      // Return success to avoid leaking information about user existence
+      return { success: true, message: 'Your email address was not found in our system.' };
+    }
+    
+    const userDoc = querySnapshot.docs[0];
+    const userDocRef = doc(db, 'users', userDoc.id);
     
     // Update the marketingOptIn flag
     await updateDoc(userDocRef, {
@@ -100,11 +104,6 @@ export async function unsubscribeUser(email: string): Promise<{ success: boolean
     console.log(`Successfully unsubscribed user: ${email}`);
     return { success: true };
   } catch (error: any) {
-    if (error.code === 'auth/user-not-found') {
-      console.warn(`Attempted to unsubscribe non-existent user: ${email}`);
-      // Return success to avoid leaking information about user existence
-      return { success: true, message: 'Your email address was not found in our system.' };
-    }
     console.error(`Error unsubscribing user ${email}:`, error);
     return { success: false, message: 'Could not process unsubscribe request.' };
   }
