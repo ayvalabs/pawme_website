@@ -210,7 +210,7 @@ async function renderAndSend(templateId: string, to: string, variables: Record<s
     console.warn(`⚠️ [EMAIL_ACTION] Header template not found, using empty header`);
   }
   if (!footerTemplate) {
-    console.warn(`⚠️ [EMAIL_ACTION] Footer template not found, using empty footer`);
+    console.warn(`⚠️ [EMAIL_ACTION] Footer template not found, using empty header`);
   }
   
   const headerHtmlTemplate = headerTemplate?.html || '';
@@ -301,7 +301,7 @@ export async function sendAdminBroadcast(users: {email: string, name: string}[],
     console.warn(`⚠️ [EMAIL_ACTION] Header template not found, using empty header`);
   }
   if (!footerTemplate) {
-    console.warn(`⚠️ [EMAIL_ACTION] Footer template not found, using empty footer`);
+    console.warn(`⚠️ [EMAIL_ACTION] Footer template not found, using empty header`);
   }
   
   const headerHtmlTemplate = headerTemplate?.html || '';
