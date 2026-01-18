@@ -1,17 +1,16 @@
-
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { Button } from '@/app/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Header } from '@/app/components/header';
 import { Footer } from '@/app/components/footer';
-import { Mail, CheckCircle2, AlertCircle } from 'lucide-react';
+import { CheckCircle2, AlertCircle } from 'lucide-react';
 import { unsubscribeUser } from '@/app/actions/users';
 import { toast } from 'sonner';
 
-export default function UnsubscribePage() {
+function UnsubscribeContent() {
   const searchParams = useSearchParams();
   const email = searchParams.get('email');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
@@ -96,5 +95,35 @@ export default function UnsubscribePage() {
       </main>
       <Footer />
     </div>
+  );
+}
+
+function LoadingState() {
+    return (
+        <div className="flex flex-col min-h-screen bg-secondary/30">
+            <Header />
+            <main className="flex-grow flex items-center justify-center px-4 py-12">
+                <Card className="w-full max-w-lg shadow-2xl">
+                    <CardHeader className="text-center">
+                        <CardTitle className="text-2xl">Unsubscribe</CardTitle>
+                        <CardDescription>
+                            Loading your preferences...
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="text-center space-y-6 h-36 flex items-center justify-center">
+                       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+                    </CardContent>
+                </Card>
+            </main>
+            <Footer />
+        </div>
+    );
+}
+
+export default function UnsubscribePage() {
+  return (
+    <Suspense fallback={<LoadingState />}>
+      <UnsubscribeContent />
+    </Suspense>
   );
 }
