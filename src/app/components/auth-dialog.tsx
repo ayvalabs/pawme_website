@@ -206,7 +206,7 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
   return (
     <>
       <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent className="max-w-4xl p-0">
+        <DialogContent className="max-w-6xl p-0">
           <div className="flex">
             <div className="w-full p-8 md:w-1/2">
               <DialogHeader className="mb-6 text-center">

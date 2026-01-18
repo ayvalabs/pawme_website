@@ -593,7 +593,7 @@ ${profile.name}`
       </Dialog>
       
       <Dialog open={isRedeemDialogOpen} onOpenChange={setRedeemDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Redeem: {selectedReward?.title}</DialogTitle>
             <DialogDescription>Please provide your shipping details to receive your reward. We'll be in touch to confirm.</DialogDescription>
