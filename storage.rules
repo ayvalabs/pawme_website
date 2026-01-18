@@ -4,7 +4,9 @@ service firebase.storage {
   match /b/{bucket}/o {
     // Helper function to check if user is admin
     function isAdmin() {
-      return request.auth != null && request.auth.token.email == 'pawme@ayvalabs.com';
+      return request.auth != null && 
+             (request.auth.token.admin == true || 
+              request.auth.token.email == 'pawme@ayvalabs.com');
     }
 
     // Public read access for reward images
