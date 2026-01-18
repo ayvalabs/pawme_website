@@ -8,85 +8,116 @@ import { defaultTemplates } from '@/lib/email-templates';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const fromEmail = 'PawMe <pawme@ayvalabs.com>';
-const BUILD_VERSION = 'v1.0.2-debug-paths';
+const BUILD_VERSION = 'v1.0.3-path-finder';
 
 function getAppUrl(): string {
-  // Use the explicitly set public app URL if available
   if (process.env.NEXT_PUBLIC_APP_URL) {
     return process.env.NEXT_PUBLIC_APP_URL;
   }
-  // Fallback to Vercel's system environment variable
   if (process.env.VERCEL_URL) {
     return `https://${process.env.VERCEL_URL}`;
   }
-  // Default to localhost for local development
   return 'http://localhost:9008';
 }
 
-// Convert camelCase template ID to kebab-case filename
 function templateIdToFilename(templateId: string): string {
-  // Convert camelCase to kebab-case: verificationCode -> verification-code
   return templateId.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
 }
 
-async function getTemplateFromFile(templateId: string): Promise<{ subject: string, html: string } | null> {
+async function getTemplateFromFile(templateId: string): Promise<{ subject: string; html: string } | null> {
     console.log(`🔵 [EMAIL_ACTION - ${BUILD_VERSION}] ========== LOADING TEMPLATE: '${templateId}' ==========`);
     
     const filename = templateIdToFilename(templateId);
     console.log(`✅ [EMAIL_ACTION - ${BUILD_VERSION}] Template ID '${templateId}' → filename '${filename}.html'`);
 
     const cwd = process.cwd();
-    // In Vercel, the 'public' folder is at the root of the deployment directory.
-    const filePath = path.join(cwd, 'public', 'email-templates', `${filename}.html`);
+    console.log(`🔵 [EMAIL_ACTION - ${BUILD_VERSION}] Current working directory: ${cwd}`);
+    console.log(`🔵 [EMAIL_ACTION - ${BUILD_VERSION}] __dirname:`, __dirname);
+    console.log(`🔵 [EMAIL_ACTION - ${BUILD_VERSION}] Environment: ${process.env.NODE_ENV}`);
+    console.log(`🔵 [EMAIL_ACTION - ${BUILD_VERSION}] Vercel: ${process.env.VERCEL ? 'YES' : 'NO'}`);
 
-    console.log(`🔵 [EMAIL_ACTION - ${BUILD_VERSION}] Attempting to read file at path: ${filePath}`);
+    const possiblePaths = [
+      path.join(cwd, 'public', 'email-templates', `${filename}.html`),
+      path.join(cwd, 'src', 'lib', 'email-assets', `${filename}.html`),
+      path.join(cwd, '.next', 'server', 'public', 'email-templates', `${filename}.html`),
+      path.join(cwd, 'email-templates', `${filename}.html`),
+    ];
 
-    try {
-        const html = await fs.readFile(filePath, 'utf-8');
-        console.log(`✅ [EMAIL_ACTION - ${BUILD_VERSION}] Successfully read file: ${html.length} characters`);
-        
-        const metadata = defaultTemplates[templateId];
-        if (!metadata) {
-            console.error(`❌ [EMAIL_ACTION - ${BUILD_VERSION}] No metadata found for template '${templateId}' after reading file. This should not happen.`);
-            return null;
-        }
+    console.log(`🔵 [EMAIL_ACTION - ${BUILD_VERSION}] Will try ${possiblePaths.length} possible paths...`);
 
-        console.log(`✅ [EMAIL_ACTION - ${BUILD_VERSION}] ========== TEMPLATE LOADED SUCCESSFULLY ==========`);
-        return { subject: metadata.subject, html };
+    for (let i = 0; i < possiblePaths.length; i++) {
+        const filePath = possiblePaths[i];
+        console.log(`🔵 [EMAIL_ACTION - ${BUILD_VERSION}] Trying path ${i + 1}/${possiblePaths.length}: ${filePath}`);
+        try {
+            const html = await fs.readFile(filePath, 'utf-8');
+            console.log(`✅ [EMAIL_ACTION - ${BUILD_VERSION}] Found file at path ${i + 1}!`);
+            console.log(`✅ [EMAIL_ACTION - ${BUILD_VERSION}] Using file path: ${filePath}`);
+            console.log(`✅ [EMAIL_ACTION - ${BUILD_VERSION}] Successfully read file: ${html.length} characters`);
+            
+            const metadata = defaultTemplates[templateId];
+            if (!metadata) {
+                console.error(`❌ [EMAIL_ACTION - ${BUILD_VERSION}] No metadata found for template '${templateId}' after reading file.`);
+                return null;
+            }
 
-    } catch (fileError: any) {
-        console.error(`❌ [EMAIL_ACTION - ${BUILD_VERSION}] ========== TEMPLATE FILE READ FAILED ==========`);
-        console.error(`❌ [EMAIL_ACTION - ${BUILD_VERSION}] Error reading file at path: ${filePath}`);
-        console.error(`❌ [EMAIL_ACTION - ${BUILD_VERSION}] Error code:`, fileError.code);
-        console.error(`❌ [EMAIL_ACTION - ${BUILD_VERSION}] Error message:`, fileError.message);
-        
-        // Add more debugging for Vercel environment
-        if (process.env.VERCEL) {
-            console.log(`🔵 [EMAIL_ACTION - ${BUILD_VERSION}] Vercel environment detected. Checking directory contents...`);
-            try {
-                const rootDir = await fs.readdir(cwd);
-                console.log(`📁 [${BUILD_VERSION}] Root dir contents:`, rootDir.slice(0, 20));
-                
-                const publicDir = await fs.readdir(path.join(cwd, 'public'));
-                console.log(`📁 [${BUILD_VERSION}] Public dir contents:`, publicDir);
-
-                if (publicDir.includes('email-templates')) {
-                    const templatesDir = await fs.readdir(path.join(cwd, 'public', 'email-templates'));
-                    console.log(`📁 [${BUILD_VERSION}] /public/email-templates contents:`, templatesDir);
-                } else {
-                    console.log(`⚠️ [${BUILD_VERSION}] The 'public/email-templates' directory does NOT exist.`);
-                }
-            } catch (dirError: any) {
-                console.error(`❌ [EMAIL_ACTION - ${BUILD_VERSION}] Error reading directories for debugging:`, dirError.message);
+            console.log(`✅ [EMAIL_ACTION - ${BUILD_VERSION}] ========== TEMPLATE LOADED SUCCESSFULLY ==========`);
+            return { subject: metadata.subject, html };
+        } catch (fileError: any) {
+            if (fileError.code === 'ENOENT') {
+                console.log(`❌ [EMAIL_ACTION - ${BUILD_VERSION}] Not found at path ${i + 1}`);
+            } else {
+                console.error(`❌ [EMAIL_ACTION - ${BUILD_VERSION}] Error at path ${i + 1}:`, fileError.message);
             }
         }
-        
-        return null;
     }
+    
+    // If loop completes without finding the file
+    console.error(`❌ [EMAIL_ACTION - ${BUILD_VERSION}] File NOT found in any of the ${possiblePaths.length} paths!`);
+    console.error(`❌ [EMAIL_ACTION - ${BUILD_VERSION}] Searched paths:\n   1. ${possiblePaths[0]}\n   2. ${possiblePaths[1]}\n   3. ${possiblePaths[2]}\n   4. ${possiblePaths[3]}`);
+
+    if (process.env.VERCEL) {
+        console.log(`🔵 [EMAIL_ACTION - ${BUILD_VERSION}] Attempting to explore directory structure...`);
+        try {
+            const rootDir = await fs.readdir(cwd);
+            console.log(`📁 [EMAIL_ACTION - ${BUILD_VERSION}] Root directory (${cwd}):\n   Files/folders:`, rootDir.slice(0, 50).join(', '));
+            
+            try {
+              const publicDir = await fs.readdir(path.join(cwd, 'public'));
+              console.log(`📁 [EMAIL_ACTION - ${BUILD_VERSION}] Public directory (${path.join(cwd, 'public')}):\n   Files/folders:`, publicDir.join(', '));
+              if (!publicDir.includes('email-templates')) {
+                  console.log(`   ⚠️  'email-templates' folder NOT found in public/`);
+              } else {
+                 const templatesDir = await fs.readdir(path.join(cwd, 'public', 'email-templates'));
+                 console.log(`📁 [EMAIL_ACTION - ${BUILD_VERSION}] Email templates directory (${path.join(cwd, 'public', 'email-templates')}):\n   Template files:`, templatesDir.join(', '));
+              }
+            } catch (e: any) {
+              console.log(`   ❌ Cannot read public/: ${e.message}`);
+            }
+            
+            try {
+              const srcDir = await fs.readdir(path.join(cwd, 'src'));
+              console.log(`📁 [EMAIL_ACTION - ${BUILD_VERSION}] Src directory (${path.join(cwd, 'src')}):\n   Files/folders:`, srcDir.join(', '));
+            } catch (e: any) {
+              console.log(`   ❌ Cannot read src/: ${e.message}`);
+            }
+
+            try {
+              const nextDir = await fs.readdir(path.join(cwd, '.next'));
+              console.log(`📁 [EMAIL_ACTION - ${BUILD_VERSION}] .next directory (${path.join(cwd, '.next')}):\n   Files/folders:`, nextDir.join(', '));
+            } catch(e: any) {
+              console.log(`   ❌ Cannot read .next/: ${e.message}`);
+            }
+
+
+        } catch (dirError: any) {
+            console.error(`❌ [EMAIL_ACTION - ${BUILD_VERSION}] Error reading directories for debugging:`, dirError.message);
+        }
+    }
+
+    return null;
 }
 
 async function getTemplate(templateId: string) {
-  console.log(`🔵 [EMAIL_ACTION - ${BUILD_VERSION}] Fetching template '${templateId}' from file system.`);
   return await getTemplateFromFile(templateId);
 }
 
@@ -145,6 +176,7 @@ async function renderAndSend(templateId: string, to: string, variables: Record<s
   
   try {
     console.log(`🔵 [EMAIL_ACTION - ${BUILD_VERSION}] Step 5: Sending email via Resend API...`);
+    console.log(`🔵 [EMAIL_ACTION] Template: ${templateId}, To: ${to}, From: ${fromEmail}, Subject: ${subject}`);
     const { data, error } = await resend.emails.send({
       from: fromEmail,
       to,
@@ -157,7 +189,7 @@ async function renderAndSend(templateId: string, to: string, variables: Record<s
       throw error;
     }
     
-    console.log(`✅ [EMAIL_ACTION - ${BUILD_VERSION}] ✅ SUCCESS! Email '${templateId}' sent via Resend. Email ID:`, data?.id);
+    console.log(`✅ [EMAIL_ACTION - ${BUILD_VERSION}] ✅ SUCCESS! Email sent via Resend. Email ID:`, data?.id);
     return data;
   } catch (error: any) {
     console.error(`❌ [EMAIL_ACTION - ${BUILD_VERSION}] A catch-block error occurred while sending email '${templateId}':`, error);
@@ -194,7 +226,7 @@ export async function sendCustomPasswordResetEmail({ email }: { email: string })
 
 export async function sendAdminBroadcast(users: {email: string, name: string}[], subject: string, bodyTemplate: string) {
     const appUrl = getAppUrl();
-    const settings = {}; // No dynamic settings without Admin SDK
+    const settings = {};
 
     console.log(`🔵 [EMAIL_ACTION - ${BUILD_VERSION}] Step 3: Loading header and footer templates...`);
   const headerTemplate = await getTemplateFromFile('header');

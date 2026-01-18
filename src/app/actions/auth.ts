@@ -6,7 +6,7 @@ import { collection, doc, setDoc, Timestamp } from 'firebase/firestore';
 import { isDisposableEmail } from '@/lib/disposable-domains';
 import { sendVerificationCodeEmail } from './email';
 
-const BUILD_VERSION = 'v1.0.2-debug-paths';
+const BUILD_VERSION = 'v1.0.3-path-finder';
 
 export async function sendSignUpVerificationCode({ email, name }: { email: string; name: string }) {
   console.log(`🔵 [ACTION - ${BUILD_VERSION}] Initiating verification code send for:`, email);
