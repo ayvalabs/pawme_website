@@ -32,7 +32,7 @@ function AuthMarketingPanel() {
           alt="PawMe robot in a living room"
           className="size-full object-cover opacity-20"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent" />
       </div>
       <div className="relative z-10">
         <div className="mb-4 text-2xl font-bold">
