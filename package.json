@@ -51,7 +51,6 @@
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
     "react-hook-form": "^7.54.2",
-    "react-quill": "^2.0.0",
     "react-social-icons": "^6.16.0",
     "recharts": "^2.15.1",
     "resend": "^3.5.0",
@@ -78,10 +77,6 @@
       "react-dom": "$react-dom"
     },
     "@stripe/react-stripe-js": {
-      "react": "$react",
-      "react-dom": "$react-dom"
-    },
-    "react-quill": {
       "react": "$react",
       "react-dom": "$react-dom"
     }
