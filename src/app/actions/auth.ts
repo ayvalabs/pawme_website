@@ -6,8 +6,10 @@ import { collection, doc, setDoc, Timestamp } from 'firebase/firestore';
 import { isDisposableEmail } from '@/lib/disposable-domains';
 import { sendVerificationCodeEmail } from './email';
 
+const BUILD_VERSION = 'v1.0.2-debug-paths';
+
 export async function sendSignUpVerificationCode({ email, name }: { email: string; name: string }) {
-  console.log('🔵 [ACTION] Initiating verification code send for:', email);
+  console.log(`🔵 [ACTION - ${BUILD_VERSION}] Initiating verification code send for:`, email);
 
   if (!name || !email) {
     console.error('❌ [ACTION] Name or email is missing.');
@@ -50,26 +52,26 @@ export async function sendSignUpVerificationCode({ email, name }: { email: strin
     await sendVerificationCodeEmail({ to: email, name, code });
     console.log('✅ [ACTION] (2/2) Verification email sent successfully.');
   } catch (error: any) {
-    console.error('❌ [ACTION] EMAIL_ERROR: The operation to send the verification email failed.');
-    console.error('❌ [ACTION] Error type:', typeof error);
-    console.error('❌ [ACTION] Error name:', error?.name);
-    console.error('❌ [ACTION] Error message:', error?.message);
-    console.error('❌ [ACTION] Error code:', error?.code);
-    console.error('❌ [ACTION] Error stack:', error?.stack);
-    console.error('❌ [ACTION] Full error object:', JSON.stringify(error, null, 2));
+    console.error(`❌ [ACTION - ${BUILD_VERSION}] EMAIL_ERROR: The operation to send the verification email failed.`);
+    console.error(`❌ [ACTION - ${BUILD_VERSION}] Error type:`, typeof error);
+    console.error(`❌ [ACTION - ${BUILD_VERSION}] Error name:`, error?.name);
+    console.error(`❌ [ACTION - ${BUILD_VERSION}] Error message:`, error?.message);
+    console.error(`❌ [ACTION - ${BUILD_VERSION}] Error code:`, error?.code);
+    console.error(`❌ [ACTION - ${BUILD_VERSION}] Error stack:`, error?.stack);
+    console.error(`❌ [ACTION - ${BUILD_VERSION}] Full error object:`, JSON.stringify(error, null, 2));
 
     if (error.message && (error.message.includes('API key') || error.message.includes('RESEND_API_KEY'))) {
-        console.error('❌ [ACTION] Detected missing API key error');
-        return { success: false, message: 'Email service is not configured on the server. Please contact support.' };
+        console.error(`❌ [ACTION - ${BUILD_VERSION}] Detected missing API key error`);
+        return { success: false, message: `Email service is not configured on the server. [v: ${BUILD_VERSION}]` };
     }
 
     if (error.message && (error.message.includes('domain is not verified') || error.message.includes('is not a verified sender'))) {
-        console.error('❌ [ACTION] Detected domain verification error');
-        return { success: false, message: 'Email sending failed: The sending domain is not verified. Please configure it in your email provider (Resend).'};
+        console.error(`❌ [ACTION - ${BUILD_VERSION}] Detected domain verification error`);
+        return { success: false, message: `Email sending failed: The sending domain is not verified. Please configure it in your email provider (Resend). [v: ${BUILD_VERSION}]`};
     }
     
-    console.error('❌ [ACTION] Returning generic error message to client');
-    return { success: false, message: `Could not send verification code. Error: ${error?.message || 'Unknown error'}` };
+    console.error(`❌ [ACTION - ${BUILD_VERSION}] Returning generic error message to client`);
+    return { success: false, message: `Could not send verification code. [v: ${BUILD_VERSION}] Error: ${error?.message || 'Unknown error'}` };
   }
     
   return { success: true, message: 'Verification code sent.' };
