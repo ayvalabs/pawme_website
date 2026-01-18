@@ -41,7 +41,7 @@ async function uploadFileWithRetry(
       console.error(`Upload attempt ${attempt + 1} failed:`, error);
 
       if (error.code === 'storage/unauthorized') {
-        throw new Error('Unauthorized: Please ensure you are logged in as an admin and have correct storage rules.');
+        throw new Error('Unauthorized. Please ensure you are logged in as an admin with the correct permissions. You may need to follow the ADMIN_SETUP.md guide, then sign out and back in.');
       }
 
       if (error.code === 'storage/canceled') {
@@ -89,10 +89,10 @@ export async function uploadRewardImages(
           try {
             const downloadURL = await uploadFileWithRetry(file, path);
             tier.image = downloadURL; // Replace blob URL with permanent URL
-          } catch (error) {
+          } catch (error: any) {
              console.error(`Failed to upload image for tier "${tier.title}":`, error);
-             // Re-throw the error to be caught by the calling function
-             throw new Error(`Image upload failed for "${tier.title}".`);
+             // Re-throw the specific error to be caught by the calling function.
+             throw new Error(`Failed to upload image for "${tier.title}": ${error.message}`);
           }
         } else {
           // This is a safeguard. A blob URL exists, but the file is missing from our state.

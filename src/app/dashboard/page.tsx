@@ -311,27 +311,30 @@ export default function AdminPage() {
     setLoadingSettings(true);
     try {
       const appSettings = await getAppSettings();
+      setSettings(appSettings);
 
+      // Prioritize Firestore data, then fall back to hardcoded defaults
       if (appSettings && appSettings.rewardTiers && appSettings.rewardTiers.length > 0) {
         setLocalRewardTiers(appSettings.rewardTiers);
       } else {
-        setLocalRewardTiers(defaultRewardTiers);
+        setLocalRewardTiers(defaultRewardTiers); // `defaultRewardTiers` is the hardcoded list
       }
 
       if (appSettings) {
-        setSettings(appSettings);
         setLocalVipSpots(appSettings.vipConfig?.totalSpots || 100);
         setLocalReferralTiers(appSettings.referralTiers || []);
         setLocalEmailHeader(appSettings.emailHeader || DEFAULT_HEADER);
         setLocalEmailFooter(appSettings.emailFooter || DEFAULT_FOOTER);
       } else {
+        // Also set defaults if no settings exist at all
+        setLocalRewardTiers(defaultRewardTiers);
         setLocalEmailHeader(DEFAULT_HEADER);
         setLocalEmailFooter(DEFAULT_FOOTER);
       }
     } catch (error) {
       console.error('Error fetching settings:', error);
       toast.error('Failed to load settings.');
-      setLocalRewardTiers(defaultRewardTiers);
+      setLocalRewardTiers(defaultRewardTiers); // Fallback on error
       setLocalEmailHeader(DEFAULT_HEADER);
       setLocalEmailFooter(DEFAULT_FOOTER);
     }
