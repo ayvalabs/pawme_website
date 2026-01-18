@@ -18,14 +18,14 @@ This guide provides a comprehensive set of test cases to validate the full funct
 | Step | Action | Expected Outcome |
 | :--- | :--- | :--- |
 | 1 | Open the website in an incognito window. | The homepage loads correctly with the hero section. |
-| 2 | Click the **"Join Waitlist"** button. | The `AuthDialog` appears, defaulting to the "Sign Up" tab. |
+| 2 | Click the **"Join Waitlist"** button. | The `AuthDialog` appears, showing a two-column layout with the "Sign Up" tab active. |
 | 3 | Enter a **Name**, **new Email (User A)**, and a **Password**. | Input fields accept text. |
 | 4 | Check the **"I agree to the Privacy Policy"** box. | The "Create Account" button becomes enabled. |
 | 5 | Click **"Create Account"**. | A success toast appears: "Verification code sent!". The dialog moves to the verification step. |
-| 6 | Check User A's email inbox. | An email with a 4-digit verification code is received. |
+| 6 | Check User A's email inbox. | An email with a 4-digit verification code is received (using the new editable template). |
 | 7 | Enter the correct 4-digit code in the dialog. | Input is accepted. |
 | 8 | Click **"Verify & Create Account"**. | A success toast appears: "Account created successfully!". The dialog closes. You are redirected to `/leaderboard`. |
-| 9 | Check User A's email inbox again. | A "Welcome to PawMe!" email is received, containing the new user's unique referral link and code. |
+| 9 | Check User A's email inbox again. | A "Welcome to PawMe!" email is received, containing the user's referral link and a prominent prompt to join the VIP list. |
 | 10 | On the leaderboard page, check the header. | The user's name is displayed, and they have **100 points**. |
 
 ### Test Case 1.2: Signup with an Existing Referral Code
@@ -36,8 +36,8 @@ This guide provides a comprehensive set of test cases to validate the full funct
 | :--- | :--- | :--- |
 | 1 | **As User B (an existing user)**, go to `/leaderboard`. | User B's dashboard loads. |
 | 2 | Copy User B's referral link. | Link is copied to the clipboard. |
-| 3 | Open the copied link in a **new incognito window**. | The homepage loads. The referral code from User B is visible in the URL (`?ref=...`). |
-| 4 | Click **"Join Waitlist"**. | The `AuthDialog` appears. A message confirms "You were referred with code: [CODE]". |
+| 3 | Open the copied link in a **new incognito window**. | The homepage loads. The referral code from User B is visible in the URL (`?ref=...`). The `AuthDialog` opens automatically. |
+| 4 | In the `AuthDialog`, a message confirms "You were referred with code: [CODE]". | The referral code is correctly displayed. |
 | 5 | Complete the signup process for a **new User C**. | Signup is successful. User C is redirected to `/leaderboard` and has **100 points**. |
 | 6 | In the original browser, **refresh User B's `/leaderboard` page**. | User B's points should increase by **100** (or **150** if they are VIP). Their referral count should increase by 1. |
 | 7 | Check User B's email inbox. | User B receives a "You've earned points!" email notification. |
@@ -82,8 +82,8 @@ This guide provides a comprehensive set of test cases to validate the full funct
 | 1 | Log in as an existing user and navigate to `/leaderboard`. | The page displays the user's points, referrals, and current reward tier. |
 | 2 | View the **Leaderboard** table. | It shows the top 10 users, ranked by points. |
 | 3 | In the "Share Your Referral Link" section, click **"Copy Link"**. | The link is copied, and a confirmation toast appears. |
-| 4 | Try the social share buttons (Twitter, Facebook, WhatsApp). | Each button opens a new tab with the correct sharing URL, pre-filled with the referral link and a message. |
-| 5 | Scroll down to "Your Referral Tiers". | Tiers that the user has unlocked are highlighted and marked with a check. |
+| 4 | Try the Email and WhatsApp share buttons. | Each button opens the appropriate client with a pre-filled message. |
+| 5 | Scroll down to "Redeem Your Points". | The new pet-goodie-based rewards are displayed correctly. |
 
 ### Test Case 3.2: Redeeming Point Rewards
 
@@ -91,7 +91,7 @@ This guide provides a comprehensive set of test cases to validate the full funct
 
 | Step | Action | Expected Outcome |
 | :--- | :--- | :--- |
-| 1 | Log in as a user with enough points to redeem a reward. | The "Redeem" button for an affordable reward is enabled. |
+| 1 | Log in as a user with enough points (e.g., >500) to redeem a reward. | The "Redeem" button for an affordable reward is enabled. |
 | 2 | Click the **"Redeem"** button for an unlocked reward. | A dialog appears asking for shipping information. |
 | 3 | Fill out and submit the shipping address form. | The form validates correctly. A success toast appears. |
 | 4 | Check the reward card on the leaderboard page. | The button now says **"Redeemed"** and is disabled. |
@@ -103,15 +103,15 @@ This guide provides a comprehensive set of test cases to validate the full funct
 
 ### Test Case 4.1: Joining the VIP List
 
-**Objective:** Verify the VIP join flow.
+**Objective:** Verify the VIP join flow and UI changes.
 
 | Step | Action | Expected Outcome |
 | :--- | :--- | :--- |
-| 1 | Log in as a non-VIP user. The VIP banner is visible. | The banner shows the correct number of spots left. |
-| 2 | Click the VIP banner. | A dialog opens with payment details for the $1.00 deposit. |
+| 1 | Log in as a non-VIP user. The VIP banner is visible on `/leaderboard`. | The banner shows the correct number of spots left. |
+| 2 | Click the VIP banner. | A dialog opens with enhanced marketing copy about the benefits of the $1.00 deposit. |
 | 3 | Complete the Stripe checkout form (use a test card). | Payment is processed. |
-| 4 | After successful payment, you are redirected back. | A success toast "Welcome to the VIP list!" appears. |
-| 5 | Refresh the page. | The VIP banner is gone. The user now earns **1.5x points** (e.g., 150 points for a new referral). |
+| 4 | After successful payment, you are redirected back. | A confetti animation appears on the screen. A success toast "Welcome to the VIP list!" appears. |
+| 5 | Refresh the page. | The VIP banner is gone. The leaderboard page now has a "royal" gold-themed UI. The user earns **1.5x points** (e.g., 150 points for a new referral). |
 | 6 | **As the Admin User**, navigate to the "Users" tab in the dashboard. | The user now has a '👑' icon next to their name, indicating VIP status. |
 
 ---
@@ -120,42 +120,29 @@ This guide provides a comprehensive set of test cases to validate the full funct
 
 **Prerequisite:** Log in as `pawme@ayvalabs.com`.
 
-### Test Case 5.1: Managing Rewards Shipments
+### Test Case 5.1: Managing Email Templates
 
-**Objective:** Verify the admin can process and ship rewards.
-
-| Step | Action | Expected Outcome |
-| :--- | :--- | :--- |
-| 1 | Navigate to the **"Rewards"** tab. | The "Pending Shipments" table shows the reward redeemed in Test Case 3.2. |
-| 2 | Click the **"Ship"** button for the pending reward. | A dialog appears asking for a tracking code. |
-| 3 | Enter a tracking code (e.g., `1Z999AA10123456784`) and click "Mark Shipped". | A success toast appears. The reward disappears from the "Pending" table and appears in the "Shipped Rewards" table with the correct tracking code. |
-| 4 | Check the user's email inbox (the user who redeemed the reward). | An email notification with the subject "Your PawMe Reward has Shipped!" and the tracking code is received. |
-
-### Test Case 5.2: Managing App Settings
-
-**Objective:** Verify the admin can update application-wide settings.
+**Objective:** Verify the admin can create, edit, and delete email templates.
 
 | Step | Action | Expected Outcome |
 | :--- | :--- | :--- |
-| 1 | Navigate to the **"Settings"** tab. | The settings for VIP spots, referral tiers, and reward tiers are displayed. |
-| 2 | In "Point Rewards", click **"Add Reward"**. | A dialog appears to create a new reward. |
-| 3 | Fill in the Title, Points, Description, and upload an Image. Click **"Save"**. | The dialog closes. The new reward appears in the table. |
-| 4 | Click the **"Save All Point Rewards"** button. | A success toast appears. The new reward is saved to the database. |
-| 5 | On the public `/leaderboard` page (as any user), verify the new reward is visible. | The new reward tier is displayed correctly. |
-| 6 | In the dashboard, edit an existing reward's point value and click "Save". Then click "Save All Point Rewards". | The change is saved and reflected on the public `/leaderboard` page. |
+| 1 | Navigate to the **"Templates"** tab. | A list of email templates is displayed. |
+| 2 | Click **"New Template"**. | A dialog opens to create a new template. |
+| 3 | Create a new template for "Password Reset" and save it. | The new template appears in the list. |
+| 4 | Click the **Edit** icon on the "Verification Code" template. | The dialog opens with the template's content. |
+| 5 | Modify the subject and click "Update Template". | The template is updated successfully. The list reflects the new subject. |
+| 6 | Click the **Preview** icon on any template. | A dialog shows a rendered version of the email. |
 
-### Test Case 5.3: Email Broadcast
+### Test Case 5.2: Managing App Settings & Rewards
 
-**Objective:** Verify the admin can send a broadcast email to selected users.
+**Objective:** Verify the admin can update application-wide settings and rewards.
 
 | Step | Action | Expected Outcome |
 | :--- | :--- | :--- |
-| 1 | Navigate to the **"Broadcast"** tab. | The user list and email composition form are displayed. |
-| 2 | Select several users who have opted into marketing. | Checkboxes are selected. The "Send to X users" button updates its count. |
-| 3 | Try to select a user who has opted out (has a lock icon). | The checkbox is disabled, and a tooltip explains they have unsubscribed. |
-| 4 | Compose a **Subject** and **Body** for the email. Use `{{userName}}` in the body. | Text is entered into the fields. |
-| 5 | Click **"Preview"**. | A dialog shows a rendered version of the email with `{{userName}}` replaced by sample data. |
-| 6 | Click **"Send to X users"**. | A success toast appears. |
-| 7 | Check the inboxes of the selected users. | They receive the broadcast email with their names correctly inserted. |
+| 1 | Navigate to the **"Settings"** tab. | The settings for VIP spots and referral tiers are displayed. The new pet goodies rewards are shown in a table. |
+| 2 | Click **"Add Reward"**. | A dialog appears to create a new reward. |
+| 3 | Fill in the details for a new reward, upload an image, and click "Save". | The dialog closes. The new reward appears in the table. |
+| 4 | Click the **"Save All Point Rewards"** button. | A success toast appears. The new rewards are saved to the database. |
+| 5 | On the public `/leaderboard` page (as any user), verify the new rewards are visible. | The new reward tiers are displayed correctly. |
 
 ---

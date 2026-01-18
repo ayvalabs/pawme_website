@@ -18,19 +18,30 @@ export function Header({ variant: initialVariant = 'solid' }: HeaderProps) {
   const { user, profile, signOut, updateTheme } = useAuth();
   
   const [headerVariant, setHeaderVariant] = useState(initialVariant);
+  const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.location.pathname.includes('/leaderboard')) {
+    if (typeof window === 'undefined') return;
+
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 10);
+    };
+
+    if (window.location.pathname.includes('/leaderboard') || window.location.pathname.includes('/dashboard')) {
       setHeaderVariant('solid');
+      setIsScrolled(true); // Always solid on these pages
       return;
     }
-    
+
     setHeaderVariant(user ? 'solid' : 'transparent');
+    
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, [user]);
 
-  const headerClasses = headerVariant === 'transparent'
+  const headerClasses = headerVariant === 'transparent' && !isScrolled
     ? 'absolute top-0 left-0 right-0 z-40'
-    : 'border-b bg-background';
+    : 'sticky top-0 left-0 right-0 z-40 bg-background/80 backdrop-blur-sm border-b';
 
   useEffect(() => {
     if (profile?.theme) {
@@ -61,7 +72,7 @@ export function Header({ variant: initialVariant = 'solid' }: HeaderProps) {
   return (
     <>
       <header className={headerClasses}>
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
           <Link href="/" className="flex items-center gap-3">
             <ThemeAwareLogo
               type="circle"
@@ -116,8 +127,8 @@ export function Header({ variant: initialVariant = 'solid' }: HeaderProps) {
                       <span>{profile?.points || 0} Points</span>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
-                      <Palette className="inline mr-2 h-3 w-3" />
+                    <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+                      <Palette className="inline h-3 w-3 mr-2" />
                       Theme Color
                     </DropdownMenuLabel>
                     {themes.map((theme) => (

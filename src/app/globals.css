@@ -99,6 +99,9 @@
   h1, h2, h3, h4, h5, h6 {
     @apply font-headline;
   }
+  .vip-glow {
+    @apply bg-gradient-to-tr from-yellow-300/10 via-primary/10 to-yellow-300/10 border-primary/20 shadow-lg shadow-primary/10;
+  }
 }
 
 html {

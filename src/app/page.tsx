@@ -44,10 +44,10 @@ export default function HomePage() {
   
   if (loading) {
     return (
-      <div className="flex flex-col min-h-screen bg-background p-4 space-y-4">
-        <Skeleton className="h-16 w-full" />
-        <Skeleton className="h-[80vh] w-full" />
-        <Skeleton className="h-64 w-full" />
+      <div className="flex flex-col min-h-screen p-4 space-y-4 bg-background">
+        <Skeleton className="w-full h-16" />
+        <Skeleton className="w-full h-[80vh]" />
+        <Skeleton className="w-full h-64" />
       </div>
     );
   }
