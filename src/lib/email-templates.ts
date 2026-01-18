@@ -8,6 +8,61 @@ export interface EmailTemplate {
 }
 
 export const defaultTemplates: Record<string, EmailTemplate> = {
+  header: {
+    id: 'header',
+    name: 'Default Email Header',
+    subject: '', // Not used for header
+    html: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{emailTitle}}</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
+  <table role="presentation" style="width: 100%; border-collapse: collapse;">
+    <tr>
+      <td align="center" style="padding: 40px 0;">
+        <table role="presentation" style="width: 600px; max-width: 100%; background-color: #ffffff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
+          <!-- Header -->
+          <tr>
+            <td style="padding: 40px 40px 30px; text-align: center; background: linear-gradient(135deg, #7678EE 0%, #9673D6 100%); border-radius: 8px 8px 0 0;">
+              <h1 style="margin: 0; color: #ffffff; font-size: 32px; font-weight: 600;">{{emailTitle}}</h1>
+            </td>
+          </tr>`,
+    variables: ['emailTitle'],
+  },
+  footer: {
+    id: 'footer',
+    name: 'Default Email Footer',
+    subject: '', // Not used for footer
+    html: `          <!-- Footer -->
+          <tr>
+            <td style="padding: 30px 40px; background-color: #f8f8fc; border-radius: 0 0 8px 8px; text-align: center;">
+              <p style="margin: 0 0 15px; color: #666666; font-size: 14px;">
+                Follow us on social media! @pawme
+              </p>
+              <p style="margin: 0 0 15px;">
+                <a href="https://twitter.com/pawme" style="text-decoration: none; margin: 0 5px;">X</a>
+                <a href="https://facebook.com/pawme" style="text-decoration: none; margin: 0 5px;">FB</a>
+                <a href="https://instagram.com/pawme" style="text-decoration: none; margin: 0 5px;">IG</a>
+              </p>
+              <p style="margin: 0 0 10px; color: #666666; font-size: 14px;">
+                &copy; 2026 PawMe by Ayva Labs Limited.
+              </p>
+              <p style="margin: 0; color: #999999; font-size: 12px;">
+                If you no longer wish to receive these emails, you can <a href="{{unsubscribeLink}}" style="color: #999999;">unsubscribe here</a>.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`,
+    variables: ['unsubscribeLink'],
+  },
   welcome: {
     id: 'welcome',
     name: 'Welcome Email',

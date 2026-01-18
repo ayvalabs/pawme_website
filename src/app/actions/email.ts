@@ -23,8 +23,8 @@ function getAppUrl(): string {
 }
 
 async function getTemplate(templateId: string) {
-  const adminDb = getAdminFirestore();
   try {
+    const adminDb = getAdminFirestore();
     const templateRef = doc(adminDb, 'emailTemplates', templateId);
     const templateSnap = await getDoc(templateRef);
 
@@ -35,8 +35,9 @@ async function getTemplate(templateId: string) {
       console.warn(`⚠️ [EMAIL_ACTION] Email template '${templateId}' not found in Firestore, using default.`);
       return defaultTemplates[templateId];
     }
-  } catch (error) {
-    console.error(`❌ [EMAIL_ACTION] Error fetching email template '${templateId}' from Firestore, using default fallback.`, error);
+  } catch (error: any) {
+    console.error(`❌ [EMAIL_ACTION] Error fetching email template '${templateId}' from Firestore. This is likely a permissions issue. Falling back to default template.`, error);
+    // This is the key change: fall back to defaults if there's an error (e.g., auth failure)
     return defaultTemplates[templateId];
   }
 }
@@ -46,12 +47,20 @@ async function renderAndSend(templateId: string, to: string, variables: Record<s
     console.error(`❌ [EMAIL_ACTION] FATAL: RESEND_API_KEY is not set. Email '${templateId}' to '${to}' cannot be sent.`);
     throw new Error('Server is missing API key for email service.');
   }
-
-  const adminDb = getAdminFirestore();
+  
   const [template, settingsSnap] = await Promise.all([
     getTemplate(templateId),
-    getDoc(doc(adminDb, 'app-settings', 'rewards'))
+    (async () => {
+      try {
+        const adminDb = getAdminFirestore();
+        return await getDoc(doc(adminDb, 'app-settings', 'rewards'));
+      } catch (e) {
+        console.warn('Could not fetch app-settings for email branding, using hardcoded defaults. This is likely a Firebase Admin auth issue.');
+        return null;
+      }
+    })()
   ]);
+
 
   if (!template) {
     console.error(`❌ [EMAIL_ACTION] Email template "${templateId}" is missing.`);
@@ -68,9 +77,9 @@ async function renderAndSend(templateId: string, to: string, variables: Record<s
     bodyHtml = bodyHtml.replace(regex, value);
   }
   
-  const appSettings = settingsSnap.exists() ? settingsSnap.data() : {};
-  let headerHtml = (appSettings.emailHeader || '').replace(/{{emailTitle}}/g, subject);
-  let footerHtml = (appSettings.emailFooter || '');
+  const appSettings = settingsSnap?.exists() ? settingsSnap.data() : {};
+  let headerHtml = (appSettings.emailHeader || defaultTemplates['header']?.html || '').replace(/{{emailTitle}}/g, subject);
+  let footerHtml = (appSettings.emailFooter || defaultTemplates['footer']?.html || '');
 
   const appUrl = getAppUrl();
   const unsubscribeUrl = `${appUrl}/unsubscribe?email=${encodeURIComponent(to)}`;
@@ -142,8 +151,8 @@ export async function sendAdminBroadcast(users: {email: string, name: string}[],
     const adminDb = getAdminFirestore();
     const settingsSnap = await getDoc(doc(adminDb, 'app-settings', 'rewards'));
     const appSettings = settingsSnap.exists() ? settingsSnap.data() : {};
-    const headerHtml = (appSettings.emailHeader || '').replace(/{{emailTitle}}/g, subject);
-    const footerHtmlTemplate = (appSettings.emailFooter || '');
+    const headerHtml = (appSettings.emailHeader || defaultTemplates['header']?.html || '').replace(/{{emailTitle}}/g, subject);
+    const footerHtmlTemplate = (appSettings.emailFooter || defaultTemplates['footer']?.html || '');
 
     for (const user of users) {
         const body = bodyTemplate.replace(/{{userName}}/g, user.name);
