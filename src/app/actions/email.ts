@@ -2,6 +2,8 @@
 'use server';
 
 import { Resend } from 'resend';
+import { doc, getDoc } from 'firebase/firestore';
+import { getAdminFirestore } from '@/lib/firebase-admin';
 import { defaultTemplates, EmailTemplate } from '@/lib/email-templates';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -17,47 +19,63 @@ function getAppUrl(): string {
   return 'http://localhost:9008';
 }
 
-function getTemplate(templateId: string): { subject: string; html: string } | null {
-  console.log(`🔵 [EMAIL_ACTION] Loading template '${templateId}' from defaults.`);
-  
+async function getTemplate(templateId: string): Promise<{ subject: string; html: string; } | null> {
+  try {
+    console.log(`🔵 [EMAIL_ACTION] Attempting to load template '${templateId}' from Firestore.`);
+    const db = getAdminFirestore();
+    const templateRef = doc(db, 'emailTemplates', templateId);
+    const docSnap = await getDoc(templateRef);
+    if (docSnap.exists()) {
+      const data = docSnap.data() as EmailTemplate;
+      console.log(`✅ [EMAIL_ACTION] Successfully loaded template '${templateId}' from Firestore.`);
+      return { subject: data.subject, html: data.html };
+    }
+    console.log(`🟡 [EMAIL_ACTION] Template '${templateId}' not found in Firestore. Falling back to local default.`);
+  } catch (error: any) {
+    console.warn(`⚠️ [EMAIL_ACTION] Could not connect to Firestore to get template '${templateId}'. This is likely due to missing admin credentials. Falling back to local default. Error: ${error.message}`);
+  }
+
+  // Fallback to local templates
   if (defaultTemplates[templateId]) {
     const template = defaultTemplates[templateId];
     return { subject: template.subject, html: template.html };
   }
-  
-  console.error(`❌ [EMAIL_ACTION] FATAL: No template found for '${templateId}' in defaults.`);
+
   return null;
 }
 
 async function renderAndSend(templateId: string, to: string, variables: Record<string, any>) {
   console.log(`🔵 [EMAIL_ACTION] Starting renderAndSend for template: ${templateId}, to: ${to}`);
-  
+
   if (!process.env.RESEND_API_KEY) {
     console.error(`❌ [EMAIL_ACTION] FATAL: RESEND_API_KEY is not set.`);
     throw new Error('Server is missing API key for email service.');
   }
 
-  const template = getTemplate(templateId);
-  
+  const template = await getTemplate(templateId);
+
   if (!template) {
-    console.error(`❌ [EMAIL_ACTION] FATAL: Email template "${templateId}" is missing.`);
+    console.error(`❌ [EMAIL_ACTION] FATAL: Email template "${templateId}" is missing from both Firestore and local fallbacks.`);
     throw new Error(`Email template "${templateId}" is missing.`);
   }
 
   let subject = template.subject;
-  let bodyHtml = template.html;
+  let bodyHtml = template.html
+    .replace(/{{header}}/g, defaultTemplates.header.html)
+    .replace(/{{footer}}/g, defaultTemplates.footer.html);
 
-  for (const key in variables) {
-    const value = String(variables[key] ?? '');
+  const allVariables = {
+    ...variables,
+    emailTitle: subject,
+    unsubscribeLink: `${getAppUrl()}/unsubscribe?email=${encodeURIComponent(to)}`,
+  };
+
+  for (const key in allVariables) {
+    const value = String(allVariables[key] ?? '');
     const regex = new RegExp(`{{${key}}}`, 'g');
     subject = subject.replace(regex, value);
     bodyHtml = bodyHtml.replace(regex, value);
   }
-  
-  // The header and footer are now part of each template's HTML content.
-  const finalHtml = bodyHtml
-    .replace(/{{emailTitle}}/g, subject)
-    .replace(/{{unsubscribeLink}}/g, `${getAppUrl()}/unsubscribe?email=${encodeURIComponent(to)}`);
 
   try {
     console.log(`🔵 [EMAIL_ACTION] Sending email via Resend... To: ${to}, Subject: ${subject}`);
@@ -65,7 +83,7 @@ async function renderAndSend(templateId: string, to: string, variables: Record<s
       from: fromEmail,
       to,
       subject,
-      html: finalHtml,
+      html: bodyHtml,
     });
 
     if (error) {
@@ -96,20 +114,13 @@ export async function sendReferralSuccessEmail({ to, referrerName, newReferralCo
 }
 
 export async function sendAdminBroadcast(users: {email: string, name: string}[], subject: string, bodyTemplate: string) {
-    const headerTemplate = getTemplate('header');
-    const footerTemplate = getTemplate('footer');
-    
-    if (!headerTemplate || !footerTemplate) {
-        throw new Error("Header or footer template is missing.");
-    }
-    
-    const headerHtml = headerTemplate.html.replace(/{{emailTitle}}/g, subject);
+    const header = defaultTemplates.header.html.replace(/{{emailTitle}}/g, subject);
 
     for (const user of users) {
         const body = bodyTemplate.replace(/{{userName}}/g, user.name);
         const unsubscribeUrl = `${getAppUrl()}/unsubscribe?email=${encodeURIComponent(user.email)}`;
-        const footerHtml = footerTemplate.html.replace(/{{unsubscribeLink}}/g, unsubscribeUrl);
-        const finalHtml = `${headerHtml}${body}${footerHtml}`;
+        const footer = defaultTemplates.footer.html.replace(/{{unsubscribeLink}}/g, unsubscribeUrl);
+        const finalHtml = `${header}${body}${footer}`;
 
         try {
             await resend.emails.send({
