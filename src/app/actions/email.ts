@@ -33,21 +33,39 @@ async function renderAndSend(templateId: string, to: string, variables: Record<s
     throw new Error('Server is missing API key for email service.');
   }
 
-  const template = await getTemplate(templateId);
+  const [template, settingsSnap] = await Promise.all([
+    getTemplate(templateId),
+    getDoc(doc(adminDb, 'app-settings', 'rewards'))
+  ]);
+
   if (!template) {
     console.error(`❌ [EMAIL_ACTION] Email template "${templateId}" is missing.`);
     throw new Error(`Email template "${templateId}" is missing.`);
   }
 
   let subject = template.subject;
-  let html = template.html;
+  let bodyHtml = template.html;
 
   for (const key in variables) {
-    const value = variables[key];
+    const value = String(variables[key] ?? '');
     const regex = new RegExp(`{{${key}}}`, 'g');
-    subject = subject.replace(regex, String(value));
-    html = html.replace(regex, String(value));
+    subject = subject.replace(regex, value);
+    bodyHtml = bodyHtml.replace(regex, value);
   }
+  
+  const appSettings = settingsSnap.exists() ? settingsSnap.data() : {};
+  let headerHtml = (appSettings.emailHeader || '').replace(/{{emailTitle}}/g, subject);
+  let footerHtml = (appSettings.emailFooter || '');
+
+  // Add unsubscribe link logic if not present
+  if (variables.unsubscribeLink) {
+    footerHtml = footerHtml.replace(/{{unsubscribeLink}}/g, variables.unsubscribeLink);
+  } else {
+    // Fallback for system emails without a specific unsubscribe context
+    footerHtml = footerHtml.replace(/{{unsubscribeLink}}/g, `https://pawme.com/settings`);
+  }
+
+  const finalHtml = `${headerHtml}${bodyHtml}${footerHtml}`;
   
   try {
     console.log(`🔵 [EMAIL_ACTION] Sending email '${templateId}' to: ${to}`);
@@ -55,7 +73,7 @@ async function renderAndSend(templateId: string, to: string, variables: Record<s
       from: fromEmail,
       to,
       subject,
-      html,
+      html: finalHtml,
     });
 
     if (error) {
@@ -78,7 +96,7 @@ export async function sendWelcomeEmail({ to, name, referralCode }: { to: string,
 }
 
 export async function sendVerificationCodeEmail({ to, name, code }: { to: string, name: string, code: string }) {
-  await renderAndSend('verificationCode', to, { userName: name, code });
+  await renderAndSend('verificationCode', to, { userName: name, code, emailTitle: "Verify Your Email" });
 }
 
 export async function sendReferralSuccessEmail({ to, referrerName, newReferralCount, newPoints }: { to: string, referrerName: string, newReferralCount: number, newPoints: number }) {

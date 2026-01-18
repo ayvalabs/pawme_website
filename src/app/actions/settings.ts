@@ -1,3 +1,4 @@
+
 'use server';
 
 import { db } from '@/firebase/config';
@@ -28,6 +29,8 @@ export interface AppSettings {
   referralTiers: ReferralTier[];
   rewardTiers: RewardTier[];
   vipConfig: VipConfig;
+  emailHeader?: string;
+  emailFooter?: string;
 }
 
 const settingsRef = doc(db, 'app-settings', 'rewards');
