@@ -73,8 +73,10 @@ async function validateTemplates() {
   console.log('🔍 Email Template Validation\n');
   console.log('=' .repeat(60));
   
-  const templateDir = path.join(process.cwd(), 'src', 'lib', 'email-assets');
-  console.log(`📁 Template directory: ${templateDir}\n`);
+  const templateDir = path.join(process.cwd(), 'public', 'email-templates');
+  const fallbackDir = path.join(process.cwd(), 'src', 'lib', 'email-assets');
+  console.log(`📁 Primary template directory: ${templateDir}`);
+  console.log(`📁 Fallback template directory: ${fallbackDir}\n`);
   
   let allValid = true;
   const results: { id: string; filename: string; exists: boolean; variables: string[]; found: string[] }[] = [];
@@ -89,17 +91,31 @@ async function validateTemplates() {
     console.log(`   Filename: ${filename}.html`);
     console.log(`   Path: ${filePath}`);
     
-    // Check if file exists
+    // Check if file exists (try both locations)
     let exists = false;
     let html = '';
+    let foundLocation = '';
+    
+    // Try primary location (public/)
     try {
       html = await fs.readFile(filePath, 'utf-8');
       exists = true;
-      console.log(`   ✅ File exists (${html.length} characters)`);
+      foundLocation = 'public/email-templates';
+      console.log(`   ✅ File exists in public/ (${html.length} characters)`);
     } catch (error: any) {
-      exists = false;
-      console.log(`   ❌ File NOT found`);
-      allValid = false;
+      // Try fallback location (src/)
+      const fallbackPath = path.join(fallbackDir, `${filename}.html`);
+      try {
+        html = await fs.readFile(fallbackPath, 'utf-8');
+        exists = true;
+        foundLocation = 'src/lib/email-assets';
+        console.log(`   ✅ File exists in src/ (${html.length} characters)`);
+        console.log(`   ⚠️  Should copy to public/email-templates for production`);
+      } catch (fallbackError: any) {
+        exists = false;
+        console.log(`   ❌ File NOT found in either location`);
+        allValid = false;
+      }
     }
     
     // Check for required variables

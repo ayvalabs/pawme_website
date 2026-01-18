@@ -47,30 +47,102 @@ async function getTemplateFromFile(templateId: string): Promise<{ subject: strin
         console.log(`🔵 [EMAIL_ACTION] Step 3: Building file path...`);
         const cwd = process.cwd();
         console.log(`🔵 [EMAIL_ACTION] Current working directory: ${cwd}`);
-        const filePath = path.join(cwd, 'src', 'lib', 'email-assets', `${filename}.html`);
-        console.log(`🔵 [EMAIL_ACTION] Full file path: ${filePath}`);
+        console.log(`🔵 [EMAIL_ACTION] __dirname would be:`, __dirname);
+        console.log(`🔵 [EMAIL_ACTION] Environment: ${process.env.NODE_ENV}`);
+        console.log(`🔵 [EMAIL_ACTION] Vercel: ${process.env.VERCEL ? 'YES' : 'NO'}`);
+        
+        // Try multiple possible paths (development vs production)
+        // public/ folder is guaranteed to be included in Vercel builds
+        const possiblePaths = [
+            path.join(cwd, 'public', 'email-templates', `${filename}.html`),
+            path.join(cwd, 'src', 'lib', 'email-assets', `${filename}.html`), // fallback for local dev
+            path.join(cwd, '.next', 'server', 'public', 'email-templates', `${filename}.html`),
+            path.join(cwd, 'email-templates', `${filename}.html`),
+        ];
+        
+        console.log(`🔵 [EMAIL_ACTION] Will try ${possiblePaths.length} possible paths...`);
+        
+        let filePath: string | null = null;
+        let fileFound = false;
         
         // Check if file exists before trying to read
-        console.log(`🔵 [EMAIL_ACTION] Step 4: Checking if file exists...`);
-        try {
-            await fs.access(filePath);
-            console.log(`✅ [EMAIL_ACTION] File exists and is accessible`);
-        } catch (accessError: any) {
-            console.error(`❌ [EMAIL_ACTION] File does NOT exist or is not accessible`);
-            console.error(`❌ [EMAIL_ACTION] Access error:`, accessError.message);
+        console.log(`🔵 [EMAIL_ACTION] Step 4: Checking which path has the file...`);
+        
+        for (let i = 0; i < possiblePaths.length; i++) {
+            const testPath = possiblePaths[i];
+            console.log(`🔵 [EMAIL_ACTION] Trying path ${i + 1}/${possiblePaths.length}: ${testPath}`);
+            try {
+                await fs.access(testPath);
+                console.log(`✅ [EMAIL_ACTION] Found file at path ${i + 1}!`);
+                filePath = testPath;
+                fileFound = true;
+                break;
+            } catch (accessError: any) {
+                console.log(`❌ [EMAIL_ACTION] Not found at path ${i + 1}`);
+            }
+        }
+        
+        if (!fileFound || !filePath) {
+            console.error(`❌ [EMAIL_ACTION] File NOT found in any of the ${possiblePaths.length} paths!`);
+            console.error(`❌ [EMAIL_ACTION] Searched paths:`);
+            possiblePaths.forEach((p, i) => console.error(`   ${i + 1}. ${p}`));
             
             // Try to list directory contents to help debug
+            console.log(`🔵 [EMAIL_ACTION] Attempting to explore directory structure...`);
+            
+            // Check root directory
             try {
-                const dirPath = path.join(cwd, 'src', 'lib', 'email-assets');
-                console.log(`🔵 [EMAIL_ACTION] Attempting to list directory: ${dirPath}`);
-                const files = await fs.readdir(dirPath);
-                console.log(`📁 [EMAIL_ACTION] Files in email-assets directory:`, files);
-            } catch (dirError: any) {
-                console.error(`❌ [EMAIL_ACTION] Could not list directory:`, dirError.message);
+                console.log(`📁 [EMAIL_ACTION] Root directory (${cwd}):`);
+                const rootFiles = await fs.readdir(cwd);
+                console.log(`   Files/folders:`, rootFiles.slice(0, 30));
+            } catch (e: any) {
+                console.log(`   ❌ Cannot read root: ${e.message}`);
             }
             
-            throw accessError;
+            // Check public directory
+            try {
+                const publicPath = path.join(cwd, 'public');
+                console.log(`📁 [EMAIL_ACTION] Public directory (${publicPath}):`);
+                const publicFiles = await fs.readdir(publicPath);
+                console.log(`   Files/folders:`, publicFiles);
+                
+                // Check if email-templates folder exists in public
+                if (publicFiles.includes('email-templates')) {
+                    const templatesPath = path.join(publicPath, 'email-templates');
+                    console.log(`📁 [EMAIL_ACTION] Email templates directory (${templatesPath}):`);
+                    const templateFiles = await fs.readdir(templatesPath);
+                    console.log(`   Template files:`, templateFiles);
+                } else {
+                    console.log(`   ⚠️  'email-templates' folder NOT found in public/`);
+                }
+            } catch (e: any) {
+                console.log(`   ❌ Cannot read public/: ${e.message}`);
+            }
+            
+            // Check src directory
+            try {
+                const srcPath = path.join(cwd, 'src');
+                console.log(`📁 [EMAIL_ACTION] Src directory (${srcPath}):`);
+                const srcFiles = await fs.readdir(srcPath);
+                console.log(`   Files/folders:`, srcFiles);
+            } catch (e: any) {
+                console.log(`   ❌ Cannot read src/: ${e.message}`);
+            }
+            
+            // Check .next directory
+            try {
+                const nextPath = path.join(cwd, '.next');
+                console.log(`📁 [EMAIL_ACTION] .next directory (${nextPath}):`);
+                const nextFiles = await fs.readdir(nextPath);
+                console.log(`   Files/folders:`, nextFiles.slice(0, 20));
+            } catch (e: any) {
+                console.log(`   ❌ Cannot read .next/: ${e.message}`);
+            }
+            
+            throw new Error(`Template file not found: ${filename}.html`);
         }
+        
+        console.log(`✅ [EMAIL_ACTION] Using file path: ${filePath}`);
         
         console.log(`🔵 [EMAIL_ACTION] Step 5: Reading file contents...`);
         const html = await fs.readFile(filePath, 'utf-8');
