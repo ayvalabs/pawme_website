@@ -1041,17 +1041,17 @@ export default function AdminPage() {
 
       {/* Template Editor Dialog */}
       <Dialog open={templateDialogOpen} onOpenChange={setTemplateDialogOpen}>
-        <DialogContent className="max-w-7xl h-[90vh] p-0">
-          <div className="flex h-full">
+        <DialogContent className="max-w-7xl h-[90vh] p-0 flex flex-col">
+          <DialogHeader className="p-6 pb-4 border-b flex-shrink-0">
+            <DialogTitle>{editingTemplate ? 'Edit Template' : 'Create New Template'}</DialogTitle>
+            <DialogDescription>
+              {editingTemplate ? 'Update the email template details.' : 'Create a new reusable email template.'}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex-grow flex min-h-0">
             {/* Left Panel - Editor */}
             <div className="w-1/2 flex flex-col border-r">
-              <DialogHeader className="p-6 pb-4 border-b">
-                <DialogTitle>{editingTemplate ? 'Edit Template' : 'Create New Template'}</DialogTitle>
-                <DialogDescription>
-                  {editingTemplate ? 'Update the email template details.' : 'Create a new reusable email template.'}
-                </DialogDescription>
-              </DialogHeader>
-              
               <ScrollArea className="flex-grow">
                 <div className="space-y-4 p-6 pr-4">
                   <div className="grid grid-cols-2 gap-4">
@@ -1106,7 +1106,7 @@ export default function AdminPage() {
                 </div>
               </ScrollArea>
               
-              <DialogFooter className="p-6 pt-4 border-t">
+              <DialogFooter className="p-6 pt-4 border-t flex-shrink-0">
                 <Button variant="outline" onClick={() => setTemplateDialogOpen(false)}>Cancel</Button>
                 <Button onClick={handleSaveTemplate}>
                   {editingTemplate ? 'Update Template' : 'Create Template'}
@@ -1116,11 +1116,11 @@ export default function AdminPage() {
 
             {/* Right Panel - Live Preview */}
             <div className="w-1/2 flex flex-col bg-muted/30">
-              <div className="p-6 pb-4 border-b bg-background">
+              <div className="p-6 pb-4 border-b bg-background flex-shrink-0">
                 <h3 className="text-lg font-semibold">Live Preview</h3>
                 <p className="text-sm text-muted-foreground">See how your email will look with sample data</p>
               </div>
-              <div className="flex-grow p-6">
+              <div className="flex-grow p-6 min-h-0">
                 <EmailPreview
                   subject={templateSubject}
                   html={templateHtml}
@@ -1189,4 +1189,3 @@ export default function AdminPage() {
     </>
   );
 }
-
