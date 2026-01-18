@@ -85,9 +85,10 @@ export function EmailPreview({ subject, html, headerHtml, footerHtml, variables 
       <div className="flex-grow overflow-auto min-h-0">
         <iframe
           srcDoc={previewHtml || '<p style="padding: 1rem; color: #999;">Email preview will appear here...</p>'}
-          className="w-full h-full border-0"
+          className="w-full min-h-full border-0"
           title="Email Preview"
           sandbox="allow-same-origin"
+          style={{ height: '100%' }}
         />
       </div>
     </div>
