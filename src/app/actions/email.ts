@@ -2,16 +2,17 @@
 'use server';
 
 import { Resend } from 'resend';
-import { db } from '@/firebase/config';
+import { getAdminFirestore, getAdminAuth } from '@/lib/firebase-admin';
 import { doc, getDoc } from 'firebase/firestore';
 import { defaultTemplates } from '@/lib/email-templates';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const fromEmail = 'PawMe <pawme@ayvalabs.com>';
+const adminDb = getAdminFirestore();
 
 async function getTemplate(templateId: string) {
   try {
-    const templateRef = doc(db, 'emailTemplates', templateId);
+    const templateRef = doc(adminDb, 'emailTemplates', templateId);
     const templateSnap = await getDoc(templateRef);
 
     if (templateSnap.exists()) {
@@ -82,6 +83,29 @@ export async function sendVerificationCodeEmail({ to, name, code }: { to: string
 
 export async function sendReferralSuccessEmail({ to, referrerName, newReferralCount, newPoints }: { to: string, referrerName: string, newReferralCount: number, newPoints: number }) {
   await renderAndSend('referralSuccess', to, { referrerName, newReferralCount, newPoints: newPoints.toLocaleString() });
+}
+
+export async function sendCustomPasswordResetEmail({ email }: { email: string }): Promise<{ success: boolean; message?: string }> {
+  try {
+    const adminAuth = getAdminAuth();
+    const user = await adminAuth.getUserByEmail(email);
+    const link = await adminAuth.generatePasswordResetLink(email);
+    
+    await renderAndSend('passwordReset', email, { 
+      userName: user.displayName || user.email,
+      link 
+    });
+    
+    return { success: true, message: 'Password reset email sent!' };
+  } catch (error: any) {
+    if (error.code === 'auth/user-not-found') {
+      // Don't reveal that the user doesn't exist for security reasons.
+      console.log(`Password reset requested for non-existent user: ${email}`);
+      return { success: true, message: 'If an account with this email exists, a password reset link has been sent.' };
+    }
+    console.error('Error sending password reset email:', error);
+    return { success: false, message: 'Could not send password reset email.' };
+  }
 }
 
 export async function sendAdminBroadcast(users: {email: string, name: string}[], subject: string, bodyTemplate: string) {

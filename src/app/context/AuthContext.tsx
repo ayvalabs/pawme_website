@@ -10,7 +10,6 @@ import {
   signInWithPopup,
   GoogleAuthProvider,
   signOut as firebaseSignOut,
-  sendPasswordResetEmail as firebaseSendPasswordResetEmail,
   User as FirebaseUser,
   updateProfile as updateUserProfile,
 } from 'firebase/auth';
@@ -27,7 +26,7 @@ import {
   deleteDoc,
 } from 'firebase/firestore';
 import { auth, db } from '@/firebase/config';
-import { sendWelcomeEmail, sendReferralSuccessEmail } from '@/app/actions/email';
+import { sendWelcomeEmail, sendReferralSuccessEmail, sendCustomPasswordResetEmail } from '@/app/actions/email';
 import { isDisposableEmail } from '@/lib/disposable-domains';
 
 export interface Reward {
@@ -285,18 +284,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const sendPasswordReset = async (email: string) => {
     try {
-      const actionCodeSettings = {
-        url: `${window.location.origin}/`,
-        handleCodeInApp: false,
-      };
-      await firebaseSendPasswordResetEmail(auth, email, actionCodeSettings);
-      return { success: true };
+      const result = await sendCustomPasswordResetEmail({ email });
+      return result;
     } catch (error: any) {
-      if (error.code === 'auth/user-not-found') {
-        return { success: true };
-      }
       console.error('Password reset error:', error);
-      return { success: false, message: 'Failed to send password reset email. Please try again later.' };
+      return { success: false, message: 'An unexpected client-side error occurred.' };
     }
   };
 
