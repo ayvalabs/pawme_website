@@ -254,6 +254,11 @@ export default function AdminPage() {
   const [editingRewardIndex, setEditingRewardIndex] = useState<number | null>(null);
   const [rewardImageFiles, setRewardImageFiles] = useState<Record<string, File>>({});
 
+  const [isBrandingDialogOpen, setBrandingDialogOpen] = useState(false);
+  const [editingBrandingPart, setEditingBrandingPart] = useState<'header' | 'footer' | null>(null);
+  const [brandingEditorContent, setBrandingEditorContent] = useState('');
+
+
   useEffect(() => {
     if (!authLoading && (!user || profile?.email !== 'pawme@ayvalabs.com')) {
       router.push('/');
@@ -307,7 +312,11 @@ export default function AdminPage() {
     try {
       const appSettings = await getAppSettings();
 
-      setLocalRewardTiers(defaultRewardTiers);
+      if (appSettings && appSettings.rewardTiers && appSettings.rewardTiers.length > 0) {
+        setLocalRewardTiers(appSettings.rewardTiers);
+      } else {
+        setLocalRewardTiers(defaultRewardTiers);
+      }
 
       if (appSettings) {
         setSettings(appSettings);
@@ -647,6 +656,38 @@ export default function AdminPage() {
     }
   };
   
+  const handleOpenBrandingDialog = (part: 'header' | 'footer') => {
+    setEditingBrandingPart(part);
+    setBrandingEditorContent(part === 'header' ? localEmailHeader : localEmailFooter);
+    setBrandingDialogOpen(true);
+  };
+
+  const handleSaveBranding = async () => {
+    if (!editingBrandingPart) return;
+    setSavingSettings(true);
+    try {
+      const settingsToSave = editingBrandingPart === 'header'
+        ? { emailHeader: brandingEditorContent }
+        : { emailFooter: brandingEditorContent };
+      
+      await saveAppSettings(settingsToSave);
+      
+      if (editingBrandingPart === 'header') {
+        setLocalEmailHeader(brandingEditorContent);
+      } else {
+        setLocalEmailFooter(brandingEditorContent);
+      }
+      
+      toast.success(`Email ${editingBrandingPart} updated successfully!`);
+      setBrandingDialogOpen(false);
+    } catch (error: any) {
+      toast.error(`Failed to save ${editingBrandingPart}.`);
+      console.error(error);
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
   if (authLoading || !user || !profile) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -1020,24 +1061,36 @@ export default function AdminPage() {
               <Card>
                 <CardHeader>
                   <CardTitle>Global Email Branding</CardTitle>
-                  <CardDescription>Define a consistent header and footer for all outgoing emails. The content of each template will be inserted between them.</CardDescription>
+                  <CardDescription>Define a consistent header and footer for all emails. Click a section to edit.</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="grid md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="email-header">Email Header HTML</Label>
-                    <Textarea id="email-header" value={localEmailHeader} onChange={(e) => setLocalEmailHeader(e.target.value)} className="min-h-[200px] font-mono"/>
+                    <Label>Email Header</Label>
+                    <div className="relative group border rounded-lg h-64 cursor-pointer" onClick={() => handleOpenBrandingDialog('header')}>
+                      <div className="h-full overflow-auto p-4 bg-muted/30 pointer-events-none">
+                        <iframe srcDoc={localEmailHeader} className="w-full h-full border-0" title="Header Preview" sandbox="allow-same-origin"/>
+                      </div>
+                      <div className="absolute inset-0 bg-transparent group-hover:bg-black/40 transition-all flex items-center justify-center">
+                        <Button variant="secondary" className="opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Edit className="w-4 h-4 mr-2"/> Edit Header
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="email-footer">Email Footer HTML</Label>
-                    <Textarea id="email-footer" value={localEmailFooter} onChange={(e) => setLocalEmailFooter(e.target.value)} className="min-h-[200px] font-mono"/>
-                    <p className="text-xs text-muted-foreground">Use {'{{unsubscribeLink}}'} to insert the unsubscribe link.</p>
+                    <Label>Email Footer</Label>
+                    <div className="relative group border rounded-lg h-64 cursor-pointer" onClick={() => handleOpenBrandingDialog('footer')}>
+                      <div className="h-full overflow-auto p-4 bg-muted/30 pointer-events-none">
+                        <iframe srcDoc={localEmailFooter} className="w-full h-full border-0" title="Footer Preview" sandbox="allow-same-origin"/>
+                      </div>
+                      <div className="absolute inset-0 bg-transparent group-hover:bg-black/40 transition-all flex items-center justify-center">
+                        <Button variant="secondary" className="opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Edit className="w-4 h-4 mr-2"/> Edit Footer
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
-                <CardFooter>
-                  <Button onClick={() => handleSaveSettings({ emailHeader: localEmailHeader, emailFooter: localEmailFooter })} disabled={savingSettings}>
-                    {savingSettings ? 'Saving Branding...' : 'Save Branding'}
-                  </Button>
-                </CardFooter>
               </Card>
 
               <Card>
@@ -1131,6 +1184,64 @@ export default function AdminPage() {
         </main>
         <Footer />
       </div>
+      
+      <Dialog open={isBrandingDialogOpen} onOpenChange={setBrandingDialogOpen}>
+        <DialogContent className="max-w-7xl h-[90vh] p-0 flex flex-col">
+          <DialogHeader className="p-6 pb-4 border-b flex-shrink-0">
+            <DialogTitle>Edit Email {editingBrandingPart === 'header' ? 'Header' : 'Footer'}</DialogTitle>
+            <DialogDescription>
+              Update the global email {editingBrandingPart}. This will appear on all automated emails.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex-grow flex min-h-0">
+            {/* Left Panel - Editor */}
+            <div className="w-1/2 flex flex-col border-r">
+              <div className="p-6 flex-grow flex flex-col">
+                <div className="space-y-2 flex-grow flex flex-col">
+                  <Label htmlFor="branding-editor-html">HTML Content</Label>
+                  <Textarea
+                    id="branding-editor-html"
+                    value={brandingEditorContent}
+                    onChange={(e) => setBrandingEditorContent(e.target.value)}
+                    className="font-mono text-sm flex-grow"
+                  />
+                  {editingBrandingPart === 'footer' && (
+                    <p className="text-xs text-muted-foreground">
+                      Use {'{{unsubscribeLink}}'} to insert the unsubscribe link.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Right Panel - Live Preview */}
+            <div className="w-1/2 flex flex-col bg-muted/30">
+              <div className="p-6 pb-4 border-b bg-background flex-shrink-0">
+                <h3 className="text-lg font-semibold">Live Preview</h3>
+              </div>
+              <div className="flex-grow p-6 min-h-0">
+                <div className="border rounded-lg overflow-hidden bg-background h-full">
+                  <iframe
+                    srcDoc={brandingEditorContent}
+                    className="w-full h-full border-0"
+                    title="Branding Preview"
+                    sandbox="allow-same-origin"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooterComponent className="p-6 pt-4 border-t flex-shrink-0">
+            <Button variant="outline" onClick={() => setBrandingDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleSaveBranding} disabled={savingSettings}>
+              {savingSettings ? 'Saving...' : 'Save ' + (editingBrandingPart === 'header' ? 'Header' : 'Footer')}
+            </Button>
+          </DialogFooterComponent>
+        </DialogContent>
+      </Dialog>
+
 
       <Dialog open={isRewardDialogOpen} onOpenChange={setRewardDialogOpen}>
         <DialogContent className="sm:max-w-lg">
