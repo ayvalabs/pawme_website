@@ -151,7 +151,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           throw "Referrer document does not exist!";
         }
         const newReferralCount = (referrerDoc.data().referralCount || 0) + 1;
-        const pointsToAdd = referrerDoc.data().isVip ? 150 : 100;
+        const pointsToAdd = referrerDoc.data().isVip ? 3 : 2;
         const newPoints = (referrerDoc.data().points || 0) + pointsToAdd;
         
         transaction.update(referrerRef, { 
@@ -227,7 +227,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email: newUser.email!,
         name: name || newUser.email!.split('@')[0],
         referralCode,
-        points: 100,
+        points: 0,
         referralCount: 0,
         referredBy: referredByCode || null,
         theme: 'purple',
@@ -315,7 +315,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email: user.email!,
         name: user.displayName || user.email!.split('@')[0],
         referralCode,
-        points: 100,
+        points: 0,
         referralCount: 0,
         referredBy: null,
         theme: 'purple',

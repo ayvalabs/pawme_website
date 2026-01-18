@@ -496,36 +496,6 @@ ${profile.name}`
               </CardContent>
             </Card>
           </div>
-
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle>Your Referral Tiers</CardTitle>
-              <CardDescription>Unlock rewards as you refer more friends.</CardDescription>
-            </CardHeader>
-            <CardContent className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {referralTiers.map((tier) => {
-                  const isUnlocked = profile.referralCount >= tier.count;
-                  return (
-                      <Card
-                      key={tier.tier}
-                      className={`p-6 text-center border-2 transition-all ${
-                          isUnlocked ? 'border-primary/30 bg-primary/5' : 'border-border bg-muted/30 opacity-70'
-                      }`}
-                      >
-                      <div className="text-4xl mb-3">{tier.icon}</div>
-                      <h4 className="font-semibold mb-2">{tier.tier} Tier</h4>
-                      <p className="text-sm text-muted-foreground">{tier.reward}</p>
-                      {isUnlocked && (
-                          <div className="mt-4 text-xs font-bold text-primary bg-primary/10 rounded-full px-3 py-1 inline-flex items-center gap-1">
-                              <Check className="w-3 h-3" />
-                              UNLOCKED
-                          </div>
-                      )}
-                      </Card>
-                  );
-              })}
-            </CardContent>
-          </Card>
           
           <Card className="mt-8">
             <CardHeader>

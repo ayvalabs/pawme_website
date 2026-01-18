@@ -46,51 +46,123 @@ const getReferralTierIcon = (referralCount: number) => {
 };
 
 const defaultRewardTiers: RewardTier[] = [
-  {
-    id: 'treats-1',
-    title: 'Premium Organic Treats',
-    reward: '🐾 A bag of delicious, high-quality organic treats.',
-    requiredPoints: 500,
-    image: 'https://picsum.photos/seed/reward1/600/400',
-    alt: 'A pack of premium organic pet treats',
-    'data-ai-hint': 'pet treats'
-  },
-  {
-    id: 'toy-1',
-    title: 'Interactive Puzzle Toy',
-    reward: '🧠 A fun and engaging puzzle toy to keep your pet\'s mind sharp.',
-    requiredPoints: 1000,
-    image: 'https://picsum.photos/seed/reward2/600/400',
-    alt: 'An interactive smart puzzle toy for pets',
-    'data-ai-hint': 'pet toy'
-  },
-  {
-    id: 'collar-1',
-    title: 'Stylish Personalized Collar',
-    reward: '✨ A stylish and durable leather collar, personalized with your pet\'s name.',
-    requiredPoints: 1500,
-    image: 'https://picsum.photos/seed/reward3/600/400',
-    alt: 'A stylish personalized leather pet collar',
-    'data-ai-hint': 'dog collar'
-  },
-  {
-    id: 'bed-1',
-    title: 'Orthopedic Pet Bed',
-    reward: '😴 A luxurious and comfortable orthopedic bed for the perfect nap.',
-    requiredPoints: 3000,
-    image: 'https://picsum.photos/seed/reward5/600/400',
-    alt: 'A luxurious orthopedic memory foam pet bed',
-    'data-ai-hint': 'dog bed'
-  },
-  {
-    id: 'feeder-1',
-    title: 'Automated Smart Feeder',
-    reward: '🍽️ A smart feeder that automates feeding schedules with portion control.',
-    requiredPoints: 5000,
-    image: 'https://picsum.photos/seed/reward6/600/400',
-    alt: 'A smart automated pet feeder with portion control',
-    'data-ai-hint': 'smart feeder'
-  }
+    {
+      id: "chewy_starter_treats",
+      title: "Chewy Starter Treats Pouch 🦴",
+      reward: "A mixed pouch of bite-sized dog or cat treats, perfect for training sessions or robot-assisted playtime. Soft, high-value nibbles to keep tails wagging while PawMe works its magic.",
+      requiredPoints: 10,
+      image: "https://picsum.photos/seed/chewytreats/600/400",
+      alt: "Use a clean flatlay of a small resealable pouch spilling out assorted treats on a neutral background.",
+      "data-ai-hint": "dog cat treats"
+    },
+    {
+      id: "eco_poop_bag_holder",
+      title: "Eco Poop-Bag Holder & Rolls 🌱",
+      reward: "Clip-on poop-bag holder with a starter roll of eco-friendly bags. Attach it to your leash or PawMe robot leash handle so you never forget cleanup duty on walks.",
+      requiredPoints: 12,
+      image: "https://picsum.photos/seed/poopbag/600/400",
+      alt: "Show a small dispenser with colorful rolls of bags next to a leash.",
+      "data-ai-hint": "poop bag holder"
+    },
+    {
+      id: "feather_teaser_wand",
+      title: "Feather Teaser Wand For Cats 🪶",
+      reward: "A flexible teaser wand with soft feathers and bells to spark your cat’s hunting instincts. Great for interactive play before PawMe takes over nighttime monitoring.",
+      requiredPoints: 14,
+      image: "https://picsum.photos/seed/featherwand/600/400",
+      alt: "Capture a simple feather wand being played with by a cat or laid diagonally on a pastel background.",
+      "data-ai-hint": "cat feather toy"
+    },
+    {
+      id: "plush_squeaky_friend",
+      title: "Plush Squeaky Friend 🧸",
+      reward: "A soft, durable plush toy with an internal squeaker for dogs that love to pounce, shake, and cuddle. Designed to pair perfectly with PawMe’s playtime reminders.",
+      requiredPoints: 18,
+      image: "https://picsum.photos/seed/plushdogtoy/600/400",
+      alt: "Use a bright photo of a single plush dog toy (bone, animal, or robot theme).",
+      "data-ai-hint": "dog plush toy"
+    },
+    {
+      id: "interactive_treat_ball",
+      title: "Interactive Treat Ball Puzzle 🧠",
+      reward: "A rolling treat-dispensing ball that turns snack time into a brain game. Fill it with kibble or small treats and let your pet nudge and chase it while PawMe keeps watch.",
+      requiredPoints: 20,
+      image: "https://picsum.photos/seed/dogtreatball/600/400",
+      alt: "Show a translucent or colorful treat ball with a few kibbles around it.",
+      "data-ai-hint": "dog treat puzzle"
+    },
+    {
+      id: "natural_jerky_pack",
+      title: "Natural Jerky Treat Pack 🍗",
+      reward: "Grain-free, limited-ingredient jerky strips made for sensitive tummies. Ideal as a high-value reward after successful training sessions with your PawMe companion.",
+      requiredPoints: 24,
+      image: "https://picsum.photos/seed/dogjerky/600/400",
+      alt: "Use a kraft paper pouch with visible jerky strips for an artisanal look.",
+      "data-ai-hint": "dog jerky"
+    },
+    {
+      id: "grooming_wipes_bundle",
+      title: "Aloe & Coconut Grooming Wipes 🧼",
+      reward: "Gentle, hypoallergenic wipes for quick paw, coat, and muzzle cleanups after walks or playtime. Keep your pet camera-ready for every PawMe selfie.",
+      requiredPoints: 26,
+      image: "https://picsum.photos/seed/petwipes/600/400",
+      alt: "Show a packet of wipes with a dog or cat illustration on the label.",
+      "data-ai-hint": "pet grooming wipes"
+    },
+    {
+      id: "durable_tug_rope",
+      title: "Durable Tug & Fetch Rope 💪",
+      reward: "A tough cotton rope toy for tug-of-war and fetch sessions. Great for high-energy pups who need a good workout before settling down with PawMe.",
+      requiredPoints: 30,
+      image: "https://picsum.photos/seed/dogropetoy/600/400",
+      alt: "Rope toy in a simple composition; braided, with bright colors for visual pop.",
+      "data-ai-hint": "dog rope toy"
+    },
+    {
+      id: "snuffle_mat",
+      title: "Snuffle Treasure Hunt Mat 🌿",
+      reward: "A fleece snuffle mat that hides treats in its folds, encouraging natural foraging instincts. Perfect enrichment while PawMe monitors relaxation and stress levels.",
+      requiredPoints: 36,
+      image: "https://picsum.photos/seed/snufflemat/600/400",
+      alt: "Top-down view of a colorful snuffle mat with a few treats tucked inside.",
+      "data-ai-hint": "dog snuffle mat"
+    },
+    {
+      id: "smart_laser_cat_toy",
+      title: "Smart Laser Chase Toy 🔦",
+      reward: "An automatic laser toy that projects unpredictable patterns across the floor and walls, turning your living room into a cat playground while PawMe captures the action.",
+      requiredPoints: 48,
+      image: "https://picsum.photos/seed/catlasertoy/600/400",
+      alt: "Show a compact laser device on the ground with a cat chasing the dot.",
+      "data-ai-hint": "cat laser toy"
+    },
+    {
+      id: "deluxe_treat_variety_box",
+      title: "Deluxe Variety Treat Box 🎁",
+      reward: "A curated selection of premium dog or cat treats: crunchy biscuits, soft chews, and lickable rewards. A perfect way to celebrate hitting a big referral milestone.",
+      requiredPoints: 60,
+      image: "https://picsum.photos/seed/pettreatbox/600/400",
+      alt: "Use a gift-style box with dividers showing different treat types.",
+      "data-ai-hint": "pet gift box"
+    },
+    {
+      id: "custom_name_tag_collar",
+      title: "Custom Name Tag & Collar Set 👑",
+      reward: "A personalized collar and engraved name tag so your pet can show off their PawMe fame. Choose colors and fonts that match your robot’s personality.",
+      requiredPoints: 80,
+      image: "https://picsum.photos/seed/dogcollartag/600/400",
+      alt: "Photograph a collar and tag on a soft fabric or wooden surface, tag facing camera.",
+      "data-ai-hint": "custom dog collar"
+    },
+    {
+      id: "pawme_mini_box",
+      title: "PawMe Mini Celebration Box 🎉",
+      reward: "A one-off mini box inspired by premium pet subscriptions: 2 toys + 2 full-size treats tailored to your pet’s size and species. A taste of the VIP experience.",
+      requiredPoints: 100,
+      image: "https://picsum.photos/seed/petsubscriptionbox/600/400",
+      alt: "Show an open box with toys and treat bags neatly arranged, similar to top pet subscription boxes.",
+      "data-ai-hint": "pet subscription box"
+    }
 ];
 
 
