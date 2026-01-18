@@ -10,6 +10,19 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 const fromEmail = 'PawMe <pawme@ayvalabs.com>';
 const adminDb = getAdminFirestore();
 
+function getAppUrl(): string {
+  // Use the explicitly set public app URL if available
+  if (process.env.NEXT_PUBLIC_APP_URL) {
+    return process.env.NEXT_PUBLIC_APP_URL;
+  }
+  // Fallback to Vercel's system environment variable
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
+  // Default to localhost for local development
+  return 'http://localhost:9008';
+}
+
 async function getTemplate(templateId: string) {
   try {
     const templateRef = doc(adminDb, 'emailTemplates', templateId);
@@ -57,7 +70,7 @@ async function renderAndSend(templateId: string, to: string, variables: Record<s
   let headerHtml = (appSettings.emailHeader || '').replace(/{{emailTitle}}/g, subject);
   let footerHtml = (appSettings.emailFooter || '');
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9008';
+  const appUrl = getAppUrl();
   const unsubscribeUrl = `${appUrl}/unsubscribe?email=${encodeURIComponent(to)}`;
   footerHtml = footerHtml.replace(/{{unsubscribeLink}}/g, unsubscribeUrl);
 
@@ -81,12 +94,12 @@ async function renderAndSend(templateId: string, to: string, variables: Record<s
     return data;
   } catch (error) {
     console.error(`❌ [EMAIL_ACTION] A catch-block error occurred while sending email '${templateId}':`, error);
-    throw new Error(`Failed to send email '${templateId}' due to a server error.`);
+    throw error;
   }
 }
 
 export async function sendWelcomeEmail({ to, name, referralCode }: { to: string, name: string, referralCode: string }) {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9008';
+  const appUrl = getAppUrl();
   const referralLink = `${appUrl}/?ref=${referralCode}`;
   await renderAndSend('welcome', to, { userName: name, referralCode, referralLink });
 }
@@ -123,7 +136,7 @@ export async function sendCustomPasswordResetEmail({ email }: { email: string })
 }
 
 export async function sendAdminBroadcast(users: {email: string, name: string}[], subject: string, bodyTemplate: string) {
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9008';
+    const appUrl = getAppUrl();
     const settingsSnap = await getDoc(doc(adminDb, 'app-settings', 'rewards'));
     const appSettings = settingsSnap.exists() ? settingsSnap.data() : {};
     const headerHtml = (appSettings.emailHeader || '').replace(/{{emailTitle}}/g, subject);

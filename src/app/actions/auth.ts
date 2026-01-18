@@ -42,10 +42,14 @@ export async function sendSignUpVerificationCode({ email, name }: { email: strin
     return { success: true, message: 'Verification code sent.' };
   } catch (error: any) {
     console.error('❌ [ACTION] CRITICAL FAILURE in sendSignUpVerificationCode:', error.message);
-    console.error(error); 
+    console.error('Full error object:', JSON.stringify(error, null, 2));
     
-    if (error.message.includes('API key')) {
+    if (error.message && error.message.includes('API key')) {
         return { success: false, message: 'Email service is not configured on the server. Please contact support.' };
+    }
+
+    if (error.message && (error.message.includes('domain is not verified') || error.message.includes('is not a verified sender'))) {
+        return { success: false, message: 'Email sending failed: The sending domain is not verified. Please configure it in your email provider (Resend).'}
     }
     
     return { success: false, message: 'Could not send verification code. Please try again later.' };
