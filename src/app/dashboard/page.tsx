@@ -262,19 +262,16 @@ export default function AdminPage() {
     try {
       const appSettings = await getAppSettings();
 
-      // ALWAYS load the hardcoded list for now, as requested.
       setLocalRewardTiers(defaultRewardTiers);
 
       if (appSettings) {
         setSettings(appSettings);
         setLocalVipSpots(appSettings.vipConfig?.totalSpots || 100);
         setLocalReferralTiers(appSettings.referralTiers || []);
-        // Intentionally ignoring appSettings.rewardTiers to show the hardcoded ones.
       }
     } catch (error) {
       console.error('Error fetching settings:', error);
       toast.error('Failed to load settings.');
-      // Fallback to defaults if settings fetch fails
       setLocalRewardTiers(defaultRewardTiers);
     }
     setLoadingSettings(false);
@@ -1099,7 +1096,7 @@ export default function AdminPage() {
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={()={() => setRewardDialogOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setRewardDialogOpen(false)}>Cancel</Button>
             <Button onClick={handleSaveRewardFromDialog}>Save</Button>
           </DialogFooter>
         </DialogContent>
