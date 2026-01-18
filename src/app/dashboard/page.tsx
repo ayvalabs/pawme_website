@@ -29,7 +29,7 @@ import { getAppSettings, type AppSettings, type ReferralTier, type RewardTier } 
 import { defaultTemplates } from '@/lib/email-templates';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/app/components/ui/tooltip';
 import Image from 'next/image';
-import { uploadRewardImages } from '@/app/services/adminService';
+import { uploadRewardImages, saveAppSettings } from '@/app/services/adminService';
 import { EmailTemplateEditor, EmailPreview } from '@/app/components/email-template-editor';
 import { ImageWithFallback } from '@/app/components/figma/ImageWithFallback';
 import { ScrollArea } from '@/app/components/ui/scroll-area';
@@ -996,8 +996,8 @@ export default function AdminPage() {
                 </DialogDescription>
               </DialogHeader>
               
-              <ScrollArea className="flex-grow p-6">
-                <div className="space-y-4 pr-4">
+              <ScrollArea className="flex-grow">
+                <div className="space-y-4 p-6 pr-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="template-id">Template ID *</Label>
