@@ -28,8 +28,11 @@ import { collection, query, orderBy, getDocs, doc, setDoc, deleteDoc, updateDoc 
 import { getAppSettings, type AppSettings, type ReferralTier, type RewardTier } from '@/app/actions/settings';
 import { defaultTemplates } from '@/lib/email-templates';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/app/components/ui/tooltip';
+import Image from 'next/image';
+import { uploadRewardImages } from '@/app/services/adminService';
+import { EmailTemplateEditor, EmailPreview } from '@/app/components/email-template-editor';
 import { ImageWithFallback } from '@/app/components/figma/ImageWithFallback';
-import { uploadRewardImages, saveAppSettings } from '@/app/services/adminService';
+import { ScrollArea } from '@/app/components/ui/scroll-area';
 
 type UserWithId = UserProfile & { id: string };
 type RewardWithUser = Reward & { user: { id: string; name: string; email: string }, rewardTitle: string };
@@ -982,80 +985,93 @@ export default function AdminPage() {
 
       {/* Template Editor Dialog */}
       <Dialog open={templateDialogOpen} onOpenChange={setTemplateDialogOpen}>
-        <DialogContent className="sm:max-w-3xl h-[90vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle>{editingTemplate ? 'Edit Template' : 'Create New Template'}</DialogTitle>
-            <DialogDescription>
-              {editingTemplate ? 'Update the email template details.' : 'Create a new reusable email template.'}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex-grow space-y-4 overflow-y-auto pr-2">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="template-id">Template ID *</Label>
-                  <Input 
-                    id="template-id" 
-                    value={templateId} 
-                    onChange={(e) => setTemplateId(e.target.value)}
-                    placeholder="e.g., welcome, shipping"
-                    disabled={!!editingTemplate}
-                  />
-                  <p className="text-xs text-muted-foreground">Unique identifier, no spaces.</p>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="template-name">Template Name *</Label>
-                  <Input 
-                    id="template-name" 
-                    value={templateName} 
-                    onChange={(e) => setTemplateName(e.target.value)}
-                    placeholder="e.g., Welcome Email"
-                  />
-                </div>
-              </div>
+        <DialogContent className="max-w-7xl h-[90vh] p-0">
+          <div className="flex h-full">
+            {/* Left Panel - Editor */}
+            <div className="w-1/2 flex flex-col border-r">
+              <DialogHeader className="p-6 pb-4 border-b">
+                <DialogTitle>{editingTemplate ? 'Edit Template' : 'Create New Template'}</DialogTitle>
+                <DialogDescription>
+                  {editingTemplate ? 'Update the email template details.' : 'Create a new reusable email template.'}
+                </DialogDescription>
+              </DialogHeader>
               
-              <div className="space-y-2">
-                <Label htmlFor="template-subject">Email Subject *</Label>
-                <Input 
-                  id="template-subject" 
-                  value={templateSubject} 
-                  onChange={(e) => setTemplateSubject(e.target.value)}
-                  placeholder="e.g., Welcome to PawMe! 🐾"
-                />
-              </div>
+              <ScrollArea className="flex-grow p-6">
+                <div className="space-y-4 pr-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="template-id">Template ID *</Label>
+                      <Input 
+                        id="template-id" 
+                        value={templateId} 
+                        onChange={(e) => setTemplateId(e.target.value)}
+                        placeholder="e.g., welcome, shipping"
+                        disabled={!!editingTemplate}
+                      />
+                      <p className="text-xs text-muted-foreground">Unique identifier, no spaces.</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="template-name">Template Name *</Label>
+                      <Input 
+                        id="template-name" 
+                        value={templateName} 
+                        onChange={(e) => setTemplateName(e.target.value)}
+                        placeholder="e.g., Welcome Email"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="template-subject">Email Subject *</Label>
+                    <Input 
+                      id="template-subject" 
+                      value={templateSubject} 
+                      onChange={(e) => setTemplateSubject(e.target.value)}
+                      placeholder="e.g., Welcome to PawMe! 🐾"
+                    />
+                  </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="template-variables">Variables (comma-separated)</Label>
-                <Input 
-                  id="template-variables" 
-                  value={templateVariables} 
-                  onChange={(e) => setTemplateVariables(e.target.value)}
-                  placeholder="e.g., userName, referralCode"
-                />
-                <p className="text-xs text-muted-foreground">Use as {'{{variableName}}'} in your HTML.</p>
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="template-variables">Variables (comma-separated)</Label>
+                    <Input 
+                      id="template-variables" 
+                      value={templateVariables} 
+                      onChange={(e) => setTemplateVariables(e.target.value)}
+                      placeholder="e.g., userName, referralCode"
+                    />
+                    <p className="text-xs text-muted-foreground">Use as {'{{variableName}}'} in your HTML.</p>
+                  </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="template-html">HTML Content *</Label>
-                <Textarea 
-                  id="template-html" 
-                  value={templateHtml} 
-                  onChange={(e) => setTemplateHtml(e.target.value)}
-                  placeholder="Enter HTML email content..."
-                  className="font-mono text-sm min-h-[400px]"
+                  <EmailTemplateEditor
+                    value={templateHtml}
+                    onChange={setTemplateHtml}
+                    placeholder="Enter HTML email content..."
+                  />
+                </div>
+              </ScrollArea>
+              
+              <DialogFooter className="p-6 pt-4 border-t">
+                <Button variant="outline" onClick={() => setTemplateDialogOpen(false)}>Cancel</Button>
+                <Button onClick={handleSaveTemplate}>
+                  {editingTemplate ? 'Update Template' : 'Create Template'}
+                </Button>
+              </DialogFooter>
+            </div>
+
+            {/* Right Panel - Live Preview */}
+            <div className="w-1/2 flex flex-col bg-muted/30">
+              <div className="p-6 pb-4 border-b bg-background">
+                <h3 className="text-lg font-semibold">Live Preview</h3>
+                <p className="text-sm text-muted-foreground">See how your email will look with sample data</p>
+              </div>
+              <div className="flex-grow p-6">
+                <EmailPreview
+                  subject={templateSubject}
+                  html={templateHtml}
                 />
               </div>
+            </div>
           </div>
-          <DialogFooter className="pt-4 border-t">
-            <Button variant="outline" onClick={() => handlePreview(templateSubject, templateHtml)}>
-                <Eye className="w-4 h-4 mr-2" />
-                Preview
-            </Button>
-            <div className="flex-grow" />
-            <Button variant="outline" onClick={() => setTemplateDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleSaveTemplate}>
-              {editingTemplate ? 'Update Template' : 'Create Template'}
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 

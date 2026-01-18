@@ -25,7 +25,7 @@ interface AuthDialogProps {
 
 function AuthMarketingPanel() {
   return (
-    <div className="relative hidden w-1/2 flex-col justify-between rounded-r-lg bg-gradient-to-br from-primary/20 via-secondary to-primary/20 p-8 md:flex">
+    <div className="relative flex w-2/5 flex-col justify-between rounded-r-lg bg-gradient-to-br from-primary/20 via-secondary to-primary/20 p-8">
       <div className="absolute inset-0 z-0">
         <ImageWithFallback
           src="/images/feature-ai-companion.jpg"
@@ -206,9 +206,9 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
   return (
     <>
       <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent className="max-w-6xl p-0">
-          <div className="flex">
-            <div className="w-full p-8 md:w-1/2">
+        <DialogContent className="max-w-4xl p-0">
+          <div className="flex min-h-[600px]">
+            <div className="w-3/5 p-8">
               <DialogHeader className="mb-6 text-center">
                 <DialogTitle className="text-2xl">Welcome to PawMe</DialogTitle>
                 <DialogDescription>
