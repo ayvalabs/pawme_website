@@ -6,7 +6,7 @@ import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
 import { Label } from '@/app/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/tabs';
-import { Mail, Lock, User, KeyRound, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Mail, Lock, User, KeyRound, Sparkles, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/app/context/AuthContext';
 import { toast } from 'sonner';
 import { Checkbox } from '@/app/components/ui/checkbox';
@@ -78,6 +78,7 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
   const [marketingOptIn, setMarketingOptIn] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
   const [isPrivacyOpen, setPrivacyOpen] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -122,6 +123,7 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
       } else if (error.code === 'auth/too-many-requests') {
         message = 'Access to this account has been temporarily disabled due to many failed login attempts. You can try again later or reset your password.';
       }
+      console.error('Firebase Sign In Error:', error);
       setError(message);
     } finally {
       setLoading(false);
@@ -230,7 +232,19 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
                 <TabsContent value="signin" className="mt-4 space-y-4">
                   <form onSubmit={handleSignIn} className="space-y-4">
                     <div className="space-y-2"><Label htmlFor="signin-email">Email</Label><div className="relative"><Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input id="signin-email" type="email" placeholder="you@example.com" value={signInEmail} onChange={(e) => setSignInEmail(e.target.value)} required className="pl-10" disabled={loading} /></div></div>
-                    <div className="space-y-2"><Label htmlFor="signin-password">Password</Label><div className="relative"><Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input id="signin-password" type="password" placeholder="••••••••" value={signInPassword} onChange={(e) => setSignInPassword(e.target.value)} required className="pl-10" disabled={loading} /></div><div className="mt-1 flex items-center justify-end text-sm"><Button type="button" variant="link" className="h-auto p-0 font-normal text-primary hover:text-primary/80" onClick={handlePasswordReset} disabled={loading}>Forgot Password?</Button></div></div>
+                    <div className="space-y-2">
+                      <Label htmlFor="signin-password">Password</Label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input id="signin-password" type={showPassword ? "text" : "password"} placeholder="••••••••" value={signInPassword} onChange={(e) => setSignInPassword(e.target.value)} required className="pl-10 pr-10" disabled={loading} />
+                        <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 text-muted-foreground hover:bg-transparent" onClick={() => setShowPassword((prev) => !prev)} aria-label={showPassword ? "Hide password" : "Show password"}>
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                      <div className="mt-1 flex items-center justify-end text-sm">
+                        <Button type="button" variant="link" className="h-auto p-0 font-normal text-primary hover:text-primary/80" onClick={handlePasswordReset} disabled={loading}>Forgot Password?</Button>
+                      </div>
+                    </div>
                     <Button type="submit" className="w-full" disabled={loading}>{loading ? 'Signing in...' : 'Sign In'}</Button>
                   </form>
                   <div className="relative"><div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div><div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground">Or continue with</span></div></div>
@@ -242,7 +256,16 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
                     <form onSubmit={handleInitiateSignUp} className="space-y-4">
                       <div className="space-y-2"><Label htmlFor="signup-name">Name</Label><div className="relative"><User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input id="signup-name" type="text" placeholder="Your name" value={signUpName} onChange={(e) => setSignUpName(e.target.value)} required className="pl-10" disabled={loading} /></div></div>
                       <div className="space-y-2"><Label htmlFor="signup-email">Email</Label><div className="relative"><Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input id="signup-email" type="email" placeholder="you@example.com" value={signUpEmail} onChange={(e) => setSignUpEmail(e.target.value)} required className="pl-10" disabled={loading} /></div></div>
-                      <div className="space-y-2"><Label htmlFor="signup-password">Password</Label><div className="relative"><Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input id="signup-password" type="password" placeholder="•••••••• (at least 6 characters)" value={signUpPassword} onChange={(e) => setSignUpPassword(e.target.value)} required minLength={6} className="pl-10" disabled={loading} /></div></div>
+                      <div className="space-y-2">
+                        <Label htmlFor="signup-password">Password</Label>
+                        <div className="relative">
+                          <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                          <Input id="signup-password" type={showPassword ? "text" : "password"} placeholder="•••••••• (at least 6 characters)" value={signUpPassword} onChange={(e) => setSignUpPassword(e.target.value)} required minLength={6} className="pl-10 pr-10" disabled={loading} />
+                          <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 text-muted-foreground hover:bg-transparent" onClick={() => setShowPassword((prev) => !prev)} aria-label={showPassword ? "Hide password" : "Show password"}>
+                           {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </Button>
+                        </div>
+                      </div>
                       <div className="flex items-start space-x-2"><Checkbox id="terms" checked={privacyPolicyAgreed} onCheckedChange={(checked) => setPrivacyPolicyAgreed(checked as boolean)} disabled={loading} /><div className="grid gap-1.5 leading-none"><label htmlFor="terms" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">I agree to the{' '}<Button type="button" variant="link" className="h-auto p-0 underline" onClick={() => setPrivacyOpen(true)}>Privacy Policy</Button></label></div></div>
                       <div className="flex items-start space-x-2"><Checkbox id="marketing" checked={marketingOptIn} onCheckedChange={(checked) => setMarketingOptIn(checked as boolean)} disabled={loading} /><div className="grid gap-1.5 leading-none"><label htmlFor="marketing" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Receive occasional product promotion messages</label></div></div>
                       {referralCode && (<div className="rounded-md bg-primary/5 p-3 text-sm text-muted-foreground">You were referred with code: <span className="font-semibold text-primary">{referralCode}</span></div>)}
