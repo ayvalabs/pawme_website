@@ -45,6 +45,55 @@ const getReferralTierIcon = (referralCount: number) => {
   return '';
 };
 
+const defaultRewardTiers: RewardTier[] = [
+  {
+    id: 'treats-1',
+    title: 'Premium Organic Treats',
+    reward: '🐾 A bag of delicious, high-quality organic treats.',
+    requiredPoints: 500,
+    image: 'https://picsum.photos/seed/reward1/600/400',
+    alt: 'A pack of premium organic pet treats',
+    'data-ai-hint': 'pet treats'
+  },
+  {
+    id: 'toy-1',
+    title: 'Interactive Puzzle Toy',
+    reward: '🧠 A fun and engaging puzzle toy to keep your pet\'s mind sharp.',
+    requiredPoints: 1000,
+    image: 'https://picsum.photos/seed/reward2/600/400',
+    alt: 'An interactive smart puzzle toy for pets',
+    'data-ai-hint': 'pet toy'
+  },
+  {
+    id: 'collar-1',
+    title: 'Stylish Personalized Collar',
+    reward: '✨ A stylish and durable leather collar, personalized with your pet\'s name.',
+    requiredPoints: 1500,
+    image: 'https://picsum.photos/seed/reward3/600/400',
+    alt: 'A stylish personalized leather pet collar',
+    'data-ai-hint': 'dog collar'
+  },
+  {
+    id: 'bed-1',
+    title: 'Orthopedic Pet Bed',
+    reward: '😴 A luxurious and comfortable orthopedic bed for the perfect nap.',
+    requiredPoints: 3000,
+    image: 'https://picsum.photos/seed/reward5/600/400',
+    alt: 'A luxurious orthopedic memory foam pet bed',
+    'data-ai-hint': 'dog bed'
+  },
+  {
+    id: 'feeder-1',
+    title: 'Automated Smart Feeder',
+    reward: '🍽️ A smart feeder that automates feeding schedules with portion control.',
+    requiredPoints: 5000,
+    image: 'https://picsum.photos/seed/reward6/600/400',
+    alt: 'A smart automated pet feeder with portion control',
+    'data-ai-hint': 'smart feeder'
+  }
+];
+
+
 export default function AdminPage() {
   const { user, profile, loading: authLoading } = useAuth();
   const router = useRouter();
@@ -151,7 +200,14 @@ export default function AdminPage() {
             description: "Some rewards had invalid image URLs and were ignored. Please re-save your rewards.",
           });
         }
-        setLocalRewardTiers(validRewardTiers);
+        
+        if (validRewardTiers.length > 0) {
+            setLocalRewardTiers(validRewardTiers);
+        } else {
+            setLocalRewardTiers(defaultRewardTiers);
+        }
+      } else {
+        setLocalRewardTiers(defaultRewardTiers);
       }
     } catch (error) {
       console.error('Error fetching settings:', error);
@@ -1133,3 +1189,4 @@ export default function AdminPage() {
     </>
   );
 }
+
