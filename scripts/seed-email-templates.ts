@@ -1,116 +1,392 @@
-#!/usr/bin/env tsx
+'use client';
 
-/**
- * Script to seed email templates to Firestore
- * 
- * This script saves the default email templates from src/lib/email-templates.ts
- * to the Firestore database under the 'emailTemplates' collection.
- * 
- * Usage:
- *   pnpm tsx scripts/seed-email-templates.ts
- * 
- * Note: You must be authenticated as pawme@ayvalabs.com to run this script.
- */
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
+import {
+  onAuthStateChanged,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  GoogleAuthProvider,
+  signOut as firebaseSignOut,
+  User as FirebaseUser,
+  updateProfile as updateUserProfile,
+} from 'firebase/auth';
+import {
+  doc,
+  setDoc,
+  getDoc,
+  collection,
+  query,
+  where,
+  getDocs,
+  updateDoc,
+  deleteDoc,
+} from 'firebase/firestore';
+import { auth, db } from '@/firebase/config';
+import { sendWelcomeEmail, sendCustomPasswordResetEmail } from '@/app/actions/email';
+import { creditReferrer } from '@/app/actions/users';
+import { isDisposableEmail } from '@/lib/disposable-domains';
 
-import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, doc, setDoc } from 'firebase/firestore';
-import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
-import * as readline from 'readline';
-import { defaultTemplates } from '../src/lib/email-templates';
-
-// Firebase configuration
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const auth = getAuth(app);
-
-// Create readline interface for user input
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout
-});
-
-function question(query: string): Promise<string> {
-  return new Promise((resolve) => {
-    rl.question(query, resolve);
-  });
+export interface Reward {
+  rewardId: string;
+  redeemedAt: string;
+  status: 'pending' | 'shipped';
+  trackingCode?: string;
+  shippingAddress?: {
+    fullName: string;
+    address1: string;
+    address2?: string;
+    city: string;
+    state: string;
+    zip: string;
+    country: string;
+    phone: string;
+  };
 }
 
-async function seedTemplates() {
-  try {
-    console.log('🔐 Firebase Email Template Seeder');
-    console.log('================================\n');
+export interface UserProfile {
+  id: string;
+  email: string;
+  name: string;
+  referralCode: string;
+  points: number;
+  referralCount: number;
+  referredBy: string | null;
+  theme: string;
+  rewards: Reward[];
+  createdAt: string;
+  isVip?: boolean;
+  privacyPolicyAgreed: boolean;
+  marketingOptIn: boolean;
+}
 
-    // Check if environment variables are set
-    if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
-      console.error('❌ Firebase configuration not found in environment variables.');
-      console.error('Make sure your .env.local file is properly configured.');
-      process.exit(1);
-    }
+interface AuthContextType {
+  user: FirebaseUser | null;
+  profile: UserProfile | null;
+  loading: boolean;
+  signUp: (email: string, password: string, name: string, code: string, referredByCode: string | undefined, privacyPolicyAgreed: boolean, marketingOptIn: boolean) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<FirebaseUser>;
+  signInWithGoogle: () => Promise<FirebaseUser>;
+  signOut: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
+  updateTheme: (theme: string) => Promise<void>;
+  sendPasswordReset: (email: string) => Promise<{ success: boolean; message?: string }>;
+  joinVip: () => Promise<void>;
+  redeemReward: (rewardId: string, shippingAddress: any) => Promise<void>;
+  updateMarketingPreference: (optIn: boolean) => Promise<void>;
+}
 
-    // Authenticate as admin
-    console.log('Please sign in with admin credentials (pawme@ayvalabs.com):\n');
-    const email = await question('Email: ');
-    const password = await question('Password: ');
-    console.log('');
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-    if (email !== 'pawme@ayvalabs.com') {
-      console.error('❌ Only pawme@ayvalabs.com can seed email templates.');
-      rl.close();
-      process.exit(1);
-    }
+async function generateReferralCode(email: string, uid: string): Promise<string> {
+  const namePart = email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+  const uidPart = uid.substring(0, 6).toUpperCase();
+  let referralCode = `${namePart}${uidPart}`.slice(0, 10);
+  
+  if (referralCode.length < 6) {
+    referralCode = (referralCode + uid.toUpperCase()).slice(0, 10);
+  }
+  
+  const usersRef = collection(db, 'users');
+  const q = query(usersRef, where('referralCode', '==', referralCode));
+  const querySnapshot = await getDocs(q);
+  
+  if (!querySnapshot.empty) {
+    referralCode = (namePart + uid.substring(0, 8)).toUpperCase().slice(0, 10);
+  }
+  
+  return referralCode;
+}
 
-    console.log('🔑 Authenticating...');
-    await signInWithEmailAndPassword(auth, email, password);
-    console.log('✅ Authenticated successfully!\n');
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<FirebaseUser | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
-    // Get templates collection reference
-    const templatesRef = collection(db, 'emailTemplates');
-
-    console.log('📧 Seeding email templates to Firestore...\n');
-
-    // Save each template
-    for (const [templateId, template] of Object.entries(defaultTemplates)) {
-      console.log(`  📝 Saving template: ${template.name} (${templateId})`);
-      
-      const templateDoc = doc(templatesRef, templateId);
-      await setDoc(templateDoc, {
-        id: template.id,
-        name: template.name,
-        subject: template.subject,
-        html: template.html,
-        variables: template.variables,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      });
-      
-      console.log(`  ✅ Saved: ${template.name}`);
-    }
-
-    console.log('\n🎉 All email templates have been successfully seeded to Firestore!');
-    console.log(`\nTotal templates saved: ${Object.keys(defaultTemplates).length}`);
-    console.log('\nTemplates saved:');
-    Object.values(defaultTemplates).forEach(t => {
-      console.log(`  - ${t.name} (${t.id})`);
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      setUser(user);
+      if (user) {
+        await fetchProfile(user.uid);
+      } else {
+        setProfile(null);
+      }
+      setLoading(false);
     });
 
-    rl.close();
-    process.exit(0);
-  } catch (error: any) {
-    console.error('\n❌ Error seeding templates:', error.message);
-    rl.close();
-    process.exit(1);
-  }
+    return () => unsubscribe();
+  }, []);
+
+  const fetchProfile = async (uid: string) => {
+    const docRef = doc(db, 'users', uid);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      setProfile(docSnap.data() as UserProfile);
+    } else {
+      console.log('No such profile!');
+    }
+  };
+
+  const signUp = async (email: string, password: string, name: string, code: string, referredByCode: string | undefined, privacyPolicyAgreed: boolean, marketingOptIn: boolean) => {
+    console.log('🔵 [SIGNUP] Starting signup process for:', email);
+    
+    try {
+      // 1. Verify code
+      console.log('🔵 [SIGNUP] Step 1: Verifying code...');
+      const verificationsRef = collection(db, 'verifications');
+      const q = query(verificationsRef, where('email', '==', email), where('code', '==', code));
+      const querySnapshot = await getDocs(q);
+      console.log('✅ [SIGNUP] Code verification query completed');
+
+      if (querySnapshot.empty) {
+        console.error('❌ [SIGNUP] Invalid verification code');
+        throw new Error('Invalid verification code.');
+      }
+
+      const verificationDoc = querySnapshot.docs[0];
+      const verificationData = verificationDoc.data();
+      console.log('✅ [SIGNUP] Verification document found');
+
+      if (verificationData.expiresAt.toMillis() < Date.now()) {
+        console.error('❌ [SIGNUP] Verification code expired');
+        await deleteDoc(verificationDoc.ref);
+        throw new Error('Verification code has expired. Please try again.');
+      }
+      
+      // 2. If valid, proceed with signup
+      console.log('🔵 [SIGNUP] Step 2: Checking disposable email...');
+      if (isDisposableEmail(email)) {
+        console.error('❌ [SIGNUP] Disposable email detected');
+        throw new Error("Disposable email addresses are not allowed. Please use a permanent email address.");
+      }
+      console.log('✅ [SIGNUP] Email validation passed');
+      
+      console.log('🔵 [SIGNUP] Step 3: Creating Firebase Auth user...');
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const newUser = userCredential.user;
+      console.log('✅ [SIGNUP] Firebase Auth user created:', newUser.uid);
+      
+      console.log('🔵 [SIGNUP] Step 4: Updating user profile...');
+      await updateUserProfile(newUser, { displayName: name });
+      console.log('✅ [SIGNUP] User profile updated');
+
+      console.log('🔵 [SIGNUP] Step 5: Generating referral code...');
+      const referralCode = await generateReferralCode(email, newUser.uid);
+      console.log('✅ [SIGNUP] Referral code generated:', referralCode);
+      
+      const userProfile: UserProfile = {
+        id: newUser.uid,
+        email: newUser.email!,
+        name: name || newUser.email!.split('@')[0],
+        referralCode,
+        points: 100, // Start with 100 points
+        referralCount: 0,
+        referredBy: referredByCode || null,
+        theme: 'purple',
+        rewards: [],
+        createdAt: new Date().toISOString(),
+        isVip: false,
+        privacyPolicyAgreed,
+        marketingOptIn,
+      };
+
+      console.log('🔵 [SIGNUP] Step 6: Creating user document in Firestore...');
+      await setDoc(doc(db, 'users', newUser.uid), userProfile);
+      console.log('✅ [SIGNUP] User document created in Firestore');
+      
+      // 7. Clean up and post-signup tasks
+      console.log('🔵 [SIGNUP] Step 7: Cleaning up verification code...');
+      await deleteDoc(verificationDoc.ref);
+      console.log('✅ [SIGNUP] Verification code deleted');
+      
+      if (referredByCode) {
+        console.log('🔵 [SIGNUP] Step 8: Crediting referrer...');
+        await creditReferrer(referredByCode, userProfile);
+        console.log('✅ [SIGNUP] Referrer credited');
+      }
+      
+      console.log('🔵 [SIGNUP] Step 9: Sending welcome email...');
+      await sendWelcomeEmail({ to: email, name, referralCode });
+      console.log('✅ [SIGNUP] Welcome email sent');
+
+      setUser(newUser);
+      setProfile(userProfile);
+      console.log('✅ [SIGNUP] Signup process completed successfully!');
+    } catch (error: any) {
+      console.error('❌ [SIGNUP] Error during signup:', error);
+      console.error('❌ [SIGNUP] Error code:', error.code);
+      console.error('❌ [SIGNUP] Error message:', error.message);
+      console.error('❌ [SIGNUP] Full error:', error);
+      if (error.code === 'auth/email-already-in-use') {
+        throw new Error('An account with this email already exists. Please sign in.');
+      }
+      throw error;
+    }
+  };
+
+  const signIn = async (email: string, password: string) => {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    await fetchProfile(userCredential.user.uid);
+    if (userCredential.user.email === 'pawme@ayvalabs.com') {
+      router.push('/dashboard');
+    } else {
+      router.push('/leaderboard');
+    }
+    return userCredential.user;
+  };
+
+  const sendPasswordReset = async (email: string) => {
+    try {
+      await sendCustomPasswordResetEmail({ email });
+      return { success: true };
+    } catch (error: any) {
+      if (error.code === 'auth/user-not-found') {
+        console.log(`Password reset requested for non-existent user: ${email}`);
+        return { success: true, message: 'If an account with this email exists, a password reset link has been sent.' };
+      }
+      console.error('Password reset error:', error);
+      return { success: false, message: 'Could not send password reset email.' };
+    }
+  };
+
+  const signInWithGoogle = async () => {
+    const provider = new GoogleAuthProvider();
+    const result = await signInWithPopup(auth, provider);
+    const user = result.user;
+
+    const userDocRef = doc(db, 'users', user.uid);
+    const userDoc = await getDoc(userDocRef);
+
+    if (!userDoc.exists()) {
+      const referralCode = await generateReferralCode(user.email!, user.uid);
+      const userProfile: UserProfile = {
+        id: user.uid,
+        email: user.email!,
+        name: user.displayName || user.email!.split('@')[0],
+        referralCode,
+        points: 0,
+        referralCount: 0,
+        referredBy: null,
+        theme: 'purple',
+        rewards: [],
+        createdAt: new Date().toISOString(),
+        isVip: false,
+        privacyPolicyAgreed: true,
+        marketingOptIn: false,
+      };
+      await setDoc(userDocRef, userProfile);
+      setProfile(userProfile);
+    } else {
+      await fetchProfile(user.uid);
+    }
+    
+    if (user.email === 'pawme@ayvalabs.com') {
+      router.push('/dashboard');
+    } else {
+      router.push('/leaderboard');
+    }
+
+    return user;
+  };
+
+  const signOut = async () => {
+    await firebaseSignOut(auth);
+    document.documentElement.setAttribute('data-theme', 'purple');
+  };
+
+  const refreshProfile = async () => {
+    if (user) {
+      await fetchProfile(user.uid);
+    }
+  };
+
+  const updateTheme = async (theme: string) => {
+    if (user) {
+      const userDocRef = doc(db, 'users', user.uid);
+      try {
+        await updateDoc(userDocRef, { theme });
+        await fetchProfile(user.uid);
+      } catch (error) {
+        console.error('Error updating theme:', error);
+      }
+    }
+  };
+
+  const joinVip = async () => {
+    if (user) {
+      const userDocRef = doc(db, 'users', user.uid);
+      try {
+        await updateDoc(userDocRef, { isVip: true });
+        await fetchProfile(user.uid);
+      } catch (error) {
+        console.error('Error joining VIP:', error);
+        throw error;
+      }
+    }
+  };
+
+  const redeemReward = async (rewardId: string, shippingAddress: any) => {
+    if (user && profile) {
+      const userDocRef = doc(db, 'users', user.uid);
+      const newReward: Reward = { 
+        rewardId, 
+        redeemedAt: new Date().toISOString(),
+        status: 'pending',
+        shippingAddress,
+      };
+      const updatedRewards = [...(profile.rewards || []), newReward];
+      try {
+        await updateDoc(userDocRef, { rewards: updatedRewards });
+        await fetchProfile(user.uid);
+      } catch (error) {
+        console.error('Error redeeming reward:', error);
+        throw error;
+      }
+    }
+  };
+
+  const updateMarketingPreference = async (optIn: boolean) => {
+    if (user) {
+      const userDocRef = doc(db, 'users', user.uid);
+      try {
+        await updateDoc(userDocRef, { marketingOptIn: optIn });
+        await fetchProfile(user.uid);
+      } catch (error) {
+        console.error('Error updating marketing preference:', error);
+        throw error;
+      }
+    }
+  };
+
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        profile,
+        loading,
+        signUp,
+        signIn,
+        signInWithGoogle,
+        signOut,
+        refreshProfile,
+        updateTheme,
+        sendPasswordReset,
+        joinVip,
+        redeemReward,
+        updateMarketingPreference,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
-// Run the seeder
-seedTemplates();
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+}

@@ -22,11 +22,11 @@ import {
   where,
   getDocs,
   updateDoc,
-  runTransaction,
   deleteDoc,
 } from 'firebase/firestore';
 import { auth, db } from '@/firebase/config';
-import { sendWelcomeEmail, sendReferralSuccessEmail, sendCustomPasswordResetEmail } from '@/app/actions/email';
+import { sendWelcomeEmail, sendCustomPasswordResetEmail } from '@/app/actions/email';
+import { creditReferrer } from '@/app/actions/users';
 import { isDisposableEmail } from '@/lib/disposable-domains';
 
 export interface Reward {
@@ -130,50 +130,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const creditReferrer = async (referralCode: string, newSignedUpEmail: string) => {
-    const referralsRef = collection(db, 'users');
-    const q = query(referralsRef, where('referralCode', '==', referralCode));
-    const querySnapshot = await getDocs(q);
-
-    if (!querySnapshot.empty) {
-      const referrerDocSnapshot = querySnapshot.docs[0];
-      const referrerRef = doc(db, 'users', referrerDocSnapshot.id);
-
-      if (referrerDocSnapshot.data().email === newSignedUpEmail) {
-        console.warn('Self-referral attempt blocked.');
-        return;
-      }
-
-      await runTransaction(db, async (transaction) => {
-        const referrerDoc = await transaction.get(referrerRef);
-        if (!referrerDoc.exists()) {
-          throw "Referrer document does not exist!";
-        }
-        const newReferralCount = (referrerDoc.data().referralCount || 0) + 1;
-        const pointsToAdd = referrerDoc.data().isVip ? 3 : 2;
-        const newPoints = (referrerDoc.data().points || 0) + pointsToAdd;
-        
-        transaction.update(referrerRef, { 
-          referralCount: newReferralCount,
-          points: newPoints
-        });
-
-        const referrerData = referrerDoc.data();
-        if (referrerData.email) {
-          await sendReferralSuccessEmail({
-            to: referrerData.email,
-            referrerName: referrerData.name,
-            newReferralCount: newReferralCount,
-            newPoints: newPoints
-          });
-        }
-      });
-      console.log(`Credited referrer ${referrerDocSnapshot.id}`);
-    } else {
-      console.log(`Referral code ${referralCode} not found.`);
-    }
-  };
-
   const signUp = async (email: string, password: string, name: string, code: string, referredByCode: string | undefined, privacyPolicyAgreed: boolean, marketingOptIn: boolean) => {
     console.log('🔵 [SIGNUP] Starting signup process for:', email);
     
@@ -226,7 +182,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email: newUser.email!,
         name: name || newUser.email!.split('@')[0],
         referralCode,
-        points: 0,
+        points: 100, // Start with 100 points
         referralCount: 0,
         referredBy: referredByCode || null,
         theme: 'purple',
@@ -248,7 +204,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (referredByCode) {
         console.log('🔵 [SIGNUP] Step 8: Crediting referrer...');
-        await creditReferrer(referredByCode, email);
+        await creditReferrer(referredByCode, userProfile);
         console.log('✅ [SIGNUP] Referrer credited');
       }
       
@@ -284,11 +240,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const sendPasswordReset = async (email: string) => {
     try {
-      const result = await sendCustomPasswordResetEmail({ email });
-      return result;
+      await sendCustomPasswordResetEmail({ email });
+      return { success: true };
     } catch (error: any) {
+      if (error.code === 'auth/user-not-found') {
+        console.log(`Password reset requested for non-existent user: ${email}`);
+        return { success: true, message: 'If an account with this email exists, a password reset link has been sent.' };
+      }
       console.error('Password reset error:', error);
-      return { success: false, message: 'An unexpected client-side error occurred.' };
+      return { success: false, message: 'Could not send password reset email.' };
     }
   };
 
