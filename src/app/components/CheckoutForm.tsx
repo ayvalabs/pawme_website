@@ -1,100 +1,65 @@
-
 'use client';
 
-import React, { useEffect, useState } from "react";
-import {
-  PaymentElement,
-  useStripe,
-  useElements
-} from "@stripe/react-stripe-js";
+import React, { useState } from "react";
 import { Button } from "./ui/button";
-import { StripePaymentElementOptions } from "@stripe/stripe-js";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import { CreditCard, CalendarIcon, Lock } from "lucide-react";
+import { toast } from "sonner";
+
 
 interface CheckoutFormProps {
   onSuccess: () => Promise<void>;
 }
 
 export default function CheckoutForm({ onSuccess }: CheckoutFormProps) {
-  const stripe = useStripe();
-  const elements = useElements();
-
-  const [message, setMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-
-  useEffect(() => {
-    if (!stripe) {
-      return;
-    }
-
-    const clientSecret = new URLSearchParams(window.location.search).get(
-      "payment_intent_client_secret"
-    );
-
-    if (!clientSecret) {
-      return;
-    }
-
-    stripe.retrievePaymentIntent(clientSecret).then(({ paymentIntent }) => {
-      switch (paymentIntent?.status) {
-        case "succeeded":
-          setMessage("Payment succeeded!");
-          onSuccess();
-          break;
-        case "processing":
-          setMessage("Your payment is processing.");
-          break;
-        case "requires_payment_method":
-          setMessage("Your payment was not successful, please try again.");
-          break;
-        default:
-          setMessage("Something went wrong.");
-          break;
-      }
-    });
-  }, [stripe, onSuccess]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!stripe || !elements) {
-      // Stripe.js has not yet loaded.
-      return;
-    }
-
     setIsLoading(true);
 
-    const { error } = await stripe.confirmPayment({
-      elements,
-      confirmParams: {
-        return_url: `${window.location.origin}/leaderboard`,
-      },
-    });
-
-    // This point will only be reached if there is an immediate error when
-    // confirming the payment.
-    if (error.type === "card_error" || error.type === "validation_error") {
-      setMessage(error.message || 'An unexpected error occurred.');
-    } else {
-      setMessage("An unexpected error occurred.");
-    }
-
+    // Simulate payment processing
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    toast.success("Deposit successful!");
+    await onSuccess();
+    
     setIsLoading(false);
   };
 
-  const paymentElementOptions: StripePaymentElementOptions = {
-    layout: "tabs"
-  };
-
   return (
-    <form id="payment-form" onSubmit={handleSubmit}>
-      <PaymentElement id="payment-element" options={paymentElementOptions} />
-      <Button disabled={isLoading || !stripe || !elements} id="submit" className="w-full mt-6">
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="card-number">Card Number</Label>
+        <div className="relative">
+          <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input id="card-number" placeholder="•••• •••• •••• ••••" required className="pl-10" />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="expiry-date">Expiry Date</Label>
+          <div className="relative">
+            <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input id="expiry-date" placeholder="MM / YY" required className="pl-10" />
+          </div>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="cvc">CVC</Label>
+          <div className="relative">
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input id="cvc" placeholder="•••" required className="pl-10" />
+          </div>
+        </div>
+      </div>
+
+      <Button disabled={isLoading} type="submit" className="w-full mt-6">
         <span id="button-text">
           {isLoading ? "Processing..." : "Pay $1.00 Deposit"}
         </span>
       </Button>
-      {/* Show any error or success messages */}
-      {message && <div id="payment-message" className="text-sm text-center text-destructive mt-2">{message}</div>}
     </form>
   );
 }

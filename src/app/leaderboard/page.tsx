@@ -23,9 +23,9 @@ import * as z from 'zod';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/app/components/ui/form';
 import { ImageWithFallback } from '@/app/components/figma/ImageWithFallback';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/ui/table';
-import { loadStripe, type Stripe as StripeType } from '@stripe/stripe-js';
-import { Elements } from '@stripe/react-stripe-js';
-import { createPaymentIntent } from '@/app/actions/stripe';
+// import { loadStripe, type Stripe as StripeType } from '@stripe/stripe-js';
+// import { Elements } from '@stripe/react-stripe-js';
+// import { createPaymentIntent } from '@/app/actions/stripe';
 import CheckoutForm from '@/app/components/CheckoutForm';
 import { getAppSettings, AppSettings } from '@/app/actions/settings';
 import { collection, query, where, getCountFromServer } from 'firebase/firestore';
@@ -189,15 +189,15 @@ export default function LeaderboardPage() {
   const [isRedeemDialogOpen, setRedeemDialogOpen] = useState(false);
   const [selectedReward, setSelectedReward] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  // const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [isOptInDialogOpen, setOptInDialogOpen] = useState(false);
-  const [stripePromise] = useState(() => {
-    const stripePublicKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
-    if (stripePublicKey) {
-      return loadStripe(stripePublicKey);
-    }
-    return null;
-  });
+  // const [stripePromise] = useState(() => {
+  //   const stripePublicKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+  //   if (stripePublicKey) {
+  //     return loadStripe(stripePublicKey);
+  //   }
+  //   return null;
+  // });
 
   const addressForm = useForm<z.infer<typeof addressSchema>>({
     resolver: zodResolver(addressSchema),
@@ -324,13 +324,13 @@ ${profile.name}`
   
   const handleOpenVipDialog = async () => {
     setIsSubmitting(true);
-    const res = await createPaymentIntent(100);
-    if (res.clientSecret) {
-      setClientSecret(res.clientSecret);
+    // const res = await createPaymentIntent(100); // $1.00 deposit
+    // if (res.clientSecret) {
+    //   setClientSecret(res.clientSecret);
       setVipDialogOpen(true);
-    } else {
-      toast.error(res.error || 'Could not initiate payment. Please try again later.');
-    }
+    // } else {
+    //   toast.error(res.error || 'Could not initiate payment. Please try again later.');
+    // }
     setIsSubmitting(false);
   };
   
@@ -548,22 +548,58 @@ ${profile.name}`
       </div>
       
       <Dialog open={isVipDialogOpen} onOpenChange={setVipDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Join the VIP List</DialogTitle>
-            <DialogDescription>
-              Complete the $1.00 deposit to become a founding member and unlock exclusive perks, including 1.5x referral points.
-            </DialogDescription>
-          </DialogHeader>
-          {clientSecret && stripePromise ? (
-            <Elements options={{ clientSecret }} stripe={stripePromise}>
-              <CheckoutForm onSuccess={finalizeVipJoin} />
-            </Elements>
-          ) : (
-            <div className="flex justify-center items-center h-32">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <DialogContent className="max-w-4xl p-0">
+          <div className="flex min-h-[550px]">
+            <div className="w-1/2 p-8 flex flex-col justify-between">
+              <div>
+                <DialogHeader>
+                  <DialogTitle className="text-2xl">Become a PawMe VIP</DialogTitle>
+                  <DialogDescription>
+                    Make a $1.00 fully refundable deposit to secure your spot as a founding member.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="mt-6">
+                  <CheckoutForm onSuccess={finalizeVipJoin} />
+                </div>
+              </div>
+               <p className="text-xs text-muted-foreground mt-4 text-center">
+                This is a fully refundable $1.00 deposit. You can request a refund at any time before our Kickstarter launch.
+              </p>
             </div>
-          )}
+            <div className="relative hidden w-1/2 flex-col justify-between rounded-r-lg bg-gradient-to-br from-primary/20 via-secondary to-primary/20 p-8 md:flex">
+                <div className="absolute inset-0 z-0">
+                    <ImageWithFallback
+                        src="https://picsum.photos/seed/vip-pet/600/800"
+                        alt="A happy pet"
+                        data-ai-hint="happy pet"
+                        className="size-full object-cover opacity-20"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent" />
+                </div>
+                <div className="relative z-10">
+                    <div className="mb-4 text-2xl font-bold">
+                    Founding Member Benefits
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                    Your small deposit unlocks big rewards and helps us build the best companion for your pet.
+                    </p>
+                </div>
+                <div className="relative z-10 space-y-4">
+                    <div className="flex items-start gap-3">
+                      <Star className="mt-1 size-5 shrink-0 text-primary" />
+                      <p className="text-sm text-muted-foreground"><span className="font-semibold text-foreground">Earn 1.5x Points</span> on all referrals, forever.</p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <Sparkles className="mt-1 size-5 shrink-0 text-primary" />
+                      <p className="text-sm text-muted-foreground"><span className="font-semibold text-foreground">Exclusive Discounts</span> on our Kickstarter launch.</p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <Lock className="mt-1 size-5 shrink-0 text-primary" />
+                      <p className="text-sm text-muted-foreground"><span className="font-semibold text-foreground">Guaranteed Early Bird</span> access to the best deals.</p>
+                    </div>
+                </div>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
       
