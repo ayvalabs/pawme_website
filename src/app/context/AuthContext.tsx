@@ -27,11 +27,7 @@ import {
   onSnapshot,
 } from 'firebase/firestore';
 import { auth, db } from '@/firebase/config';
-<<<<<<< HEAD
-import { sendWelcomeEmail, sendReferralSuccessEmail } from '@/app/actions/email';
-=======
 import { sendWelcomeEmail, sendCustomPasswordResetEmail, sendReferralSuccessEmail } from '@/app/actions/email';
->>>>>>> wipx
 import { isDisposableEmail } from '@/lib/disposable-domains';
 
 export interface Reward {
@@ -170,49 +166,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-<<<<<<< HEAD
-  const creditReferrer = async (referralCode: string, newSignedUpEmail: string) => {
-    const referralsRef = collection(db, 'users');
-    const q = query(referralsRef, where('referralCode', '==', referralCode));
-    const querySnapshot = await getDocs(q);
-
-    if (!querySnapshot.empty) {
-      const referrerDocSnapshot = querySnapshot.docs[0];
-      const referrerRef = doc(db, 'users', referrerDocSnapshot.id);
-
-      if (referrerDocSnapshot.data().email === newSignedUpEmail) {
-        console.warn('Self-referral attempt blocked.');
-        return;
-      }
-
-      await runTransaction(db, async (transaction) => {
-        const referrerDoc = await transaction.get(referrerRef);
-        if (!referrerDoc.exists()) {
-          throw "Referrer document does not exist!";
-        }
-        const newReferralCount = (referrerDoc.data().referralCount || 0) + 1;
-        const pointsToAdd = referrerDoc.data().isVip ? 150 : 100;
-        const newPoints = (referrerDoc.data().points || 0) + pointsToAdd;
-        
-        transaction.update(referrerRef, { 
-          referralCount: newReferralCount,
-          points: newPoints
-        });
-
-        const referrerData = referrerDoc.data();
-        if (referrerData.email) {
-          await sendReferralSuccessEmail({
-            to: referrerData.email,
-            referrerName: referrerData.name,
-            newReferralCount: newReferralCount,
-            newPoints: newPoints
-          });
-        }
-      });
-      console.log(`Credited referrer ${referrerDocSnapshot.id}`);
-    } else {
-      console.log(`Referral code ${referralCode} not found.`);
-=======
   const fetchProfile = async (uid: string) => {
     const docRef = doc(db, 'users', uid);
     const docSnap = await getDoc(docRef);
@@ -220,7 +173,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setProfile(docSnap.data() as UserProfile);
     } else {
       console.log('No such profile!');
->>>>>>> wipx
     }
   };
 
@@ -261,11 +213,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email: newUser.email!,
         name: name || newUser.email!.split('@')[0],
         referralCode,
-<<<<<<< HEAD
-        points: 100, // Starting points
-=======
         points: 100, // Start with 100 points
->>>>>>> wipx
         referralCount: 0,
         referredBy: referredByCode || null,
         theme: 'purple',
@@ -281,9 +229,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await deleteDoc(verificationDoc.ref);
       
       if (referredByCode) {
-<<<<<<< HEAD
-        await creditReferrer(referredByCode, email);
-=======
         console.log('🔵 [SIGNUP] Step 8: Crediting referrer...');
         try {
           // Credit referrer inline (client-side with auth context)
@@ -331,7 +276,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Don't fail signup if referral credit fails
         }
         console.log('✅ [SIGNUP] Referrer credit process completed');
->>>>>>> wipx
       }
       
       await sendWelcomeEmail({ to: email, name, referralCode });
@@ -365,27 +309,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const sendPasswordReset = async (email: string) => {
     try {
-<<<<<<< HEAD
-      await sendPasswordResetEmail(auth, email);
-      return { success: true, message: 'Password reset email sent! Check your inbox.' };
-=======
       await sendCustomPasswordResetEmail({ email });
       return { success: true };
->>>>>>> wipx
     } catch (error: any) {
       if (error.code === 'auth/user-not-found') {
         console.log(`Password reset requested for non-existent user: ${email}`);
         return { success: true, message: 'If an account with this email exists, a password reset link has been sent.' };
       }
       console.error('Password reset error:', error);
-<<<<<<< HEAD
-      if (error.code === 'auth/user-not-found') {
-        return { success: true, message: 'If an account exists with this email, a password reset link has been sent.' };
-      }
-      return { success: false, message: 'Failed to send password reset email.' };
-=======
       return { success: false, message: 'Could not send password reset email.' };
->>>>>>> wipx
     }
   };
 

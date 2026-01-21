@@ -155,25 +155,6 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
       return;
     }
     setLoading(true);
-<<<<<<< HEAD
-    try {
-      console.log(`[CLIENT] Initiating sign up for ${signUpEmail}...`);
-      const result = await sendSignUpVerificationCode({ email: signUpEmail, name: signUpName });
-      console.log('[CLIENT] Server action returned:', result);
-
-      if (result && result.success) {
-        toast.success('Verification code sent!', { description: `A 4-digit code has been sent to ${signUpEmail}.` });
-        setSignUpStep('verify');
-        setResendCooldown(60);
-      } else {
-        setError(result?.message || 'An unknown error occurred on the server.');
-      }
-    } catch (err: any) {
-      console.error('[CLIENT] Failed to call server action:', err);
-      setError('Could not reach the server. Please check your connection and try again.');
-    } finally {
-      setLoading(false);
-=======
     const result = await sendSignUpVerificationCode({ email: signUpEmail, name: signUpName });
     if (result.success && result.code && result.expiresAt) {
       // Store verification code in Firestore
@@ -192,7 +173,6 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
       }
     } else {
       setError(result.message);
->>>>>>> wipx
     }
   };
 
