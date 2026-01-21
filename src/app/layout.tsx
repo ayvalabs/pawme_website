@@ -22,19 +22,18 @@ export default function RootLayout({
           {children}
           <Toaster 
             position="bottom-center"
+            expand={true}
+            richColors={false}
             toastOptions={{
-              style: {
-                width: '100%',
-                maxWidth: '100vw',
-                margin: 0,
-                borderRadius: 0,
-              },
-              className: 'w-full',
+              unstyled: false,
               classNames: {
-                error: 'bg-destructive text-destructive-foreground border-destructive',
-                success: 'bg-green-600 text-white border-green-600',
-                warning: 'bg-yellow-600 text-white border-yellow-600',
-                info: 'bg-blue-600 text-white border-blue-600',
+                toast: 'w-full max-w-full rounded-none border-0 shadow-lg',
+                title: 'text-sm font-semibold',
+                description: 'text-sm opacity-90',
+                error: '!bg-red-600 !text-white !border-red-600',
+                success: '!bg-green-600 !text-white !border-green-600',
+                warning: '!bg-yellow-600 !text-white !border-yellow-600',
+                info: '!bg-blue-600 !text-white !border-blue-600',
               },
             }}
           />
