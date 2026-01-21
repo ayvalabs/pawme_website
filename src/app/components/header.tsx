@@ -111,13 +111,19 @@ export function Header({ variant: initialVariant = 'solid' }: HeaderProps) {
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="sm" className="gap-2">
                       <User className="w-4 h-4" />
-                      <span className="hidden sm:inline">{profile?.name}</span>
+                      <span className="hidden sm:inline">
+                        {profile?.name}
+                        {profile?.isVip && ' 👑'}
+                      </span>
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
                     <DropdownMenuLabel>
                       <div className="flex flex-col space-y-1">
-                        <p className="text-sm font-medium">{profile?.name}</p>
+                        <p className="text-sm font-medium">
+                          {profile?.name}
+                          {profile?.isVip && ' 👑'}
+                        </p>
                         <p className="text-xs text-muted-foreground">{profile?.email}</p>
                       </div>
                     </DropdownMenuLabel>

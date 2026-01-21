@@ -1,10 +1,10 @@
 
 'use server';
 
-import { db } from '@/firebase/config';
-import { collection, query, where, getDocs, setDoc, doc, Timestamp, deleteDoc } from 'firebase/firestore';
 import { isDisposableEmail } from '@/lib/disposable-domains';
 import { sendVerificationCodeEmail } from './email';
+
+const HARDCODED_TEST_EMAIL = 'ashok.jaiswal@gmail.com';
 
 export async function sendSignUpVerificationCode({ email, name }: { email: string; name: string }) {
   console.log('🔵 [ACTION] Initiating verification code send for:', email);
@@ -22,24 +22,17 @@ export async function sendSignUpVerificationCode({ email, name }: { email: strin
   console.log('✅ [ACTION] Email is not from a disposable provider.');
   
   const code = Math.floor(1000 + Math.random() * 9000).toString();
-  const expiresAt = Timestamp.fromMillis(Date.now() + 10 * 60 * 1000); // 10 minutes
-  console.log(`🔵 [ACTION] Generated code ${code} for ${email}. It expires at ${expiresAt.toDate().toLocaleTimeString()}.`);
+  const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes from now in milliseconds
+  console.log(`🔵 [ACTION] Generated code ${code} for ${email}. It expires at ${new Date(expiresAt).toLocaleTimeString()}.`);
 
   try {
-    console.log('🔵 [ACTION] (1/2) Storing verification document in Firestore...');
-    const verificationRef = doc(collection(db, 'verifications'));
-    await setDoc(verificationRef, {
-      email,
-      code,
-      expiresAt,
-    });
-    console.log('✅ [ACTION] (1/2) Verification document created successfully in Firestore.');
-
-    console.log('🔵 [ACTION] (2/2) Sending verification email via Resend...');
-    await sendVerificationCodeEmail({ to: email, name, code });
-    console.log('✅ [ACTION] (2/2) Verification email sent successfully.');
+    console.log('🔵 [ACTION] Sending verification email to hardcoded test email...');
+    console.log(`🔵 [ACTION] User email: ${email}, Test email: ${HARDCODED_TEST_EMAIL}`);
+    await sendVerificationCodeEmail({ to: HARDCODED_TEST_EMAIL, name, code });
+    console.log('✅ [ACTION] Verification email sent successfully to test email.');
     
-    return { success: true, message: 'Verification code sent.' };
+    // Return the code and expiry so the client can store it in Firestore
+    return { success: true, message: 'Verification code sent.', code, expiresAt };
   } catch (error: any) {
     console.error('❌ [ACTION] CRITICAL FAILURE in sendSignUpVerificationCode:', error.message);
     console.error(error); 
