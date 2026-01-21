@@ -7,6 +7,25 @@ import { defaultTemplates } from '@/lib/email-templates';
 const resend = new Resend(process.env.RESEND_API_KEY);
 const fromEmail = 'PawMe <pawme@ayvalabs.com>';
 
+function getAppUrl(): string {
+  // Try to get URL from Next.js headers (works at runtime)
+  try {
+    const { headers } = require('next/headers');
+    const headersList = headers();
+    const host = headersList.get('host');
+    const protocol = headersList.get('x-forwarded-proto') || 'http';
+    
+    if (host) {
+      return `${protocol}://${host}`;
+    }
+  } catch (error) {
+    // headers() not available in this context, fall through to fallback
+  }
+  
+  // Fallback to environment variable or production URL
+  return process.env.NEXT_PUBLIC_APP_URL || 'https://www.ayvalabs.com';
+}
+
 async function getTemplate(templateId: string) {
   // Templates are now loaded from the local file, not Firestore.
   const template = defaultTemplates[templateId];
