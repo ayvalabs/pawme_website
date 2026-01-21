@@ -20,7 +20,24 @@ export default function RootLayout({
         <AuthProvider>
           <FaviconHandler />
           {children}
-          <Toaster />
+          <Toaster 
+            position="bottom-center"
+            toastOptions={{
+              style: {
+                width: '100%',
+                maxWidth: '100vw',
+                margin: 0,
+                borderRadius: 0,
+              },
+              className: 'w-full',
+              classNames: {
+                error: 'bg-destructive text-destructive-foreground border-destructive',
+                success: 'bg-green-600 text-white border-green-600',
+                warning: 'bg-yellow-600 text-white border-yellow-600',
+                info: 'bg-blue-600 text-white border-blue-600',
+              },
+            }}
+          />
         </AuthProvider>
       </body>
     </html>

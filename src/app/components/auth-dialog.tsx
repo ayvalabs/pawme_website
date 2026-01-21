@@ -126,7 +126,7 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
         message = 'Access to this account has been temporarily disabled due to many failed login attempts. You can try again later or reset your password.';
       }
       console.error('Firebase Sign In Error:', error);
-      setError(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -151,7 +151,7 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
     e.preventDefault();
     setError('');
     if (!privacyPolicyAgreed) {
-      setError('You must agree to the Privacy Policy to sign up.');
+      toast.error('You must agree to the Privacy Policy to sign up.');
       return;
     }
     setLoading(true);
@@ -165,15 +165,17 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
           expiresAt: Timestamp.fromMillis(result.expiresAt),
         });
         toast.success('Verification code sent!', { description: `A 4-digit code has been sent to ${signUpEmail}.` });
-        setSignUpStep('verify');
         setResendCooldown(60);
+        // Small delay to ensure loading state is reset before transitioning
+        setTimeout(() => setSignUpStep('verify'), 100);
       } catch (error) {
         console.error('Failed to store verification code:', error);
-        setError('Failed to process verification. Please try again.');
+        toast.error('Failed to process verification. Please try again.');
       }
     } else {
-      setError(result.message);
+      toast.error(result.message || 'Failed to send verification code.');
     }
+    setLoading(false);
   };
 
   const handleResendCode = async () => {
@@ -193,10 +195,10 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
         setResendCooldown(60); // 60 second cooldown
       } catch (error) {
         console.error('Failed to store verification code:', error);
-        setError('Failed to process verification. Please try again.');
+        toast.error('Failed to process verification. Please try again.');
       }
     } else {
-      setError(result.message);
+      toast.error(result.message || 'Failed to send verification code.');
     }
     setLoading(false);
   };
@@ -211,7 +213,7 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
       handleOpenChange(false);
       router.push('/leaderboard');
     } catch (error: any) {
-      setError(error.message || 'Sign up failed. Please try again.');
+      toast.error(error.message || 'Sign up failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -224,7 +226,7 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
       handleOpenChange(false);
       toast.success('Signed in with Google!');
     } catch (error: any) {
-      setError(error.message || 'Google sign in failed');
+      toast.error(error.message || 'Google sign in failed');
     }
   };
 
@@ -303,7 +305,7 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
                         <p className="mt-1 text-xs text-muted-foreground">The code expires in 10 minutes.</p>
                       </div>
                       <div className="space-y-2"><InputOTP maxLength={4} value={verificationCode} onChange={setVerificationCode}><InputOTPGroup className="w-full justify-center"><InputOTPSlot index={0} /><InputOTPSlot index={1} /><InputOTPSlot index={2} /><InputOTPSlot index={3} /></InputOTPGroup></InputOTP></div>
-                      <Button type="submit" className="w-full" disabled={loading || verificationCode.length < 4}>{loading ? 'Verifying...' : 'Verify & Create Account'}</Button>
+                      <Button type="submit" className="w-full" disabled={loading || verificationCode.length !== 4}>{loading ? 'Verifying...' : 'Verify'}</Button>
                       <div className="text-center text-sm"><Button type="button" variant="link" className="h-auto p-0 font-normal text-primary hover:text-primary/80" onClick={handleResendCode} disabled={loading || resendCooldown > 0}>{resendCooldown > 0 ? `Resend code in ${resendCooldown}s` : "Didn't receive a code? Resend"}</Button></div>
                       <Button type="button" variant="link" className="w-full text-muted-foreground" onClick={() => setSignUpStep('details')} disabled={loading}>Back to details</Button>
                     </form>

@@ -7,11 +7,11 @@ import { defaultTemplates } from '@/lib/email-templates';
 const resend = new Resend(process.env.RESEND_API_KEY);
 const fromEmail = 'PawMe <pawme@ayvalabs.com>';
 
-function getAppUrl(): string {
+async function getAppUrl(): Promise<string> {
   // Try to get URL from Next.js headers (works at runtime)
   try {
-    const { headers } = require('next/headers');
-    const headersList = headers();
+    const { headers } = await import('next/headers');
+    const headersList = await headers();
     const host = headersList.get('host');
     const protocol = headersList.get('x-forwarded-proto') || 'http';
     
@@ -55,10 +55,11 @@ async function renderAndSend(templateId: keyof typeof defaultTemplates, to: stri
   let subject = template.subject;
   let bodyHtml = template.html;
 
+  const appUrl = await getAppUrl();
   const allVariables = {
     ...variables,
     emailTitle: subject,
-    unsubscribeLink: `${getAppUrl()}/unsubscribe?email=${encodeURIComponent(to)}`,
+    unsubscribeLink: `${appUrl}/unsubscribe?email=${encodeURIComponent(to)}`,
   };
 
   for (const key in allVariables) {
@@ -93,7 +94,7 @@ async function renderAndSend(templateId: keyof typeof defaultTemplates, to: stri
 }
 
 export async function sendWelcomeEmail({ to, name, referralCode }: { to: string, name: string, referralCode: string }) {
-  const appUrl = getAppUrl();
+  const appUrl = await getAppUrl();
   const referralLink = `${appUrl}/?ref=${referralCode}`;
   await renderAndSend('welcome', to, { userName: name, referralCode, referralLink, emailTitle: "Welcome to PawMe!" });
 }

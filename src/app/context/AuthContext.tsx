@@ -181,12 +181,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     try {
       console.log('[SIGNUP] Step 1: Verifying code...');
+      console.log('[SIGNUP] Looking for verification with email:', email);
+      console.log('[SIGNUP] Looking for verification with code:', code);
+      console.log('[SIGNUP] Code type:', typeof code);
+      console.log('[SIGNUP] Code length:', code.length);
+      
+      // Normalize the code to string and trim whitespace
+      const normalizedCode = String(code).trim();
+      console.log('[SIGNUP] Normalized code:', normalizedCode);
+      
       const verificationsRef = collection(db, 'verifications');
-      const q = query(verificationsRef, where('email', '==', email), where('code', '==', code));
+      const q = query(verificationsRef, where('email', '==', email), where('code', '==', normalizedCode));
       const querySnapshot = await getDocs(q);
 
+      console.log('[SIGNUP] Query returned', querySnapshot.size, 'documents');
+      
       if (querySnapshot.empty) {
-        throw new Error('Invalid verification code.');
+        // Debug: Check all verifications for this email
+        const emailOnlyQuery = query(verificationsRef, where('email', '==', email));
+        const emailDocs = await getDocs(emailOnlyQuery);
+        console.log('[SIGNUP] Found', emailDocs.size, 'verifications for this email');
+        emailDocs.forEach(doc => {
+          const data = doc.data();
+          console.log('[SIGNUP] Stored code:', data.code, 'Type:', typeof data.code);
+          console.log('[SIGNUP] Entered code:', code, 'Type:', typeof code);
+          console.log('[SIGNUP] Normalized entered code:', normalizedCode);
+          console.log('[SIGNUP] Direct match:', data.code === code);
+          console.log('[SIGNUP] Normalized match:', String(data.code).trim() === normalizedCode);
+        });
+        throw new Error('Invalid verification code. Please check the code and try again.');
       }
 
       const verificationDoc = querySnapshot.docs[0];
