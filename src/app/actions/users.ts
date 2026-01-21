@@ -4,6 +4,8 @@
 import { db } from '@/firebase/config';
 import { collection, query, orderBy, limit, getDocs, where, getCountFromServer, doc, updateDoc, getDoc } from 'firebase/firestore';
 import type { UserProfile, Reward } from '@/app/context/AuthContext';
+import { sendReferralSuccessEmail } from './email';
+import type { AppSettings } from '@/app/actions/settings';
 
 interface LeaderboardUser {
   id: string;
@@ -11,6 +13,48 @@ interface LeaderboardUser {
   points: number;
   rank: number;
 }
+
+export async function creditReferrer(referralCode: string, newUser: UserProfile) {
+  const referralsRef = collection(db, 'users');
+  const q = query(referralsRef, where('referralCode', '==', referralCode));
+  const querySnapshot = await getDocs(q);
+
+  if (!querySnapshot.empty) {
+    const referrerDocSnapshot = querySnapshot.docs[0];
+    const referrerRef = doc(db, 'users', referrerDocSnapshot.id);
+    const referrerData = referrerDocSnapshot.data() as UserProfile;
+
+    if (referrerData.email === newUser.email) {
+      console.warn('Self-referral attempt blocked.');
+      return;
+    }
+
+    const oldPoints = referrerData.points || 0;
+    const pointsToAdd = referrerData.isVip ? 150 : 100;
+    const newPoints = oldPoints + pointsToAdd;
+    const newReferralCount = (referrerData.referralCount || 0) + 1;
+
+    await updateDoc(referrerRef, { 
+      referralCount: newReferralCount,
+      points: newPoints
+    });
+
+    console.log(`Credited referrer ${referrerDocSnapshot.id}`);
+
+    if (referrerData.email) {
+      await sendReferralSuccessEmail({
+        to: referrerData.email,
+        referrerName: referrerData.name,
+        newUserName: newUser.name,
+        oldPoints: oldPoints,
+        newPoints: newPoints,
+        newReferralCount: newReferralCount,
+      });
+    }
+  } else {
+    console.log(`Referral code ${referralCode} not found.`);
+  }
+};
 
 export async function getLeaderboard(): Promise<LeaderboardUser[]> {
   const usersRef = collection(db, 'users');

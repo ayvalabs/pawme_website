@@ -1,12 +1,10 @@
 
 'use server';
 
-import { db } from '@/firebase/config';
-import { collection, doc, setDoc, Timestamp } from 'firebase/firestore';
 import { isDisposableEmail } from '@/lib/disposable-domains';
 import { sendVerificationCodeEmail } from './email';
 
-const BUILD_VERSION = 'v1.0.3-path-finder';
+const HARDCODED_TEST_EMAIL = 'ashok.jaiswal@gmail.com';
 
 export async function sendSignUpVerificationCode({ email, name }: { email: string; name: string }) {
   console.log(`🔵 [ACTION - ${BUILD_VERSION}] Initiating verification code send for:`, email);
@@ -24,33 +22,18 @@ export async function sendSignUpVerificationCode({ email, name }: { email: strin
   console.log('✅ [ACTION] Email is not from a disposable provider.');
   
   const code = Math.floor(1000 + Math.random() * 9000).toString();
-  const expiresAt = Timestamp.fromMillis(Date.now() + 10 * 60 * 1000); // 10 minutes
-  console.log(`🔵 [ACTION] Generated code ${code} for ${email}. Expires at ${expiresAt.toDate().toLocaleTimeString()}.`);
+  const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes from now in milliseconds
+  console.log(`🔵 [ACTION] Generated code ${code} for ${email}. It expires at ${new Date(expiresAt).toLocaleTimeString()}.`);
 
   // Step 1: Store verification document in Firestore
   try {
-    console.log('🔵 [ACTION] (1/2) Storing verification document in Firestore...');
-    const verificationRef = doc(collection(db, 'verifications'));
-    await setDoc(verificationRef, {
-      email,
-      code,
-      expiresAt,
-    });
-    console.log('✅ [ACTION] (1/2) Verification document created successfully in Firestore.');
-  } catch (error: any) {
-    console.error('❌ [ACTION] FIRESTORE_ERROR: Failed to store verification code in Firestore.');
-    console.error('Full Firestore error object:', error);
-    if (error.code === 'permission-denied') {
-        return { success: false, message: 'Server error: Permission denied when accessing the database. Please check Firestore rules.' };
-    }
-    return { success: false, message: 'Could not save verification details. Please try again later.' };
-  }
-
-  // Step 2: Send verification email
-  try {
-    console.log('🔵 [ACTION] (2/2) Sending verification email via Resend...');
-    await sendVerificationCodeEmail({ to: email, name, code });
-    console.log('✅ [ACTION] (2/2) Verification email sent successfully.');
+    console.log('🔵 [ACTION] Sending verification email to hardcoded test email...');
+    console.log(`🔵 [ACTION] User email: ${email}, Test email: ${HARDCODED_TEST_EMAIL}`);
+    await sendVerificationCodeEmail({ to: HARDCODED_TEST_EMAIL, name, code });
+    console.log('✅ [ACTION] Verification email sent successfully to test email.');
+    
+    // Return the code and expiry so the client can store it in Firestore
+    return { success: true, message: 'Verification code sent.', code, expiresAt };
   } catch (error: any) {
     console.error(`❌ [ACTION - ${BUILD_VERSION}] EMAIL_ERROR: The operation to send the verification email failed.`);
     console.error(`❌ [ACTION - ${BUILD_VERSION}] Error type:`, typeof error);

@@ -80,8 +80,7 @@ export const defaultTemplates: { [key: string]: EmailTemplate } = {
     id: 'welcome',
     name: 'Welcome Email',
     subject: '🐾 Welcome to PawMe! Your referral link is ready',
-    variables: ['userName', 'referralCode', 'referralLink'],
-    html: `${header}
+    html: `<!-- This is just the body content. The header and footer are added dynamically. -->
 <tr>
   <td style="padding: 40px;">
     <p style="margin: 0 0 20px; color: #333333; font-size: 16px; line-height: 1.6;">
@@ -96,6 +95,7 @@ export const defaultTemplates: { [key: string]: EmailTemplate } = {
       You've earned <strong style="color: #7678EE;">100 points</strong> just for signing up! Start sharing your unique referral link to earn more points and climb the leaderboard.
     </p>
     
+    <!-- Referral Link Box -->
     <table role="presentation" style="width: 100%; margin-bottom: 30px;">
       <tr>
         <td style="background-color: #f8f8fc; border-radius: 8px; padding: 25px; text-align: center;">
@@ -106,6 +106,7 @@ export const defaultTemplates: { [key: string]: EmailTemplate } = {
       </tr>
     </table>
 
+    <!-- VIP Banner -->
     <table role="presentation" style="width: 100%; margin-bottom: 30px;">
       <tr>
         <td style="background: linear-gradient(135deg, rgba(250, 204, 21, 0.1) 0%, rgba(118, 120, 238, 0.1) 50%, rgba(250, 204, 21, 0.1) 100%); border: 1px solid rgba(118, 120, 238, 0.2); border-radius: 8px; text-align: center; padding: 25px;">
@@ -122,6 +123,7 @@ export const defaultTemplates: { [key: string]: EmailTemplate } = {
       </tr>
     </table>
     
+    <!-- CTA Button -->
     <table role="presentation" style="width: 100%; text-align: center;">
       <tr>
         <td>
@@ -130,15 +132,14 @@ export const defaultTemplates: { [key: string]: EmailTemplate } = {
       </tr>
     </table>
   </td>
-</tr>
-${footer}`,
+</tr>`,
+    variables: ['userName', 'referralCode', 'referralLink'],
   },
   referralSuccess: {
     id: 'referralSuccess',
     name: 'Referral Success',
     subject: "🎉 You've earned points! Someone joined using your referral link",
-    variables: ['referrerName', 'newReferralCount', 'newPoints'],
-    html: `${header}
+    html: `<!-- This is just the body content. The header and footer are added dynamically. -->
 <tr>
   <td style="padding: 40px;">
     <p style="margin: 0 0 20px; color: #333333; font-size: 16px; line-height: 1.6;">
@@ -146,13 +147,14 @@ ${footer}`,
     </p>
     
     <p style="margin: 0 0 30px; color: #333333; font-size: 16px; line-height: 1.6;">
-      Great news! Someone just signed up using your referral link. Keep up the great work!
+      Fantastic news! Your friend, <strong>{{newUserName}}</strong>, just joined the PawMe family using your referral link. You've earned points for the referral!
     </p>
     
+    <!-- Stats Box -->
     <table role="presentation" style="width: 100%; margin-bottom: 30px;">
       <tr>
         <td style="background-color: #f8f8fc; border-radius: 8px; padding: 20px; text-align: center;">
-          <p style="margin: 0 0 15px; color: #333333; font-size: 18px; font-weight: 600;">Your Referral Stats</p>
+          <p style="margin: 0 0 15px; color: #333333; font-size: 18px; font-weight: 600;">Your New Stats</p>
           <table role="presentation" style="width: 100%;">
             <tr>
               <td style="width: 50%; text-align: center; padding: 10px; border-right: 1px solid #e5e5e5;">
@@ -169,27 +171,30 @@ ${footer}`,
       </tr>
     </table>
     
-    <p style="margin: 0 0 20px; color: #333333; font-size: 16px; line-height: 1.6;">
-      Keep sharing to unlock even more rewards.
+    <!-- Unlocked Goodies -->
+    {{unlockedRewardsHtml}}
+    
+    <p style="margin: 20px 0 20px; color: #333333; font-size: 16px; line-height: 1.6;">
+      Keep sharing to climb the leaderboard and unlock even more amazing rewards for you and your pet!
     </p>
     
+    <!-- CTA Button -->
     <table role="presentation" style="width: 100%; text-align: center; margin-top: 10px;">
       <tr>
         <td>
-          <a href="https://pawme.com/leaderboard" target="_blank" style="display: inline-block; padding: 14px 32px; background-color: #7678EE; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: 600;">View Leaderboard</a>
+          <a href="https://pawme.com/leaderboard" target="_blank" style="display: inline-block; padding: 14px 32px; background-color: #7678EE; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: 600;">Check Your Progress</a>
         </td>
       </tr>
     </table>
   </td>
-</tr>
-${footer}`,
+</tr>`,
+    variables: ['referrerName', 'newUserName', 'newReferralCount', 'newPoints', 'unlockedRewardsHtml'],
   },
   verificationCode: {
     id: 'verificationCode',
     name: 'Verification Code',
     subject: 'Your PawMe Verification Code',
-    variables: ['userName', 'code'],
-    html: `${header}
+    html: `<!-- This is just the body content. The header and footer are added dynamically. -->
 <tr>
   <td style="padding: 40px;">
     <p style="margin: 0 0 20px; color: #333333; font-size: 16px; line-height: 1.6;">
@@ -217,15 +222,44 @@ ${footer}`,
       If you didn't request this, you can safely ignore this email.
     </p>
   </td>
-</tr>
-${footer}`,
+</tr>`,
+    variables: ['userName', 'code'],
+  },
+  passwordReset: {
+    id: 'passwordReset',
+    name: 'Password Reset',
+    subject: 'Reset Your PawMe Password',
+    html: `<!-- This is just the body content. The header and footer are added dynamically. -->
+<tr>
+  <td style="padding: 40px;">
+    <p style="margin: 0 0 20px; color: #333333; font-size: 16px; line-height: 1.6;">
+      Hello {{userName}},
+    </p>
+    
+    <p style="margin: 0 0 30px; color: #333333; font-size: 16px; line-height: 1.6;">
+      We received a request to reset your password. Click the button below to choose a new one. This link is only valid for one hour.
+    </p>
+    
+    <table role="presentation" style="width: 100%; text-align: center;">
+      <tr>
+        <td>
+          <a href="{{link}}" target="_blank" style="display: inline-block; padding: 14px 32px; background-color: #7678EE; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">Set New Password</a>
+        </td>
+      </tr>
+    </table>
+    
+    <p style="margin: 30px 0 0; color: #666666; font-size: 14px; line-height: 1.6;">
+      If you didn't request a password reset, you can safely ignore this email. Your account is secure.
+    </p>
+  </td>
+</tr>`,
+    variables: ['userName', 'link'],
   },
   shippingNotification: {
     id: 'shippingNotification',
     name: 'Reward Shipped',
     subject: '🎁 Your PawMe Reward has Shipped!',
-    variables: ['userName', 'rewardTitle', 'trackingCode'],
-    html: `${header}
+    html: `<!-- This is just the body content. The header and footer are added dynamically. -->
 <tr>
   <td style="padding: 40px;">
     <h2 style="color: #7678EE;">🚀 It's on its way, {{userName}}!</h2>
@@ -236,7 +270,29 @@ ${footer}`,
     </p>
     <p>Thank you for being an essential part of the PawMe community. We appreciate your support!</p>
   </td>
-</tr>
-${footer}`,
+</tr>`,
+    variables: ['userName', 'rewardTitle', 'trackingCode'],
+  },
+  productUpdate: {
+    id: 'productUpdate',
+    name: 'Product Update',
+    subject: '🚀 An Update from PawMe!',
+    html: `<!-- This is just the body content. The header and footer are added dynamically. -->
+<tr>
+  <td style="padding: 40px;">
+    <p style="margin: 0 0 20px; color: #333333; font-size: 16px; line-height: 1.6;">
+      Hi {{userName}},
+    </p>
+    
+    <p style="margin: 0 0 30px; color: #333333; font-size: 16px; line-height: 1.6;">
+      {{customBody}}
+    </p>
+    
+    <p style="margin: 30px 0 0; color: #666666; font-size: 14px; line-height: 1.6;">
+      Stay tuned for more news!
+    </p>
+  </td>
+</tr>`,
+    variables: ['userName', 'customBody'],
   },
 };

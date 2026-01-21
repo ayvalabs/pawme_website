@@ -45,6 +45,7 @@
     "date-fns": "^3.6.0",
     "embla-carousel-react": "^8.6.0",
     "firebase": "^10.12.2",
+    "firebase-admin": "^13.6.0",
     "genkit": "^1.0.0",
     "input-otp": "^1.4.2",
     "lucide-react": "^0.475.0",
@@ -76,10 +77,6 @@
   },
   "overrides": {
     "next-themes": {
-      "react": "$react",
-      "react-dom": "$react-dom"
-    },
-    "@stripe/react-stripe-js": {
       "react": "$react",
       "react-dom": "$react-dom"
     }

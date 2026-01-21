@@ -15,6 +15,8 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/app/components/ui/input
 import { PrivacyPolicy } from './privacy-policy';
 import { ScrollArea } from './ui/scroll-area';
 import { ImageWithFallback } from './figma/ImageWithFallback';
+import { db } from '@/firebase/config';
+import { collection, addDoc, Timestamp } from 'firebase/firestore';
 
 interface AuthDialogProps {
   open: boolean;
@@ -153,6 +155,7 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
       return;
     }
     setLoading(true);
+<<<<<<< HEAD
     try {
       console.log(`[CLIENT] Initiating sign up for ${signUpEmail}...`);
       const result = await sendSignUpVerificationCode({ email: signUpEmail, name: signUpName });
@@ -170,6 +173,26 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
       setError('Could not reach the server. Please check your connection and try again.');
     } finally {
       setLoading(false);
+=======
+    const result = await sendSignUpVerificationCode({ email: signUpEmail, name: signUpName });
+    if (result.success && result.code && result.expiresAt) {
+      // Store verification code in Firestore
+      try {
+        await addDoc(collection(db, 'verifications'), {
+          email: signUpEmail,
+          code: result.code,
+          expiresAt: Timestamp.fromMillis(result.expiresAt),
+        });
+        toast.success('Verification code sent!', { description: `A 4-digit code has been sent to ${signUpEmail}.` });
+        setSignUpStep('verify');
+        setResendCooldown(60);
+      } catch (error) {
+        console.error('Failed to store verification code:', error);
+        setError('Failed to process verification. Please try again.');
+      }
+    } else {
+      setError(result.message);
+>>>>>>> wipx
     }
   };
 
@@ -178,9 +201,20 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
     setLoading(true);
     setError('');
     const result = await sendSignUpVerificationCode({ email: signUpEmail, name: signUpName });
-    if (result.success) {
-      toast.success('New verification code sent!');
-      setResendCooldown(60); // 60 second cooldown
+    if (result.success && result.code && result.expiresAt) {
+      // Store verification code in Firestore
+      try {
+        await addDoc(collection(db, 'verifications'), {
+          email: signUpEmail,
+          code: result.code,
+          expiresAt: Timestamp.fromMillis(result.expiresAt),
+        });
+        toast.success('New verification code sent!');
+        setResendCooldown(60); // 60 second cooldown
+      } catch (error) {
+        console.error('Failed to store verification code:', error);
+        setError('Failed to process verification. Please try again.');
+      }
     } else {
       setError(result.message);
     }

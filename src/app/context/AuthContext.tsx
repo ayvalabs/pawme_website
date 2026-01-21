@@ -23,12 +23,15 @@ import {
   where,
   getDocs,
   updateDoc,
-  runTransaction,
   deleteDoc,
   onSnapshot,
 } from 'firebase/firestore';
 import { auth, db } from '@/firebase/config';
+<<<<<<< HEAD
 import { sendWelcomeEmail, sendReferralSuccessEmail } from '@/app/actions/email';
+=======
+import { sendWelcomeEmail, sendCustomPasswordResetEmail, sendReferralSuccessEmail } from '@/app/actions/email';
+>>>>>>> wipx
 import { isDisposableEmail } from '@/lib/disposable-domains';
 
 export interface Reward {
@@ -84,22 +87,40 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 async function generateReferralCode(email: string, uid: string): Promise<string> {
   const namePart = email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-  const uidPart = uid.substring(0, 6).toUpperCase();
-  let referralCode = `${namePart}${uidPart}`.slice(0, 10);
   
-  if (referralCode.length < 6) {
-    referralCode = (referralCode + uid.toUpperCase()).slice(0, 10);
+  // Try up to 5 times to generate a unique code
+  for (let attempt = 0; attempt < 5; attempt++) {
+    let referralCode: string;
+    
+    if (attempt === 0) {
+      // First attempt: use first 6 chars of name + first 4 of UID
+      const uidPart = uid.substring(0, 4).toUpperCase();
+      referralCode = `${namePart}${uidPart}`.slice(0, 10);
+    } else {
+      // Subsequent attempts: add random suffix for uniqueness
+      const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+      referralCode = `${namePart}${randomSuffix}`.slice(0, 10);
+    }
+    
+    // Ensure minimum length
+    if (referralCode.length < 6) {
+      const randomPad = Math.random().toString(36).substring(2, 8).toUpperCase();
+      referralCode = (referralCode + randomPad).slice(0, 10);
+    }
+    
+    // Check if code already exists
+    const usersRef = collection(db, 'users');
+    const q = query(usersRef, where('referralCode', '==', referralCode));
+    const querySnapshot = await getDocs(q);
+    
+    if (querySnapshot.empty) {
+      return referralCode;
+    }
   }
   
-  const usersRef = collection(db, 'users');
-  const q = query(usersRef, where('referralCode', '==', referralCode));
-  const querySnapshot = await getDocs(q);
-  
-  if (!querySnapshot.empty) {
-    referralCode = (namePart + uid.substring(0, 8)).toUpperCase().slice(0, 10);
-  }
-  
-  return referralCode;
+  // Fallback: use timestamp-based code
+  const timestamp = Date.now().toString(36).toUpperCase();
+  return `${namePart}${timestamp}`.slice(0, 10);
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -149,6 +170,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+<<<<<<< HEAD
   const creditReferrer = async (referralCode: string, newSignedUpEmail: string) => {
     const referralsRef = collection(db, 'users');
     const q = query(referralsRef, where('referralCode', '==', referralCode));
@@ -190,6 +212,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log(`Credited referrer ${referrerDocSnapshot.id}`);
     } else {
       console.log(`Referral code ${referralCode} not found.`);
+=======
+  const fetchProfile = async (uid: string) => {
+    const docRef = doc(db, 'users', uid);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      setProfile(docSnap.data() as UserProfile);
+    } else {
+      console.log('No such profile!');
+>>>>>>> wipx
     }
   };
 
@@ -230,7 +261,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email: newUser.email!,
         name: name || newUser.email!.split('@')[0],
         referralCode,
+<<<<<<< HEAD
         points: 100, // Starting points
+=======
+        points: 100, // Start with 100 points
+>>>>>>> wipx
         referralCount: 0,
         referredBy: referredByCode || null,
         theme: 'purple',
@@ -246,7 +281,57 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await deleteDoc(verificationDoc.ref);
       
       if (referredByCode) {
+<<<<<<< HEAD
         await creditReferrer(referredByCode, email);
+=======
+        console.log('🔵 [SIGNUP] Step 8: Crediting referrer...');
+        try {
+          // Credit referrer inline (client-side with auth context)
+          const referralsRef = collection(db, 'users');
+          const q = query(referralsRef, where('referralCode', '==', referredByCode));
+          const querySnapshot = await getDocs(q);
+
+          if (!querySnapshot.empty) {
+            const referrerDocSnapshot = querySnapshot.docs[0];
+            const referrerRef = doc(db, 'users', referrerDocSnapshot.id);
+            const referrerData = referrerDocSnapshot.data() as UserProfile;
+
+            if (referrerData.email === email) {
+              console.warn('⚠️  [SIGNUP] Self-referral attempt blocked.');
+            } else {
+              const oldPoints = referrerData.points || 0;
+              const pointsToAdd = referrerData.isVip ? 150 : 100;
+              const newPoints = oldPoints + pointsToAdd;
+              const newReferralCount = (referrerData.referralCount || 0) + 1;
+
+              await updateDoc(referrerRef, { 
+                referralCount: newReferralCount,
+                points: newPoints
+              });
+
+              console.log(`✅ [SIGNUP] Credited referrer ${referrerDocSnapshot.id} with ${pointsToAdd} points`);
+
+              // Send referral success email (this is a server action, runs separately)
+              if (referrerData.email) {
+                await sendReferralSuccessEmail({
+                  to: referrerData.email,
+                  referrerName: referrerData.name,
+                  newUserName: name,
+                  oldPoints: oldPoints,
+                  newPoints: newPoints,
+                  newReferralCount: newReferralCount,
+                });
+              }
+            }
+          } else {
+            console.log(`⚠️  [SIGNUP] Referral code ${referredByCode} not found.`);
+          }
+        } catch (error) {
+          console.error('❌ [SIGNUP] Error crediting referrer:', error);
+          // Don't fail signup if referral credit fails
+        }
+        console.log('✅ [SIGNUP] Referrer credit process completed');
+>>>>>>> wipx
       }
       
       await sendWelcomeEmail({ to: email, name, referralCode });
@@ -280,14 +365,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const sendPasswordReset = async (email: string) => {
     try {
+<<<<<<< HEAD
       await sendPasswordResetEmail(auth, email);
       return { success: true, message: 'Password reset email sent! Check your inbox.' };
+=======
+      await sendCustomPasswordResetEmail({ email });
+      return { success: true };
+>>>>>>> wipx
     } catch (error: any) {
+      if (error.code === 'auth/user-not-found') {
+        console.log(`Password reset requested for non-existent user: ${email}`);
+        return { success: true, message: 'If an account with this email exists, a password reset link has been sent.' };
+      }
       console.error('Password reset error:', error);
+<<<<<<< HEAD
       if (error.code === 'auth/user-not-found') {
         return { success: true, message: 'If an account exists with this email, a password reset link has been sent.' };
       }
       return { success: false, message: 'Failed to send password reset email.' };
+=======
+      return { success: false, message: 'Could not send password reset email.' };
+>>>>>>> wipx
     }
   };
 

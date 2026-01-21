@@ -1,20 +1,22 @@
-
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/app/context/AuthContext';
 import { Header } from '@/app/components/header';
 import { Footer } from '@/app/components/footer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
-import { Button } from '@/app/components/ui/button';
-import { Input } from '@/app/components/ui/input';
-import { Label } from '@/app/components/ui/label';
-import { Textarea } from '@/app/components/ui/textarea';
-import { Trophy, Users, Gift, Share2, Copy, Check, Mail, MessageCircle, Sparkles, Star, Lock } from 'lucide-react';
-import { toast } from 'sonner';
-import { getLeaderboard } from '@/app/actions/users';
+import { Avatar, AvatarFallback } from '@/app/components/ui/avatar';
+import { Badge } from '@/app/components/ui/badge';
 import { Skeleton } from '@/app/components/ui/skeleton';
+import { Trophy, Users, TrendingUp, Crown, Medal, Award, Sparkles, Mail, Check, Copy, Share2, MessageCircle, Gift, Lock, Star } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { db } from '@/firebase/config';
+import { collection, query, orderBy, limit, getDocs, where, getCountFromServer } from 'firebase/firestore';
+import { toast } from 'sonner';
+import { Label } from '@/app/components/ui/label';
+import { Input } from '@/app/components/ui/input';
+import { Button } from '@/app/components/ui/button';
+import { Textarea } from '@/app/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/app/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/app/components/ui/alert-dialog';
 import { useForm } from 'react-hook-form';
@@ -23,13 +25,11 @@ import * as z from 'zod';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/app/components/ui/form';
 import { ImageWithFallback } from '@/app/components/figma/ImageWithFallback';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/ui/table';
-import { loadStripe, type Stripe as StripeType } from '@stripe/stripe-js';
-import { Elements } from '@stripe/react-stripe-js';
-import { createPaymentIntent } from '@/app/actions/stripe';
+// import { loadStripe, type Stripe as StripeType } from '@stripe/stripe-js';
+// import { Elements } from '@stripe/react-stripe-js';
+// import { createPaymentIntent } from '@/app/actions/stripe';
 import CheckoutForm from '@/app/components/CheckoutForm';
 import { getAppSettings, AppSettings } from '@/app/actions/settings';
-import { collection, query, where, getCountFromServer } from 'firebase/firestore';
-import { db } from '@/firebase/config';
 
 interface LeaderboardUser {
   id: string;
@@ -86,13 +86,30 @@ function MarketingOptInBanner({ onOptIn }: { onOptIn: () => void }) {
 function LeaderboardDisplay() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardUser[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showAll, setShowAll] = useState(false);
+  const [totalUsers, setTotalUsers] = useState(0);
 
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
       try {
-        const topUsers = await getLeaderboard();
+        // Fetch top 8 users from Firestore (client-side with auth context)
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, orderBy('points', 'desc'), limit(8));
+        const querySnapshot = await getDocs(q);
+        
+        const topUsers: LeaderboardUser[] = querySnapshot.docs.map((doc, index) => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            name: data.name,
+            points: data.points,
+            rank: index + 1,
+          };
+        });
+        
         setLeaderboard(topUsers);
+        setTotalUsers(topUsers.length);
       } catch (error) {
         console.error("Failed to fetch leaderboard data:", error);
       } finally {
@@ -109,6 +126,8 @@ function LeaderboardDisplay() {
     return { icon: '👤', name: 'Participant' };
   };
 
+  const displayedUsers = showAll ? leaderboard : leaderboard.slice(0, 3);
+
   return (
     <Card className="mb-8">
       <CardHeader>
@@ -119,40 +138,63 @@ function LeaderboardDisplay() {
         <CardDescription>See how you stack up against other top referrers.</CardDescription>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-16 text-center">Rank</TableHead>
-              <TableHead>User</TableHead>
-              <TableHead className="text-right">Points</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <TableRow key={i}>
-                  <TableCell className="text-center"><Skeleton className="h-5 w-5 rounded-full mx-auto" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-3/4" /></TableCell>
-                  <TableCell className="text-right"><Skeleton className="h-5 w-12 ml-auto" /></TableCell>
-                </TableRow>
-              ))
-            ) : (
-              leaderboard.map((user) => {
-                const tier = getTierInfo(user.rank);
-                return (
-                  <TableRow key={user.id}>
-                    <TableCell className="text-center font-bold text-lg">{user.rank}</TableCell>
-                    <TableCell className="font-medium flex items-center gap-3">
-                      <span className="text-xl" title={tier.name}>{tier.icon}</span>
-                      {user.name}
-                    </TableCell>
-                    <TableCell className="text-right font-semibold">{user.points}</TableCell>
+        <div className="max-h-[400px] overflow-y-auto">
+          <Table>
+            <TableHeader className="sticky top-0 bg-background z-10">
+              <TableRow>
+                <TableHead className="w-16 text-center">Rank</TableHead>
+                <TableHead>User</TableHead>
+                <TableHead className="text-right">Points</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                Array.from({ length: 3 }).map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell className="text-center"><Skeleton className="h-5 w-5 rounded-full mx-auto" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-3/4" /></TableCell>
+                    <TableCell className="text-right"><Skeleton className="h-5 w-12 ml-auto" /></TableCell>
                   </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
+                ))
+              ) : (
+                displayedUsers.map((user) => {
+                  const tier = getTierInfo(user.rank);
+                  return (
+                    <TableRow key={user.id}>
+                      <TableCell className="text-center font-bold text-lg">{user.rank}</TableCell>
+                      <TableCell className="font-medium flex items-center gap-3">
+                        <span className="text-xl" title={tier.name}>{tier.icon}</span>
+                        {user.name}
+                      </TableCell>
+                      <TableCell className="text-right font-semibold">{user.points}</TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
+            </TableBody>
+          </Table>
+        </div>
+        {!loading && totalUsers > 3 && (
+          <div className="mt-4 text-center">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowAll(!showAll)}
+              className="gap-2"
+            >
+              {showAll ? (
+                <>
+                  <TrendingUp className="h-4 w-4 rotate-180" />
+                  Show Less
+                </>
+              ) : (
+                <>
+                  <TrendingUp className="h-4 w-4" />
+                  Show More ({totalUsers - 3} more)
+                </>
+              )}
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -170,7 +212,7 @@ const addressSchema = z.object({
 });
 
 export default function LeaderboardPage() {
-  const { user, profile, loading: authLoading, joinVip, redeemReward, updateMarketingPreference } = useAuth();
+  const { user, profile, loading: authLoading, joinVip, redeemReward, updateMarketingPreference, refreshProfile } = useAuth();
   const router = useRouter();
 
   const [settings, setSettings] = useState<AppSettings | null>(null);
@@ -189,15 +231,15 @@ export default function LeaderboardPage() {
   const [isRedeemDialogOpen, setRedeemDialogOpen] = useState(false);
   const [selectedReward, setSelectedReward] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  // const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [isOptInDialogOpen, setOptInDialogOpen] = useState(false);
-  const [stripePromise] = useState(() => {
-    const stripePublicKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
-    if (stripePublicKey) {
-      return loadStripe(stripePublicKey);
-    }
-    return null;
-  });
+  // const [stripePromise] = useState(() => {
+  //   const stripePublicKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+  //   if (stripePublicKey) {
+  //     return loadStripe(stripePublicKey);
+  //   }
+  //   return null;
+  // });
 
   const addressForm = useForm<z.infer<typeof addressSchema>>({
     resolver: zodResolver(addressSchema),
@@ -210,6 +252,12 @@ export default function LeaderboardPage() {
     const fetchPageData = async () => {
       setLoadingSettings(true);
       try {
+        // Refresh profile to get latest referral stats
+        if (refreshProfile) {
+          console.log('🔄 [LEADERBOARD] Refreshing profile data...');
+          await refreshProfile();
+        }
+        
         const [appSettings, vipUsersSnapshot] = await Promise.all([
           getAppSettings(),
           getCountFromServer(query(collection(db, 'users'), where('isVip', '==', true)))
@@ -226,7 +274,25 @@ export default function LeaderboardPage() {
     if (!authLoading && user) {
       fetchPageData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, user]);
+
+  // Console log analytics data whenever profile updates
+  useEffect(() => {
+    if (profile) {
+      console.log('========================================');
+      console.log('📊 [ANALYTICS] Current Profile Data');
+      console.log('========================================');
+      console.log('User Name:', profile.name);
+      console.log('User Email:', profile.email);
+      console.log('Total Points:', profile.points || 0);
+      console.log('Referral Count:', profile.referralCount || 0);
+      console.log('Referral Code:', profile.referralCode);
+      console.log('Is VIP:', profile.isVip || false);
+      console.log('Rewards Unlocked:', profile.rewards?.length || 0);
+      console.log('========================================\n');
+    }
+  }, [profile]);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -237,17 +303,29 @@ export default function LeaderboardPage() {
   useEffect(() => {
     if (profile && referralUrl) {
       const recipient = receiverName.trim() ? receiverName.trim() : 'there';
+      // Generate personalized referral message with improved copy
       setShareMessage(
-`Hey ${recipient}!
+`Hi ${recipient}! 🐾
 
-I'm on the waitlist for PawMe, an amazing AI companion for pets that I think you'd love. It has features like an HD camera, health monitoring, and even a laser for interactive play.
+I just joined the PawMe waitlist and thought you'd love this!
 
-Sign up using my link to get 100 bonus points and join me on the leaderboard: ${referralUrl}
+PawMe is an AI-powered companion for pets with some amazing features:
+• 📹 HD camera to check on your pet anytime
+• 💚 Health monitoring to track their wellbeing  
+• 🎯 Interactive laser play to keep them entertained
+• 🤖 Smart AI that learns your pet's behavior
 
-Let me know what you think!
+🎁 Join using my referral link and get 100 bonus points to unlock exclusive rewards:
+${referralUrl}
 
-Best,
-${profile.name}`
+The more friends who join, the higher we climb on the leaderboard - and the more rewards we unlock! 🏆
+
+Let me know if you have any questions!
+
+With paws and applause 🐾
+${profile.name}
+
+P.S. Limited spots available for early bird pricing!`
       );
     }
   }, [profile, referralUrl, receiverName]);
@@ -284,15 +362,40 @@ ${profile.name}`
       return;
     }
 
-    const subject = encodeURIComponent(`🐾 ${profile?.name} invited you to join PawMe!`);
-    const body = encodeURIComponent(shareMessage);
-
-    const mailtoLink = `mailto:${emailAddress}?subject=${subject}&body=${body}`;
-    window.open(mailtoLink);
-
+    const subject = `🐾 ${profile?.name} invited you to join PawMe!`;
+    
+    // Detect user's email provider from their profile
+    const userEmail = profile?.email || '';
+    const emailDomain = userEmail.split('@')[1]?.toLowerCase() || '';
+    
+    let emailUrl: string;
+    let providerName: string;
+    
+    // Detect email provider and construct appropriate compose URL
+    if (emailDomain.includes('gmail.com') || emailDomain.includes('googlemail.com')) {
+      // Gmail
+      emailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(emailAddress)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(shareMessage)}`;
+      providerName = 'Gmail';
+    } else if (emailDomain.includes('outlook.com') || emailDomain.includes('hotmail.com') || emailDomain.includes('live.com')) {
+      // Outlook
+      emailUrl = `https://outlook.live.com/mail/0/deeplink/compose?to=${encodeURIComponent(emailAddress)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(shareMessage)}`;
+      providerName = 'Outlook';
+    } else if (emailDomain.includes('yahoo.com')) {
+      // Yahoo Mail
+      emailUrl = `https://compose.mail.yahoo.com/?to=${encodeURIComponent(emailAddress)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(shareMessage)}`;
+      providerName = 'Yahoo Mail';
+    } else {
+      // Fallback to mailto for other providers
+      emailUrl = `mailto:${emailAddress}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(shareMessage)}`;
+      providerName = 'your email client';
+    }
+    
+    // Open email client
+    window.open(emailUrl, '_blank');
+    
     setEmailAddress('');
     setReceiverName('');
-    toast.success('Your email client should be open!');
+    toast.success(`${providerName} opened with your referral message!`);
   };
 
   const handleWhatsAppShare = () => {
@@ -326,13 +429,13 @@ ${profile.name}`
   
   const handleOpenVipDialog = async () => {
     setIsSubmitting(true);
-    const res = await createPaymentIntent(100);
-    if (res.clientSecret) {
-      setClientSecret(res.clientSecret);
+    // const res = await createPaymentIntent(100); // $1.00 deposit
+    // if (res.clientSecret) {
+    //   setClientSecret(res.clientSecret);
       setVipDialogOpen(true);
-    } else {
-      toast.error(res.error || 'Could not initiate payment. Please try again later.');
-    }
+    // } else {
+    //   toast.error(res.error || 'Could not initiate payment. Please try again later.');
+    // }
     setIsSubmitting(false);
   };
   
@@ -403,6 +506,46 @@ ${profile.name}`
           {profile && !profile.marketingOptIn && (
             <MarketingOptInBanner onOptIn={() => setOptInDialogOpen(true)} />
           )}
+
+          {/* Analytics Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Points</CardTitle>
+                <Trophy className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-primary">{profile.points || 0}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Keep referring to earn more!
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Referrals</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{profile.referralCount || 0}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Friends joined through your link
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Rewards</CardTitle>
+                <Gift className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{profile.rewards?.length || 0}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Unlocked rewards
+                </p>
+              </CardContent>
+            </Card>
+          </div>
           
           <LeaderboardDisplay />
 
@@ -460,45 +603,6 @@ ${profile.name}`
             </CardContent>
           </Card>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Points</CardTitle>
-                <Trophy className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-primary">{profile.points || 0}</div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Keep referring to earn more!
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Referrals</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">{profile.referralCount || 0}</div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Friends joined through your link
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Rewards</CardTitle>
-                <Gift className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">{profile.rewards?.length || 0}</div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Unlocked rewards
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-          
           <Card className="mt-8">
             <CardHeader>
               <CardTitle>Redeem Your Points</CardTitle>
@@ -550,22 +654,58 @@ ${profile.name}`
       </div>
       
       <Dialog open={isVipDialogOpen} onOpenChange={setVipDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Join the VIP List</DialogTitle>
-            <DialogDescription>
-              Complete the $1.00 deposit to become a founding member and unlock exclusive perks, including 1.5x referral points.
-            </DialogDescription>
-          </DialogHeader>
-          {clientSecret && stripePromise ? (
-            <Elements options={{ clientSecret }} stripe={stripePromise}>
-              <CheckoutForm onSuccess={finalizeVipJoin} />
-            </Elements>
-          ) : (
-            <div className="flex justify-center items-center h-32">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <DialogContent className="max-w-4xl p-0">
+          <div className="flex min-h-[550px]">
+            <div className="w-1/2 p-8 flex flex-col justify-between">
+              <div>
+                <DialogHeader>
+                  <DialogTitle className="text-2xl">Become a PawMe VIP</DialogTitle>
+                  <DialogDescription>
+                    Make a $1.00 fully refundable deposit to secure your spot as a founding member.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="mt-6">
+                  <CheckoutForm onSuccess={finalizeVipJoin} />
+                </div>
+              </div>
+               <p className="text-xs text-muted-foreground mt-4 text-center">
+                This is a fully refundable $1.00 deposit. You can request a refund at any time before our Kickstarter launch.
+              </p>
             </div>
-          )}
+            <div className="relative hidden w-1/2 flex-col justify-between rounded-r-lg bg-gradient-to-br from-primary/20 via-secondary to-primary/20 p-8 md:flex">
+                <div className="absolute inset-0 z-0">
+                    <ImageWithFallback
+                        src="https://picsum.photos/seed/vip-pet/600/800"
+                        alt="A happy pet"
+                        data-ai-hint="happy pet"
+                        className="size-full object-cover opacity-20"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent" />
+                </div>
+                <div className="relative z-10">
+                    <div className="mb-4 text-2xl font-bold">
+                    Founding Member Benefits
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                    Your small deposit unlocks big rewards and helps us build the best companion for your pet.
+                    </p>
+                </div>
+                <div className="relative z-10 space-y-4">
+                    <div className="flex items-start gap-3">
+                      <Star className="mt-1 size-5 shrink-0 text-primary" />
+                      <p className="text-sm text-muted-foreground"><span className="font-semibold text-foreground">Earn 1.5x Points</span> on all referrals, forever.</p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <Sparkles className="mt-1 size-5 shrink-0 text-primary" />
+                      <p className="text-sm text-muted-foreground"><span className="font-semibold text-foreground">Exclusive Discounts</span> on our Kickstarter launch.</p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <Lock className="mt-1 size-5 shrink-0 text-primary" />
+                      <p className="text-sm text-muted-foreground"><span className="font-semibold text-foreground">Guaranteed Early Bird</span> access to the best deals.</p>
+                    </div>
+                </div>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
       
