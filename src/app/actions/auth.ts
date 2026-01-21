@@ -2,9 +2,26 @@
 'use server';
 
 import { isDisposableEmail } from '@/lib/disposable-domains';
-import { sendVerificationCodeEmail } from './email';
+import { sendVerificationCodeEmail, sendAccountDeletionCodeEmail } from './email';
 
-const HARDCODED_TEST_EMAIL = 'ashok.jaiswal@gmail.com';
+export async function sendAccountDeletionCode({ email, name }: { email: string; name: string }) {
+  console.log('🔵 [ACTION] Initiating account deletion code send for:', email);
+  
+  try {
+    const code = Math.floor(1000 + Math.random() * 9000).toString();
+    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+    
+    console.log('🔵 [ACTION] Generated deletion code', code, 'for', email, '. It expires at', new Date(expiresAt).toLocaleTimeString());
+    
+    await sendAccountDeletionCodeEmail({ to: email, name, code });
+    
+    console.log('✅ [ACTION] Account deletion code sent successfully.');
+    return { success: true, code, expiresAt };
+  } catch (error: any) {
+    console.error('❌ [ACTION] Failed to send account deletion code:', error);
+    return { success: false, message: `Could not send deletion code. Error: ${error?.message || 'Unknown error'}` };
+  }
+}
 
 export async function sendSignUpVerificationCode({ email, name }: { email: string; name: string }) {
   console.log('🔵 [ACTION] Initiating verification code send for:', email);
@@ -27,10 +44,9 @@ export async function sendSignUpVerificationCode({ email, name }: { email: strin
 
   // Step 1: Store verification document in Firestore
   try {
-    console.log('🔵 [ACTION] Sending verification email to hardcoded test email...');
-    console.log(`🔵 [ACTION] User email: ${email}, Test email: ${HARDCODED_TEST_EMAIL}`);
-    await sendVerificationCodeEmail({ to: HARDCODED_TEST_EMAIL, name, code });
-    console.log('✅ [ACTION] Verification email sent successfully to test email.');
+    console.log('🔵 [ACTION] Sending verification email to:', email);
+    await sendVerificationCodeEmail({ to: email, name, code });
+    console.log('✅ [ACTION] Verification email sent successfully.');
     
     // Return the code and expiry so the client can store it in Firestore
     return { success: true, message: 'Verification code sent.', code, expiresAt };

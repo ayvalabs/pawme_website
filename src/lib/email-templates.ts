@@ -110,7 +110,7 @@ export const defaultTemplates: { [key: string]: EmailTemplate } = {
     <table role="presentation" style="width: 100%; margin-bottom: 30px;">
       <tr>
         <td style="background: linear-gradient(135deg, rgba(250, 204, 21, 0.1) 0%, rgba(118, 120, 238, 0.1) 50%, rgba(250, 204, 21, 0.1) 100%); border: 1px solid rgba(118, 120, 238, 0.2); border-radius: 8px; text-align: center; padding: 25px;">
-          <a href="https://pawme.com/leaderboard" target="_blank" style="text-decoration: none; color: #333333;">
+          <a href="{{appUrl}}/leaderboard" target="_blank" style="text-decoration: none; color: #333333;">
             <h2 style="margin: 0 0 10px; font-size: 24px; font-weight: bold; color: #7678EE;">👑 Join the VIP List! 👑</h2>
             <p style="margin: 0 0 20px; font-size: 16px; line-height: 1.5; color: #4A5568;">
               Become a founding member, get exclusive early bird pricing, and earn <strong style="color: #7678EE;">1.5x points</strong> for every referral!
@@ -127,13 +127,13 @@ export const defaultTemplates: { [key: string]: EmailTemplate } = {
     <table role="presentation" style="width: 100%; text-align: center;">
       <tr>
         <td>
-          <a href="https://pawme.com/leaderboard" target="_blank" style="display: inline-block; padding: 14px 32px; background-color: #7678EE; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: 600;">View Your Dashboard</a>
+          <a href="{{appUrl}}/leaderboard" target="_blank" style="display: inline-block; padding: 14px 32px; background-color: #7678EE; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: 600;">View Your Dashboard</a>
         </td>
       </tr>
     </table>
   </td>
 </tr>`,
-    variables: ['userName', 'referralCode', 'referralLink'],
+    variables: ['userName', 'referralCode', 'referralLink', 'appUrl'],
   },
   referralSuccess: {
     id: 'referralSuccess',
@@ -182,13 +182,13 @@ export const defaultTemplates: { [key: string]: EmailTemplate } = {
     <table role="presentation" style="width: 100%; text-align: center; margin-top: 10px;">
       <tr>
         <td>
-          <a href="https://pawme.com/leaderboard" target="_blank" style="display: inline-block; padding: 14px 32px; background-color: #7678EE; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: 600;">Check Your Progress</a>
+          <a href="{{appUrl}}/leaderboard" target="_blank" style="display: inline-block; padding: 14px 32px; background-color: #7678EE; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: 600;">Check Your Progress</a>
         </td>
       </tr>
     </table>
   </td>
 </tr>`,
-    variables: ['referrerName', 'newUserName', 'newReferralCount', 'newPoints', 'unlockedRewardsHtml'],
+    variables: ['referrerName', 'newUserName', 'newReferralCount', 'newPoints', 'unlockedRewardsHtml', 'appUrl'],
   },
   verificationCode: {
     id: 'verificationCode',
@@ -294,5 +294,55 @@ export const defaultTemplates: { [key: string]: EmailTemplate } = {
   </td>
 </tr>`,
     variables: ['userName', 'customBody'],
+  },
+  accountDeletion: {
+    id: 'accountDeletion',
+    name: 'Account Deletion Verification',
+    subject: '⚠️ Confirm Your PawMe Account Deletion',
+    html: `<!-- This is just the body content. The header and footer are added dynamically. -->
+<tr>
+  <td style="padding: 40px;">
+    <p style="margin: 0 0 20px; color: #333333; font-size: 16px; line-height: 1.6;">
+      Hi {{userName}},
+    </p>
+    
+    <p style="margin: 0 0 30px; color: #333333; font-size: 16px; line-height: 1.6;">
+      We received a request to delete your PawMe account. If this was you, please use the verification code below to confirm the deletion.
+    </p>
+    
+    <!-- Code Box -->
+    <table role="presentation" style="width: 100%; margin-bottom: 30px;">
+      <tr>
+        <td style="background-color: #fee; border: 2px solid #dc2626; border-radius: 8px; padding: 30px; text-align: center;">
+          <p style="margin: 0 0 15px; color: #dc2626; font-size: 18px; font-weight: 600;">⚠️ Account Deletion Code</p>
+          <p style="margin: 0; color: #dc2626; font-size: 48px; font-weight: 700; letter-spacing: 12px; line-height: 1;">{{code}}</p>
+        </td>
+      </tr>
+    </table>
+    
+    <p style="margin: 0 0 20px; color: #666666; font-size: 14px; line-height: 1.6; text-align: center;">
+      This code will expire in 10 minutes.
+    </p>
+    
+    <p style="margin: 30px 0 20px; color: #dc2626; font-size: 14px; line-height: 1.6; font-weight: 600;">
+      ⚠️ Warning: This action is permanent and cannot be undone.
+    </p>
+    
+    <p style="margin: 0 0 20px; color: #666666; font-size: 14px; line-height: 1.6;">
+      Deleting your account will:
+    </p>
+    <ul style="margin: 0 0 30px; padding-left: 20px; color: #666666; font-size: 14px; line-height: 1.8;">
+      <li>Remove all your personal data</li>
+      <li>Delete your referral code and links</li>
+      <li>Forfeit all earned points and rewards</li>
+      <li>Remove you from the leaderboard</li>
+    </ul>
+    
+    <p style="margin: 0; color: #666666; font-size: 14px; line-height: 1.6;">
+      If you didn't request this deletion, please ignore this email and your account will remain active. Consider changing your password if you're concerned about account security.
+    </p>
+  </td>
+</tr>`,
+    variables: ['userName', 'code'],
   },
 };

@@ -96,31 +96,37 @@ async function renderAndSend(templateId: keyof typeof defaultTemplates, to: stri
 export async function sendWelcomeEmail({ to, name, referralCode }: { to: string, name: string, referralCode: string }) {
   const appUrl = await getAppUrl();
   const referralLink = `${appUrl}/?ref=${referralCode}`;
-  await renderAndSend('welcome', to, { userName: name, referralCode, referralLink, emailTitle: "Welcome to PawMe!" });
+  await renderAndSend('welcome', to, { userName: name, referralCode, referralLink, appUrl, emailTitle: "Welcome to PawMe!" });
 }
 
 export async function sendVerificationCodeEmail({ to, name, code }: { to: string, name: string, code: string }) {
   await renderAndSend('verificationCode', to, { userName: name, code });
 }
 
+export async function sendAccountDeletionCodeEmail({ to, name, code }: { to: string, name: string, code: string }) {
+  console.log(`🔵 [EMAIL] Sending account deletion code to: ${to}`);
+  await renderAndSend('accountDeletion', to, { userName: name, code });
+}
+
 export async function sendReferralSuccessEmail({ to, referrerName, newUserName, oldPoints, newPoints, newReferralCount }: { to: string, referrerName: string, newUserName: string, oldPoints: number, newPoints: number, newReferralCount: number }) {
+  const appUrl = await getAppUrl();
   await renderAndSend('referralSuccess', to, { 
     referrerName, 
     newUserName, 
     newReferralCount, 
     newPoints: newPoints.toLocaleString(),
     unlockedRewardsHtml: '',
+    appUrl,
     emailTitle: "You've Earned Points!"
   });
 }
 
 export async function sendCustomPasswordResetEmail({ email }: { email: string }) {
-  const HARDCODED_TEST_EMAIL = 'ashok.jaiswal@gmail.com';
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9008';
   const resetLink = `${appUrl}/reset-password?email=${encodeURIComponent(email)}`;
   
-  console.log(`🔵 [EMAIL_ACTION] Sending password reset to hardcoded test email for user: ${email}`);
-  await renderAndSend('passwordReset', HARDCODED_TEST_EMAIL, { 
+  console.log(`🔵 [EMAIL_ACTION] Sending password reset to: ${email}`);
+  await renderAndSend('passwordReset', email, { 
     userName: email,
     link: resetLink,
     emailTitle: 'Reset Your Password' 

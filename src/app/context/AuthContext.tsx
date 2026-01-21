@@ -13,6 +13,7 @@ import {
   User as FirebaseUser,
   updateProfile as updateUserProfile,
   sendPasswordResetEmail,
+  deleteUser,
 } from 'firebase/auth';
 import {
   doc,
@@ -77,32 +78,36 @@ interface AuthContextType {
   joinVip: () => Promise<void>;
   redeemReward: (rewardId: string, shippingAddress: any) => Promise<void>;
   updateMarketingPreference: (optIn: boolean) => Promise<void>;
+  deleteAccount: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-async function generateReferralCode(email: string, uid: string): Promise<string> {
-  const namePart = email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+async function generateReferralCode(name: string, uid: string): Promise<string> {
+  // Helper function to generate random alphanumeric string
+  const generateRandomAlphanumeric = (length: number): string => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    for (let i = 0; i < length; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+  };
   
-  // Try up to 5 times to generate a unique code
-  for (let attempt = 0; attempt < 5; attempt++) {
-    let referralCode: string;
+  // Get first 4 characters from name (or pad if shorter)
+  const cleanName = name.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+  const namePart = cleanName.substring(0, 4).padEnd(4, 'X');
+  
+  console.log('[REFERRAL CODE] Generating code for name:', name);
+  console.log('[REFERRAL CODE] Name part:', namePart);
+  
+  // Try up to 10 times to generate a unique code
+  for (let attempt = 0; attempt < 10; attempt++) {
+    // Generate 4 random alphanumeric characters
+    const randomPart = generateRandomAlphanumeric(4);
+    const referralCode = `${namePart}${randomPart}`;
     
-    if (attempt === 0) {
-      // First attempt: use first 6 chars of name + first 4 of UID
-      const uidPart = uid.substring(0, 4).toUpperCase();
-      referralCode = `${namePart}${uidPart}`.slice(0, 10);
-    } else {
-      // Subsequent attempts: add random suffix for uniqueness
-      const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
-      referralCode = `${namePart}${randomSuffix}`.slice(0, 10);
-    }
-    
-    // Ensure minimum length
-    if (referralCode.length < 6) {
-      const randomPad = Math.random().toString(36).substring(2, 8).toUpperCase();
-      referralCode = (referralCode + randomPad).slice(0, 10);
-    }
+    console.log(`[REFERRAL CODE] Attempt ${attempt + 1}: Generated code ${referralCode}`);
     
     // Check if code already exists
     const usersRef = collection(db, 'users');
@@ -110,13 +115,18 @@ async function generateReferralCode(email: string, uid: string): Promise<string>
     const querySnapshot = await getDocs(q);
     
     if (querySnapshot.empty) {
+      console.log('[REFERRAL CODE] Code is unique, using:', referralCode);
       return referralCode;
     }
+    
+    console.log('[REFERRAL CODE] Code already exists, trying again...');
   }
   
-  // Fallback: use timestamp-based code
+  // Fallback: use timestamp-based code (should be extremely rare)
   const timestamp = Date.now().toString(36).toUpperCase();
-  return `${namePart}${timestamp}`.slice(0, 10);
+  const fallbackCode = `${namePart}${timestamp}`.slice(0, 8);
+  console.log('[REFERRAL CODE] Fallback code:', fallbackCode);
+  return fallbackCode;
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -229,7 +239,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       await updateUserProfile(newUser, { displayName: name });
 
-      const referralCode = await generateReferralCode(email, newUser.uid);
+      const referralCode = await generateReferralCode(name, newUser.uid);
       
       const userProfile: UserProfile = {
         id: newUser.uid,
@@ -353,7 +363,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const userDoc = await getDoc(userDocRef);
 
     if (!userDoc.exists()) {
-      const referralCode = await generateReferralCode(user.email!, user.uid);
+      const referralCode = await generateReferralCode(user.displayName || user.email!.split('@')[0], user.uid);
       const userProfile: UserProfile = {
         id: user.uid,
         email: user.email!,
@@ -448,6 +458,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const deleteAccount = async () => {
+    if (!user) {
+      throw new Error('No user logged in');
+    }
+
+    try {
+      console.log('[DELETE ACCOUNT] Starting account deletion for:', user.email);
+      
+      // Delete user document from Firestore
+      const userDocRef = doc(db, 'users', user.uid);
+      await deleteDoc(userDocRef);
+      console.log('[DELETE ACCOUNT] User document deleted from Firestore');
+      
+      // Delete all verification codes for this user
+      const verificationsRef = collection(db, 'verifications');
+      const q = query(verificationsRef, where('email', '==', user.email));
+      const querySnapshot = await getDocs(q);
+      const deletePromises = querySnapshot.docs.map(doc => deleteDoc(doc.ref));
+      await Promise.all(deletePromises);
+      console.log('[DELETE ACCOUNT] Verification codes deleted');
+      
+      // Delete Firebase Auth account
+      await deleteUser(user);
+      console.log('[DELETE ACCOUNT] Firebase Auth account deleted');
+      
+      // Sign out
+      await signOut();
+      console.log('[DELETE ACCOUNT] Account deletion complete');
+    } catch (error) {
+      console.error('[DELETE ACCOUNT] Error deleting account:', error);
+      throw error;
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -464,6 +508,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         joinVip,
         redeemReward,
         updateMarketingPreference,
+        deleteAccount,
       }}
     >
       {children}

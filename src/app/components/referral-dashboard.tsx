@@ -15,7 +15,7 @@ interface ReferralDashboardProps {
 
 export function ReferralDashboard({ email, referralCode, referralCount }: ReferralDashboardProps) {
   const [copied, setCopied] = useState(false);
-  const referralLink = `https://pawme.com/join?ref=${referralCode}`;
+  const referralLink = typeof window !== 'undefined' ? `${window.location.origin}/?ref=${referralCode}` : `/?ref=${referralCode}`;
 
   const handleCopy = async () => {
     try {

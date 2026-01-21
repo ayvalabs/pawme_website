@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app
 import { Avatar, AvatarFallback } from '@/app/components/ui/avatar';
 import { Badge } from '@/app/components/ui/badge';
 import { Skeleton } from '@/app/components/ui/skeleton';
-import { Trophy, Users, TrendingUp, Crown, Medal, Award, Sparkles, Mail, Check, Copy, Share2, MessageCircle, Gift, Lock, Star } from 'lucide-react';
+import { Trophy, Users, TrendingUp, Crown, Medal, Award, Sparkles, Mail, Check, Copy, Share2, MessageCircle, Gift, Lock, Star, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { db } from '@/firebase/config';
 import { collection, query, orderBy, limit, getDocs, where, getCountFromServer } from 'firebase/firestore';
@@ -30,6 +30,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 // import { createPaymentIntent } from '@/app/actions/stripe';
 import CheckoutForm from '@/app/components/CheckoutForm';
 import { getAppSettings, AppSettings } from '@/app/actions/settings';
+import { sendAccountDeletionCode } from '@/app/actions/auth';
+import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/app/components/ui/input-otp';
 
 interface LeaderboardUser {
   id: string;
@@ -212,7 +214,7 @@ const addressSchema = z.object({
 });
 
 export default function LeaderboardPage() {
-  const { user, profile, loading: authLoading, joinVip, redeemReward, updateMarketingPreference, refreshProfile } = useAuth();
+  const { user, profile, loading: authLoading, joinVip, redeemReward, updateMarketingPreference, refreshProfile, deleteAccount } = useAuth();
   const router = useRouter();
 
   const [settings, setSettings] = useState<AppSettings | null>(null);
@@ -233,6 +235,11 @@ export default function LeaderboardPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   // const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [isOptInDialogOpen, setOptInDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletionCode, setDeletionCode] = useState('');
+  const [storedDeletionCode, setStoredDeletionCode] = useState('');
+  const [deletionCodeExpiry, setDeletionCodeExpiry] = useState(0);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   // const [stripePromise] = useState(() => {
   //   const stripePublicKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
   //   if (stripePublicKey) {
@@ -474,6 +481,54 @@ P.S. Limited spots available for early bird pricing!`
     }
   };
 
+  const handleRequestDeletion = async () => {
+    if (!user || !profile) return;
+    
+    setIsDeletingAccount(true);
+    try {
+      const result = await sendAccountDeletionCode({ email: user.email!, name: profile.name });
+      if (result.success && result.code && result.expiresAt) {
+        setStoredDeletionCode(result.code);
+        setDeletionCodeExpiry(result.expiresAt);
+        setDeleteDialogOpen(true);
+        toast.success('Verification code sent to your email');
+      } else {
+        toast.error(result.message || 'Failed to send verification code');
+      }
+    } catch (error) {
+      toast.error('Failed to send verification code. Please try again.');
+    } finally {
+      setIsDeletingAccount(false);
+    }
+  };
+
+  const handleConfirmDeletion = async () => {
+    if (deletionCode !== storedDeletionCode) {
+      toast.error('Invalid verification code');
+      return;
+    }
+
+    if (Date.now() > deletionCodeExpiry) {
+      toast.error('Verification code has expired. Please request a new one.');
+      setDeleteDialogOpen(false);
+      setDeletionCode('');
+      return;
+    }
+
+    setIsDeletingAccount(true);
+    try {
+      await deleteAccount();
+      toast.success('Your account has been deleted successfully');
+      router.push('/');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to delete account. Please try again.');
+    } finally {
+      setIsDeletingAccount(false);
+      setDeleteDialogOpen(false);
+      setDeletionCode('');
+    }
+  };
+
   if (authLoading || loadingSettings || !user || !profile) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -612,13 +667,14 @@ P.S. Limited spots available for early bird pricing!`
               {rewardTiers.map(tier => {
                 const isUnlocked = profile.points >= tier.requiredPoints;
                 const isRedeemed = profile.rewards.some(r => r.rewardId === tier.id);
+                const pointsNeeded = tier.requiredPoints - profile.points;
                 return (
-                  <Card key={tier.id} className={`flex flex-col overflow-hidden transition-all ${!isUnlocked && 'opacity-60'}`}>
+                  <Card key={tier.id} className={`flex flex-col overflow-hidden transition-all ${!isUnlocked ? 'opacity-70 border-muted' : 'border-primary/20'}`}>
                      <div className="relative">
                       <ImageWithFallback 
                         src={tier.image}
                         alt={tier.alt}
-                        className="object-cover aspect-[3/2] w-full"
+                        className={`object-cover aspect-[3/2] w-full ${!isUnlocked ? 'grayscale' : ''}`}
                       />
                       {tier.price && (
                         <div className="absolute top-2 right-2 bg-black/50 text-white text-xs font-bold py-1 px-2 rounded-full backdrop-blur-sm">
@@ -626,20 +682,55 @@ P.S. Limited spots available for early bird pricing!`
                         </div>
                       )}
                       {!isUnlocked && (
-                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                          <Lock className="h-12 w-12 text-white/70" />
+                        <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center backdrop-blur-sm">
+                          <Lock className="h-12 w-12 text-white/90 mb-2" />
+                          <div className="bg-destructive/90 text-white text-xs font-bold py-1 px-3 rounded-full">
+                            🔒 LOCKED
+                          </div>
+                        </div>
+                      )}
+                      {isRedeemed && (
+                        <div className="absolute top-2 left-2 bg-green-500 text-white text-xs font-bold py-1 px-3 rounded-full flex items-center gap-1">
+                          <Check className="h-3 w-3" />
+                          Redeemed
                         </div>
                       )}
                     </div>
                     <div className="p-4 flex flex-col flex-grow">
-                      <h4 className="font-semibold text-lg">{tier.title}</h4>
+                      <div className="flex items-start justify-between mb-2">
+                        <h4 className="font-semibold text-lg">{tier.title}</h4>
+                        {!isUnlocked && !isRedeemed && (
+                          <Badge variant="secondary" className="text-xs">
+                            Need {pointsNeeded.toLocaleString()} pts
+                          </Badge>
+                        )}
+                      </div>
                       <p className="text-sm text-muted-foreground mt-1 mb-4 flex-grow">{tier.reward}</p>
-                      <div className="flex justify-between items-center mt-auto">
-                        <span className="font-bold text-primary">{tier.requiredPoints.toLocaleString()} points</span>
+                      <div className="flex justify-between items-center mt-auto gap-2">
+                        <span className={`font-bold ${isUnlocked ? 'text-primary' : 'text-muted-foreground'}`}>
+                          {tier.requiredPoints.toLocaleString()} points
+                        </span>
                         {isRedeemed ? (
-                          <Button variant="outline" size="sm" disabled>Redeemed</Button>
+                          <Button variant="outline" size="sm" disabled className="bg-green-50">
+                            <Check className="h-4 w-4 mr-1" />
+                            Redeemed
+                          </Button>
                         ) : (
-                          <Button size="sm" onClick={() => handleOpenRedeemDialog(tier)} disabled={!isUnlocked}>Redeem</Button>
+                          <Button 
+                            size="sm" 
+                            onClick={() => handleOpenRedeemDialog(tier)} 
+                            disabled={!isUnlocked}
+                            className={!isUnlocked ? 'cursor-not-allowed' : ''}
+                          >
+                            {!isUnlocked ? (
+                              <>
+                                <Lock className="h-4 w-4 mr-1" />
+                                Locked
+                              </>
+                            ) : (
+                              'Redeem'
+                            )}
+                          </Button>
                         )}
                       </div>
                     </div>
@@ -651,6 +742,19 @@ P.S. Limited spots available for early bird pricing!`
         </div>
         
         <Footer />
+        
+        {/* Delete Account Link - Not too obvious */}
+        <div className="max-w-7xl mx-auto px-4 pb-4">
+          <div className="text-center">
+            <button
+              onClick={handleRequestDeletion}
+              disabled={isDeletingAccount}
+              className="text-xs text-muted-foreground hover:text-destructive transition-colors underline"
+            >
+              Delete Account
+            </button>
+          </div>
+        </div>
       </div>
       
       <Dialog open={isVipDialogOpen} onOpenChange={setVipDialogOpen}>
@@ -793,6 +897,76 @@ P.S. Limited spots available for early bird pricing!`
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={isDeleteDialogOpen} onOpenChange={(open) => {
+        setDeleteDialogOpen(open);
+        if (!open) {
+          setDeletionCode('');
+        }
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="h-5 w-5" />
+              Delete Account
+            </DialogTitle>
+            <DialogDescription className="space-y-3 pt-2">
+              <p className="font-semibold text-destructive">
+                ⚠️ Warning: This action is permanent and cannot be undone.
+              </p>
+              <p>
+                Deleting your account will:
+              </p>
+              <ul className="list-disc list-inside space-y-1 text-sm">
+                <li>Remove all your personal data</li>
+                <li>Delete your referral code and links</li>
+                <li>Forfeit all earned points and rewards</li>
+                <li>Remove you from the leaderboard</li>
+              </ul>
+              <p className="pt-2">
+                A verification code has been sent to your email. Please enter it below to confirm deletion.
+              </p>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="deletion-code">Verification Code</Label>
+              <InputOTP
+                maxLength={4}
+                value={deletionCode}
+                onChange={(value) => setDeletionCode(value)}
+              >
+                <InputOTPGroup>
+                  <InputOTPSlot index={0} />
+                  <InputOTPSlot index={1} />
+                  <InputOTPSlot index={2} />
+                  <InputOTPSlot index={3} />
+                </InputOTPGroup>
+              </InputOTP>
+            </div>
+          </div>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+              disabled={isDeletingAccount}
+              className="w-full sm:w-auto"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleConfirmDeletion}
+              disabled={isDeletingAccount || deletionCode.length !== 4}
+              className="w-full sm:w-auto"
+            >
+              {isDeletingAccount ? 'Deleting...' : 'Delete My Account'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
