@@ -74,16 +74,25 @@ export default function AdminPage() {
   const [rewardImageFiles, setRewardImageFiles] = useState<Record<string, File>>({});
 
   useEffect(() => {
+    console.log('🔐 [ADMIN DASHBOARD] Auth check:', { 
+      authLoading, 
+      hasUser: !!user, 
+      email: profile?.email,
+      isAdmin: profile?.email === 'pawme@ayvalabs.com'
+    });
     if (!authLoading && (!user || profile?.email !== 'pawme@ayvalabs.com')) {
+      console.log('❌ [ADMIN DASHBOARD] Not authorized, redirecting to home');
       router.push('/');
     }
   }, [user, profile, authLoading, router]);
 
   const fetchAdminData = async () => {
+    console.log('🔄 [ADMIN DASHBOARD] Starting to fetch admin data...');
     setLoadingUsers(true);
     setLoadingSettings(true);
     try {
       const usersQuery = query(collection(db, 'users'), orderBy('createdAt', 'desc'));
+      console.log('📊 [ADMIN DASHBOARD] Fetching users and settings...');
       const [usersSnapshot, appSettings] = await Promise.all([
         getDocs(usersQuery),
         getAppSettings(),
@@ -91,24 +100,35 @@ export default function AdminPage() {
 
       const usersData: UserWithId[] = [];
       usersSnapshot.forEach((doc) => usersData.push({ id: doc.id, ...doc.data() } as UserWithId));
+      console.log(`✅ [ADMIN DASHBOARD] Fetched ${usersData.length} users`);
       setAllUsers(usersData);
       setLoadingUsers(false);
       
+      console.log('⚙️ [ADMIN DASHBOARD] App settings:', appSettings);
       setSettings(appSettings);
       setLocalVipSpots(appSettings?.vipConfig?.totalSpots || 100);
       setLocalReferralTiers(appSettings?.referralTiers || []);
       setLocalRewardTiers(appSettings?.rewardTiers || defaultRewardTiers);
       setLoadingSettings(false);
+      console.log('✅ [ADMIN DASHBOARD] Admin data loaded successfully');
 
     } catch (error) {
-      console.error('Error fetching admin data:', error);
+      console.error('❌ [ADMIN DASHBOARD] Error fetching admin data:', error);
       toast.error("Failed to load dashboard data.");
     }
   };
 
   useEffect(() => {
+    console.log('🎯 [ADMIN DASHBOARD] Data fetch trigger check:', {
+      hasUser: !!user,
+      email: profile?.email,
+      isAdmin: profile?.email === 'pawme@ayvalabs.com'
+    });
     if (user && profile?.email === 'pawme@ayvalabs.com') {
+      console.log('✅ [ADMIN DASHBOARD] Conditions met, calling fetchAdminData');
       fetchAdminData();
+    } else {
+      console.log('⏸️ [ADMIN DASHBOARD] Conditions not met, skipping data fetch');
     }
   }, [user, profile]);
 
