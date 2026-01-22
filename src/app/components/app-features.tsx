@@ -10,7 +10,7 @@ const appFeatures = [
     icon: Video,
     title: 'Live Feed',
     description: 'Watch your pet in real-time with crystal-clear HD video streaming. Multiple camera angles and two-way audio let you see and talk to your pet from anywhere in the world.',
-    screenshot: '/app-video-feed.png',
+    screenshot: '/feed.png',
     gradient: 'from-blue-500/10 to-cyan-500/10',
     iconColor: 'text-blue-500',
     bgColor: 'bg-blue-500/5',
@@ -19,7 +19,7 @@ const appFeatures = [
     icon: Gamepad2,
     title: 'Remote Control',
     description: 'Take full control of PawMe from anywhere. Navigate your home, adjust camera angles, and interact with your pet using intuitive touch controls. Monitor battery and signal strength in real-time.',
-    screenshot: '/app-remote-control.png',
+    screenshot: '/remote.png',
     gradient: 'from-indigo-500/10 to-purple-500/10',
     iconColor: 'text-indigo-500',
     bgColor: 'bg-indigo-500/5',
@@ -28,7 +28,7 @@ const appFeatures = [
     icon: Film,
     title: 'Daily Magic Moments',
     description: 'Automatically generated highlight reels of your pet\'s cutest and funniest moments. AI-powered video compilation captures the best parts of your pet\'s day and creates shareable memories.',
-    screenshot: '/app-reels.png',
+    screenshot: '/moments.png',
     gradient: 'from-purple-500/10 to-pink-500/10',
     iconColor: 'text-purple-500',
     bgColor: 'bg-purple-500/5',
@@ -37,7 +37,7 @@ const appFeatures = [
     icon: Activity,
     title: 'Health Status',
     description: 'Track your pet\'s activity levels, sleep patterns, and behavioral changes. Get insights and alerts about potential health concerns before they become serious problems.',
-    screenshot: '/app-health.png',
+    screenshot: '/health.png',
     gradient: 'from-green-500/10 to-emerald-500/10',
     iconColor: 'text-green-500',
     bgColor: 'bg-green-500/5',
@@ -57,13 +57,9 @@ export function AppFeatures() {
         const scrollProgress = Math.max(0, Math.min(1, (window.innerHeight - rect.top) / window.innerHeight));
         
         // Calculate scale based on scroll progress
-        const scale = 0.9 + (scrollProgress * 0.1);
-        
-        // Calculate opacity
-        const opacity = scrollProgress;
+        const scale = 0.95 + (scrollProgress * 0.05);
 
         card.style.transform = `scale(${scale})`;
-        card.style.opacity = `${opacity}`;
       });
     };
 
@@ -105,8 +101,8 @@ export function AppFeatures() {
                 }}
               >
                 <div className="mx-auto max-w-6xl">
-                  <Card className="overflow-hidden">
-                    <CardContent className="p-0">
+                  <div className="overflow-hidden rounded-3xl bg-background shadow-lg">
+                    <div className="p-0">
                       <div className="grid md:grid-cols-2 gap-0">
                         {/* Screenshot Side */}
                         <div className={`relative p-8 md:p-12 flex items-center justify-center`}>
@@ -146,8 +142,8 @@ export function AppFeatures() {
                           </p>
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </div>
                 </div>
               </div>
             );
