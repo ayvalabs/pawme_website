@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/app/components/ui/button';
-import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ArrowRight, ChevronDown } from 'lucide-react';
 import { ImageWithFallback } from '@/app/components/figma/ImageWithFallback';
 import { useAuth } from '@/app/context/AuthContext';
 import { AuthDialog } from '@/app/components/auth-dialog';
@@ -133,12 +133,11 @@ export function Hero() {
         </div>
       </div>
 
-      {/* Scroll Down Indicator */}
-      {/* <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 animate-bounce">
-        <div className="w-6 h-10 border-2 border-white/50 rounded-full flex items-start justify-center p-2">
-          <div className="w-1.5 h-1.5 bg-white/70 rounded-full animate-pulse" />
-        </div>
-      </div> */}
+      {/* Scroll Down Indicator - Bottom Left */}
+      <div className="absolute bottom-8 left-8 z-20 flex flex-col items-start gap-2 animate-bounce">
+        <p className="text-white/80 text-sm font-medium drop-shadow-lg">Scroll for more</p>
+        <ChevronDown className="w-6 h-6 text-white/80 drop-shadow-lg" />
+      </div>
 
       <AuthDialog
         open={authDialogOpen}

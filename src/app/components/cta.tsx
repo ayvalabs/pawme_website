@@ -41,26 +41,31 @@ export function CTA({ onEmailSubmit }: CTAProps) {
             </p>
 
             <form onSubmit={handleSubmit} className="max-w-md mx-auto">
-              <div className="flex flex-col sm:flex-row gap-3">
-                <div className="relative flex-1">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-white/70 w-5 h-5" />
-                  <Input
-                    type="email"
-                    placeholder="Enter your email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="pl-10 h-12 bg-white/20 backdrop-blur-sm border-white/30 text-white placeholder:text-white/60 focus-visible:ring-white/50"
-                  />
+              <div className="flex flex-col gap-4">
+                <div className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-full text-sm font-semibold">
+                  🚀 Coming soon on Kickstarter
                 </div>
-                <Button 
-                  type="submit" 
-                  size="lg" 
-                  disabled={isSubmitting}
-                  className="h-12 px-8 bg-white hover:bg-white/90 text-primary"
-                >
-                  {isSubmitting ? 'Joining...' : 'Get Early Access'}
-                </Button>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="relative flex-1">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-white/70 w-5 h-5" />
+                    <Input
+                      type="email"
+                      placeholder="Enter your email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      className="pl-10 h-12 bg-white/20 backdrop-blur-sm border-white/30 text-white placeholder:text-white/60 focus-visible:ring-white/50"
+                    />
+                  </div>
+                  <Button 
+                    type="submit" 
+                    size="lg" 
+                    disabled={isSubmitting}
+                    className="h-12 px-8 bg-white hover:bg-white/90 text-primary"
+                  >
+                    {isSubmitting ? 'Joining...' : 'Join Kickstarter Waitlist'}
+                  </Button>
+                </div>
               </div>
             </form>
 

@@ -33,7 +33,7 @@ export function Header({ variant: initialVariant = 'solid' }: HeaderProps) {
       return;
     }
 
-    setHeaderVariant(user ? 'solid' : 'transparent');
+    setHeaderVariant('transparent');
     
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
@@ -42,6 +42,10 @@ export function Header({ variant: initialVariant = 'solid' }: HeaderProps) {
   const headerClasses = headerVariant === 'transparent' && !isScrolled
     ? 'absolute top-0 left-0 right-0 z-40'
     : 'sticky top-0 left-0 right-0 z-40 bg-background/80 backdrop-blur-sm border-b';
+
+  const isTransparent = headerVariant === 'transparent' && !isScrolled;
+  const textColorClass = isTransparent ? 'text-white' : '';
+  const buttonVariantClass = isTransparent ? 'text-white border-white/30 hover:bg-white/10 hover:text-white' : '';
 
   useEffect(() => {
     if (profile?.theme) {
@@ -99,7 +103,7 @@ export function Header({ variant: initialVariant = 'solid' }: HeaderProps) {
                   asChild
                   variant="ghost"
                   size="sm"
-                  className="gap-2"
+                  className={`gap-2 ${buttonVariantClass}`}
                 >
                   <Link href="/leaderboard">
                     <Trophy className="w-4 h-4" />
@@ -109,7 +113,7 @@ export function Header({ variant: initialVariant = 'solid' }: HeaderProps) {
                 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="gap-2">
+                    <Button variant="outline" size="sm" className={`gap-2 ${buttonVariantClass}`}>
                       <User className="w-4 h-4" />
                       <span className="hidden sm:inline">
                         {profile?.name}

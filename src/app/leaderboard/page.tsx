@@ -240,6 +240,7 @@ export default function LeaderboardPage() {
   const [storedDeletionCode, setStoredDeletionCode] = useState('');
   const [deletionCodeExpiry, setDeletionCodeExpiry] = useState(0);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [isReferralDialogOpen, setReferralDialogOpen] = useState(false);
   // const [stripePromise] = useState(() => {
   //   const stripePublicKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
   //   if (stripePublicKey) {
@@ -706,32 +707,45 @@ P.S. Limited spots available for early bird pricing!`
                         )}
                       </div>
                       <p className="text-sm text-muted-foreground mt-1 mb-4 flex-grow">{tier.reward}</p>
-                      <div className="flex justify-between items-center mt-auto gap-2">
-                        <span className={`font-bold ${isUnlocked ? 'text-primary' : 'text-muted-foreground'}`}>
-                          {tier.requiredPoints.toLocaleString()} points
-                        </span>
-                        {isRedeemed ? (
-                          <Button variant="outline" size="sm" disabled className="bg-green-50">
-                            <Check className="h-4 w-4 mr-1" />
-                            Redeemed
-                          </Button>
-                        ) : (
-                          <Button 
-                            size="sm" 
-                            onClick={() => handleOpenRedeemDialog(tier)} 
-                            disabled={!isUnlocked}
-                            className={!isUnlocked ? 'cursor-not-allowed' : ''}
-                          >
-                            {!isUnlocked ? (
-                              <>
-                                <Lock className="h-4 w-4 mr-1" />
-                                Locked
-                              </>
+                      <div className="space-y-2 mt-auto">
+                        <div className="flex justify-between items-center">
+                          <span className={`font-bold ${isUnlocked ? 'text-primary' : 'text-muted-foreground'}`}>
+                            {tier.requiredPoints.toLocaleString()} points
+                          </span>
+                          <div className="flex gap-2">
+                            {isRedeemed ? (
+                              <Button variant="outline" size="sm" disabled className="bg-green-50">
+                                <Check className="h-4 w-4 mr-1" />
+                                Redeemed
+                              </Button>
                             ) : (
-                              'Redeem'
+                              <Button 
+                                size="sm" 
+                                onClick={() => handleOpenRedeemDialog(tier)} 
+                                disabled={!isUnlocked}
+                                className={!isUnlocked ? 'cursor-not-allowed' : ''}
+                              >
+                                {!isUnlocked ? (
+                                  <>
+                                    <Lock className="h-4 w-4 mr-1" />
+                                    Locked
+                                  </>
+                                ) : (
+                                  'Redeem'
+                                )}
+                              </Button>
                             )}
-                          </Button>
-                        )}
+                          </div>
+                        </div>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => setReferralDialogOpen(true)}
+                          className="w-full"
+                        >
+                          <Share2 className="h-4 w-4 mr-2" />
+                          Refer a Friend
+                        </Button>
                       </div>
                     </div>
                   </Card>
@@ -965,6 +979,141 @@ P.S. Limited spots available for early bird pricing!`
               {isDeletingAccount ? 'Deleting...' : 'Delete My Account'}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isReferralDialogOpen} onOpenChange={setReferralDialogOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Share Your Referral Link</DialogTitle>
+            <DialogDescription>
+              Share your unique link and earn points for every friend who signs up.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6 py-4">
+            {/* Referral Link Section */}
+            <div className="space-y-2">
+              <Label>Your Unique Link</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={referralUrl}
+                  readOnly
+                  className="flex-1 font-mono text-sm bg-secondary"
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => {
+                    navigator.clipboard.writeText(referralUrl);
+                    toast.success('Link copied to clipboard!');
+                  }}
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+                <Button
+                  onClick={() => {
+                    navigator.clipboard.writeText(referralUrl);
+                    toast.success('Link copied to clipboard!');
+                  }}
+                >
+                  <Share2 className="h-4 w-4 mr-2" />
+                  Share
+                </Button>
+              </div>
+            </div>
+
+            {/* Personal Invite Section */}
+            <div className="space-y-4">
+              <h3 className="font-semibold">Send a Personal Invite</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="friend-name">Friend's Name</Label>
+                  <Input
+                    id="friend-name"
+                    placeholder="e.g., Jane"
+                    value={receiverName}
+                    onChange={(e) => setReceiverName(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="friend-email">Friend's Email</Label>
+                  <Input
+                    id="friend-email"
+                    type="email"
+                    placeholder="jane@example.com"
+                    value={emailAddress}
+                    onChange={(e) => setEmailAddress(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="friend-whatsapp">Friend's WhatsApp</Label>
+                  <Input
+                    id="friend-whatsapp"
+                    type="tel"
+                    placeholder="+15551234567"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="message">Your Message</Label>
+                <Textarea
+                  id="message"
+                  placeholder="Add a personal message..."
+                  rows={6}
+                  value={shareMessage}
+                  onChange={(e) => setShareMessage(e.target.value)}
+                  className="resize-none"
+                  defaultValue={`Hey! 👋
+
+I just joined the waitlist for PawMe - an amazing AI companion for pets! It's like having a smart friend for your furry buddy.
+
+🐾 Features include:
+• 💓 Health monitoring to track their wellbeing
+• 🎯 Interactive laser play to keep them entertained
+• 🤖 Smart AI that learns your pet's behavior
+
+🎁 Join using my referral link and get 100 bonus points to unlock exclusive rewards:
+${referralUrl}
+
+The more friends who join, the higher we climb on the leaderboard - and the more rewards we unlock! 🏆
+
+Let me know if you have any questions!`}
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <Button
+                  className="flex-1"
+                  variant="outline"
+                  onClick={() => {
+                    const subject = encodeURIComponent('Join me on PawMe!');
+                    const body = encodeURIComponent(shareMessage || `Check out PawMe!\n\n${referralUrl}`);
+                    window.location.href = `mailto:${emailAddress}?subject=${subject}&body=${body}`;
+                  }}
+                  disabled={!emailAddress}
+                >
+                  <Mail className="h-4 w-4 mr-2" />
+                  Send via Email
+                </Button>
+                <Button
+                  className="flex-1 bg-green-600 hover:bg-green-700"
+                  onClick={() => {
+                    const text = encodeURIComponent(shareMessage || `Check out PawMe!\n\n${referralUrl}`);
+                    window.open(`https://wa.me/${phoneNumber.replace(/\D/g, '')}?text=${text}`, '_blank');
+                  }}
+                  disabled={!phoneNumber}
+                >
+                  <MessageCircle className="h-4 w-4 mr-2" />
+                  Send via WhatsApp
+                </Button>
+              </div>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </>

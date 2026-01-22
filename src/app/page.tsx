@@ -8,6 +8,7 @@ import { Hero } from '@/app/components/hero';
 import { Features } from '@/app/components/features';
 import { HowItWorks } from '@/app/components/how-it-works';
 import { ProductFeatures } from '@/app/components/product-features';
+import { AppFeatures } from '@/app/components/app-features';
 import { ReferralProgram } from '@/app/components/referral-program';
 import { Timeline } from '@/app/components/timeline';
 import { CTA } from '@/app/components/cta';
@@ -152,10 +153,11 @@ export default function HomePage() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
+    <div className="flex flex-col min-h-screen">
       <Header variant="transparent" />
       <main className="flex-grow">
         <Hero />
+        <AppFeatures />
         <Features />
         <ProductFeatures />
         <HowItWorks />
