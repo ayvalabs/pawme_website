@@ -11,6 +11,7 @@ import { ProductFeatures } from '@/app/components/product-features';
 import { AppFeatures } from '@/app/components/app-features';
 import { ReferralProgram } from '@/app/components/referral-program';
 import { Timeline } from '@/app/components/timeline';
+import { FAQSection } from '@/app/components/faq-section';
 import { CTA } from '@/app/components/cta';
 import { Footer } from '@/app/components/footer';
 import { FloatingActions } from '@/app/components/floating-actions';
@@ -163,6 +164,7 @@ export default function HomePage() {
         <HowItWorks />
         <ReferralProgram />
         <Timeline />
+        <FAQSection />
         <CTA onEmailSubmit={handleOpenAuthDialog} />
       </main>
       <Footer />
