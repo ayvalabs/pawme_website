@@ -74,7 +74,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   updateTheme: (theme: string) => Promise<void>;
-  sendPasswordReset: (email: string) => Promise<{ success: boolean; message?: string }>;
+  sendPasswordReset: (email: string) => Promise<{ success: boolean; message?: string; code?: string; expiresAt?: number }>;
   joinVip: () => Promise<void>;
   redeemReward: (rewardId: string, shippingAddress: any) => Promise<void>;
   updateMarketingPreference: (optIn: boolean) => Promise<void>;
@@ -342,13 +342,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const sendPasswordReset = async (email: string) => {
     try {
-      await sendCustomPasswordResetEmail({ email });
-      return { success: true };
+      // Generate password reset link using Firebase Admin SDK and send custom email
+      const { generatePasswordResetLink } = await import('@/app/actions/password-reset');
+      const result = await generatePasswordResetLink({ email });
+      
+      return { success: result.success, message: result.message };
     } catch (error: any) {
-      if (error.code === 'auth/user-not-found') {
-        console.log(`Password reset requested for non-existent user: ${email}`);
-        return { success: true, message: 'If an account with this email exists, a password reset link has been sent.' };
-      }
       console.error('Password reset error:', error);
       return { success: false, message: 'Could not send password reset email.' };
     }
@@ -416,10 +415,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const joinVip = async () => {
-    if (user) {
+    if (user && profile) {
       const userDocRef = doc(db, 'users', user.uid);
       try {
         await updateDoc(userDocRef, { isVip: true });
+        
+        // Send VIP deposit receipt email
+        const { sendVipDepositReceiptEmail } = await import('@/app/actions/email');
+        await sendVipDepositReceiptEmail({
+          to: user.email!,
+          name: profile.name,
+          amount: '$1.00',
+        });
       } catch (error) {
         console.error('Error joining VIP:', error);
         throw error;

@@ -140,7 +140,9 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signin', referral
     setLoading(true);
     const result = await sendPasswordReset(signInEmail);
     if (result.success) {
-      toast.success('Password reset email sent!', { description: 'Please check your inbox to continue.' });
+      toast.success('Password reset email sent!', { 
+        description: 'Check your inbox for the reset link. Don\'t forget to check your spam folder!' 
+      });
     } else {
       toast.error(result.message || 'Failed to send password reset email. Please try again.');
     }

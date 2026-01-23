@@ -218,6 +218,10 @@ export const defaultTemplates: { [key: string]: EmailTemplate } = {
       This code will expire in 10 minutes.
     </p>
     
+    <p style="margin: 0 0 20px; color: #7678EE; font-size: 14px; line-height: 1.6; text-align: center; font-weight: 600;">
+      📧 Can't find this email? Please check your spam or junk folder.
+    </p>
+    
     <p style="margin: 30px 0 0; color: #666666; font-size: 14px; line-height: 1.6;">
       If you didn't request this, you can safely ignore this email.
     </p>
@@ -248,12 +252,55 @@ export const defaultTemplates: { [key: string]: EmailTemplate } = {
       </tr>
     </table>
     
+    <p style="margin: 20px 0 0; color: #22c55e; font-size: 14px; line-height: 1.6; text-align: center; font-weight: 600;">
+      🔒 This is a secure link from PawMe. Your email provider may show a security warning - you can safely proceed.
+    </p>
+    
     <p style="margin: 30px 0 0; color: #666666; font-size: 14px; line-height: 1.6;">
       If you didn't request a password reset, you can safely ignore this email. Your account is secure.
     </p>
   </td>
 </tr>`,
     variables: ['userName', 'link'],
+  },
+  passwordResetCode: {
+    id: 'passwordResetCode',
+    name: 'Password Reset Code',
+    subject: 'Your PawMe Password Reset Code',
+    html: `<!-- This is just the body content. The header and footer are added dynamically. -->
+<tr>
+  <td style="padding: 40px;">
+    <p style="margin: 0 0 20px; color: #333333; font-size: 16px; line-height: 1.6;">
+      Hello,
+    </p>
+    
+    <p style="margin: 0 0 30px; color: #333333; font-size: 16px; line-height: 1.6;">
+      We received a request to reset your PawMe password. Here is your 4-digit verification code:
+    </p>
+    
+    <!-- Code Box -->
+    <table role="presentation" style="width: 100%; margin-bottom: 30px;">
+      <tr>
+        <td style="background-color: #f8f8fc; border-radius: 8px; padding: 30px; text-align: center;">
+          <p style="margin: 0; color: #7678EE; font-size: 48px; font-weight: 700; letter-spacing: 12px; line-height: 1;">{{code}}</p>
+        </td>
+      </tr>
+    </table>
+    
+    <p style="margin: 0 0 20px; color: #666666; font-size: 14px; line-height: 1.6; text-align: center;">
+      This code will expire in 10 minutes.
+    </p>
+    
+    <p style="margin: 0 0 20px; color: #7678EE; font-size: 14px; line-height: 1.6; text-align: center; font-weight: 600;">
+      📧 Can't find this email? Please check your spam or junk folder.
+    </p>
+    
+    <p style="margin: 30px 0 0; color: #666666; font-size: 14px; line-height: 1.6;">
+      If you didn't request a password reset, you can safely ignore this email. Your account is secure.
+    </p>
+  </td>
+</tr>`,
+    variables: ['code'],
   },
   shippingNotification: {
     id: 'shippingNotification',
@@ -344,5 +391,92 @@ export const defaultTemplates: { [key: string]: EmailTemplate } = {
   </td>
 </tr>`,
     variables: ['userName', 'code'],
+  },
+  vipDepositReceipt: {
+    id: 'vipDepositReceipt',
+    name: 'VIP Deposit Receipt',
+    subject: '👑 Thank You for Your VIP Deposit!',
+    html: `<!-- This is just the body content. The header and footer are added dynamically. -->
+<tr>
+  <td style="padding: 40px;">
+    <p style="margin: 0 0 20px; color: #333333; font-size: 16px; line-height: 1.6;">
+      Hi {{userName}},
+    </p>
+    
+    <p style="margin: 0 0 30px; color: #333333; font-size: 16px; line-height: 1.6;">
+      Thank you for becoming a PawMe VIP founding member! 🎉 Your deposit has been successfully received.
+    </p>
+    
+    <!-- Receipt Box -->
+    <table role="presentation" style="width: 100%; margin-bottom: 30px;">
+      <tr>
+        <td style="background: linear-gradient(135deg, rgba(250, 204, 21, 0.1) 0%, rgba(118, 120, 238, 0.1) 100%); border: 1px solid rgba(118, 120, 238, 0.2); border-radius: 8px; padding: 30px;">
+          <h3 style="margin: 0 0 20px; color: #7678EE; font-size: 20px; font-weight: 700; text-align: center;">
+            👑 VIP Membership Receipt
+          </h3>
+          <table role="presentation" style="width: 100%;">
+            <tr>
+              <td style="padding: 10px 0; border-bottom: 1px solid #e5e5e5;">
+                <p style="margin: 0; color: #666666; font-size: 14px;">Deposit Amount:</p>
+              </td>
+              <td style="padding: 10px 0; border-bottom: 1px solid #e5e5e5; text-align: right;">
+                <p style="margin: 0; color: #333333; font-size: 16px; font-weight: 600;">{{amount}}</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding: 10px 0; border-bottom: 1px solid #e5e5e5;">
+                <p style="margin: 0; color: #666666; font-size: 14px;">Status:</p>
+              </td>
+              <td style="padding: 10px 0; border-bottom: 1px solid #e5e5e5; text-align: right;">
+                <p style="margin: 0; color: #22c55e; font-size: 14px; font-weight: 600;">✓ Confirmed</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding: 10px 0;">
+                <p style="margin: 0; color: #666666; font-size: 14px;">Refundable:</p>
+              </td>
+              <td style="padding: 10px 0; text-align: right;">
+                <p style="margin: 0; color: #333333; font-size: 14px; font-weight: 600;">Yes, until Kickstarter launch</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+    
+    <!-- Benefits Section -->
+    <table role="presentation" style="width: 100%; margin-bottom: 30px;">
+      <tr>
+        <td style="background-color: #f8f8fc; border-radius: 8px; padding: 25px;">
+          <h3 style="margin: 0 0 20px; color: #333333; font-size: 18px; font-weight: 700;">Your VIP Benefits:</h3>
+          <ul style="margin: 0; padding-left: 20px; color: #666666; font-size: 14px; line-height: 2;">
+            <li><strong style="color: #7678EE;">1.5x Points</strong> on all referrals, forever</li>
+            <li><strong style="color: #7678EE;">Exclusive Discounts</strong> on our Kickstarter launch</li>
+            <li><strong style="color: #7678EE;">Guaranteed Early Bird</strong> access to the best deals</li>
+            <li><strong style="color: #7678EE;">Founding Member Badge</strong> on your profile</li>
+          </ul>
+        </td>
+      </tr>
+    </table>
+    
+    <p style="margin: 0 0 30px; color: #333333; font-size: 16px; line-height: 1.6;">
+      Start sharing your referral link now to maximize your points and climb the leaderboard!
+    </p>
+    
+    <!-- CTA Button -->
+    <table role="presentation" style="width: 100%; text-align: center; margin-bottom: 30px;">
+      <tr>
+        <td>
+          <a href="{{appUrl}}/leaderboard" target="_blank" style="display: inline-block; padding: 14px 32px; background-color: #7678EE; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: 600;">View Your Dashboard</a>
+        </td>
+      </tr>
+    </table>
+    
+    <p style="margin: 0; color: #666666; font-size: 14px; line-height: 1.6;">
+      If you have any questions about your VIP membership or need to request a refund, please don't hesitate to contact us.
+    </p>
+  </td>
+</tr>`,
+    variables: ['userName', 'amount', 'appUrl'],
   },
 };

@@ -23,6 +23,41 @@ export async function sendAccountDeletionCode({ email, name }: { email: string; 
   }
 }
 
+export async function sendPasswordResetCode({ email }: { email: string }) {
+  console.log('🔵 [ACTION] Initiating password reset code send for:', email);
+
+  if (!email) {
+    console.error('❌ [ACTION] Email is missing.');
+    return { success: false, message: 'Email is required.' };
+  }
+  
+  const code = Math.floor(1000 + Math.random() * 9000).toString();
+  const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+  console.log(`🔵 [ACTION] Generated password reset code ${code} for ${email}. It expires at ${new Date(expiresAt).toLocaleTimeString()}.`);
+
+  try {
+    console.log('🔵 [ACTION] Sending password reset email to:', email);
+    const { sendPasswordResetCodeEmail } = await import('./email');
+    await sendPasswordResetCodeEmail({ to: email, code });
+    console.log('✅ [ACTION] Password reset email sent successfully.');
+    
+    return { success: true, message: 'Password reset code sent.', code, expiresAt };
+  } catch (error: any) {
+    console.error('❌ [ACTION] EMAIL_ERROR: Failed to send password reset email.');
+    console.error('❌ [ACTION] Error message:', error?.message);
+
+    if (error.message && (error.message.includes('API key') || error.message.includes('RESEND_API_KEY'))) {
+        return { success: false, message: 'Email service is not configured on the server.' };
+    }
+
+    if (error.message && (error.message.includes('domain is not verified') || error.message.includes('is not a verified sender'))) {
+        return { success: false, message: 'Email sending failed: The sending domain is not verified.'};
+    }
+    
+    return { success: false, message: `Could not send password reset code. Error: ${error?.message || 'Unknown error'}` };
+  }
+}
+
 export async function sendSignUpVerificationCode({ email, name }: { email: string; name: string }) {
   console.log('🔵 [ACTION] Initiating verification code send for:', email);
 

@@ -56,8 +56,15 @@ async function renderAndSend(templateId: keyof typeof defaultTemplates, to: stri
   let bodyHtml = template.html;
 
   const appUrl = await getAppUrl();
-  const allVariables = {
-    ...variables,
+  
+  // Convert all variables to strings
+  const stringifiedVariables: Record<string, string> = {};
+  for (const key in variables) {
+    stringifiedVariables[key] = String(variables[key] ?? '');
+  }
+  
+  const allVariables: Record<string, string> = {
+    ...stringifiedVariables,
     emailTitle: subject,
     unsubscribeLink: `${appUrl}/unsubscribe?email=${encodeURIComponent(to)}`,
   };
@@ -69,7 +76,9 @@ async function renderAndSend(templateId: keyof typeof defaultTemplates, to: stri
     bodyHtml = bodyHtml.replace(regex, value);
   }
   
-  const finalHtml = bodyHtml;
+  const header = defaultTemplates.header.html;
+  const footer = defaultTemplates.footer.html;
+  const finalHtml = header + bodyHtml + footer;
   
   try {
     console.log(`[EMAIL] Sending email via Resend... (To: ${to}, Subject: ${subject})`);
@@ -77,7 +86,7 @@ async function renderAndSend(templateId: keyof typeof defaultTemplates, to: stri
       from: fromEmail,
       to,
       subject,
-      html: bodyHtml,
+      html: finalHtml,
     });
 
     if (error) {
@@ -121,11 +130,9 @@ export async function sendReferralSuccessEmail({ to, referrerName, newUserName, 
   });
 }
 
-export async function sendCustomPasswordResetEmail({ email }: { email: string }) {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9008';
-  const resetLink = `${appUrl}/reset-password?email=${encodeURIComponent(email)}`;
-  
+export async function sendCustomPasswordResetEmail({ email, resetLink }: { email: string, resetLink: string }) {
   console.log(`🔵 [EMAIL_ACTION] Sending password reset to: ${email}`);
+  console.log(`🔵 [EMAIL_ACTION] Reset link: ${resetLink}`);
   await renderAndSend('passwordReset', email, { 
     userName: email,
     link: resetLink,
@@ -152,3 +159,21 @@ export async function sendShippingNotificationEmail({ to, userName, rewardTitle,
     await renderAndSend('shippingNotification', to, { userName, rewardTitle, trackingCode, emailTitle: 'Your Reward Has Shipped!' });
 }
 
+export async function sendVipDepositReceiptEmail({ to, name, amount }: { to: string, name: string, amount: string }) {
+  const appUrl = await getAppUrl();
+  console.log(`🔵 [EMAIL_ACTION] Sending VIP deposit receipt to: ${to}`);
+  await renderAndSend('vipDepositReceipt', to, { 
+    userName: name,
+    amount,
+    appUrl,
+    emailTitle: 'VIP Deposit Receipt - Welcome to PawMe!' 
+  });
+}
+
+export async function sendPasswordResetCodeEmail({ to, code }: { to: string, code: string }) {
+  console.log(`🔵 [EMAIL_ACTION] Sending password reset code to: ${to}`);
+  await renderAndSend('passwordResetCode', to, { 
+    code,
+    emailTitle: 'Reset Your Password' 
+  });
+}
