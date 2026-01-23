@@ -13,19 +13,32 @@ export async function generatePasswordResetLink({ email }: { email: string }) {
 
   try {
     // Generate password reset link using Firebase Admin SDK
-    // Use custom Firebase Hosting domain to avoid "suspicious link" warnings
+    // Redirect to our custom password reset page for branded experience
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.ayvalabs.com';
     const actionCodeSettings = {
-      url: process.env.NEXT_PUBLIC_APP_URL || 'https://pawme.ayvalabs.com',
+      url: `${baseUrl}/reset-password`,
       handleCodeInApp: false,
     };
 
     console.log('🔵 [ACTION] Generating reset link with settings:', actionCodeSettings);
-    const resetLink = await adminAuth.generatePasswordResetLink(email, actionCodeSettings);
+    const firebaseResetLink = await adminAuth.generatePasswordResetLink(email, actionCodeSettings);
     console.log('✅ [ACTION] Password reset link generated successfully');
 
-    // Send custom email with the reset link
+    // Extract the oobCode from Firebase's link and create our custom link
+    const url = new URL(firebaseResetLink);
+    const oobCode = url.searchParams.get('oobCode');
+    
+    if (!oobCode) {
+      throw new Error('Failed to extract reset code from Firebase link');
+    }
+
+    // Create custom reset link pointing to our branded page
+    const customResetLink = `${baseUrl}/reset-password?oobCode=${oobCode}&mode=resetPassword`;
+    console.log('🔵 [ACTION] Custom reset link created:', customResetLink);
+
+    // Send custom email with our custom reset link
     console.log('🔵 [ACTION] Sending custom password reset email');
-    await sendCustomPasswordResetEmail({ email, resetLink });
+    await sendCustomPasswordResetEmail({ email, resetLink: customResetLink });
     console.log('✅ [ACTION] Password reset email sent successfully');
 
     return { success: true, message: 'Password reset email sent.' };

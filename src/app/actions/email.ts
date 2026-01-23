@@ -69,16 +69,19 @@ async function renderAndSend(templateId: keyof typeof defaultTemplates, to: stri
     unsubscribeLink: `${appUrl}/unsubscribe?email=${encodeURIComponent(to)}`,
   };
 
+  let headerHtml = defaultTemplates.header.html;
+  let footerHtml = defaultTemplates.footer.html;
+
   for (const key in allVariables) {
     const value = String(allVariables[key] ?? '');
     const regex = new RegExp(`{{${key}}}`, 'g');
     subject = subject.replace(regex, value);
     bodyHtml = bodyHtml.replace(regex, value);
+    headerHtml = headerHtml.replace(regex, value);
+    footerHtml = footerHtml.replace(regex, value);
   }
   
-  const header = defaultTemplates.header.html;
-  const footer = defaultTemplates.footer.html;
-  const finalHtml = header + bodyHtml + footer;
+  const finalHtml = headerHtml + bodyHtml + footerHtml;
   
   try {
     console.log(`[EMAIL] Sending email via Resend... (To: ${to}, Subject: ${subject})`);

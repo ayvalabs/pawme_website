@@ -241,7 +241,7 @@ export const defaultTemplates: { [key: string]: EmailTemplate } = {
     </p>
     
     <p style="margin: 0 0 30px; color: #333333; font-size: 16px; line-height: 1.6;">
-      We received a request to reset your password. Click the button below to choose a new one. This link is only valid for one hour.
+      We received a request to reset your password. Click the button below to securely reset your password on our website. This link is only valid for one hour.
     </p>
     
     <table role="presentation" style="width: 100%; text-align: center;">

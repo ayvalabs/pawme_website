@@ -45,7 +45,7 @@ export function Header({ variant: initialVariant = 'solid' }: HeaderProps) {
 
   const isTransparent = headerVariant === 'transparent' && !isScrolled;
   const textColorClass = isTransparent ? 'text-white' : '';
-  const buttonVariantClass = isTransparent ? 'text-white border-white/30 hover:bg-white/10 hover:text-white' : '';
+  const buttonVariantClass = isTransparent ? 'text-white border-white/30 hover:bg-white/10 hover:text-white bg-transparent' : '';
 
   useEffect(() => {
     if (profile?.theme) {
