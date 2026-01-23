@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { confirmPasswordReset } from 'firebase/auth';
 import { auth } from '@/firebase/config';
@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import { Eye, EyeOff, Lock, CheckCircle2 } from 'lucide-react';
 import { ThemeAwareLogo } from '@/app/components/theme-aware-logo';
 
-export default function ResetPasswordPage() {
+function ResetPasswordForm() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [newPassword, setNewPassword] = useState('');
@@ -222,5 +222,25 @@ export default function ResetPasswordPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary/10 via-background to-secondary/10 p-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-8 text-center">
+            <div className="animate-pulse space-y-4">
+              <div className="h-12 w-12 mx-auto bg-primary/20 rounded-full" />
+              <div className="h-4 bg-primary/20 rounded w-3/4 mx-auto" />
+              <div className="h-4 bg-primary/20 rounded w-1/2 mx-auto" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    }>
+      <ResetPasswordForm />
+    </Suspense>
   );
 }
