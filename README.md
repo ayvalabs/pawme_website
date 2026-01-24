@@ -8,3 +8,15 @@
 
   Run `npm run dev` to start the development server.
   
+  fix the social links to below
+Instagram
+instagram.com/pawme.ai
+
+Tik Tok
+tiktok.com/@pawme.ai
+
+X
+twitter.com/pawme_ai
+
+Facebook
+facebook.com/pawmeai
