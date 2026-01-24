@@ -415,23 +415,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const joinVip = async () => {
-    if (user && profile) {
-      const userDocRef = doc(db, 'users', user.uid);
-      try {
-        await updateDoc(userDocRef, { isVip: true });
-        
-        // Send VIP deposit receipt email
-        const { sendVipDepositReceiptEmail } = await import('@/app/actions/email');
-        await sendVipDepositReceiptEmail({
-          to: user.email!,
-          name: profile.name,
-          amount: '$1.00',
-        });
-      } catch (error) {
-        console.error('Error joining VIP:', error);
-        throw error;
-      }
-    }
+    // This function is now handled by the VIP payment dialog component
+    // The actual payment processing happens in the custom form
+    console.log('🔵 VIP payment dialog should be opened by the calling component');
   };
 
   const redeemReward = async (rewardId: string, shippingAddress: any) => {

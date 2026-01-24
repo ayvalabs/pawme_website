@@ -12,6 +12,7 @@ import { AppFeatures } from '@/app/components/app-features';
 import { ReferralProgram } from '@/app/components/referral-program';
 import { Timeline } from '@/app/components/timeline';
 import { FAQSection } from '@/app/components/faq-section';
+import { TikTokFeed } from '@/app/components/tiktok-feed';
 import { CTA } from '@/app/components/cta';
 import { Footer } from '@/app/components/footer';
 import { FloatingActions } from '@/app/components/floating-actions';
@@ -163,6 +164,7 @@ export default function HomePage() {
         <ProductFeatures />
         <HowItWorks />
         <ReferralProgram />
+        <TikTokFeed />
         <Timeline />
         <FAQSection />
         <CTA onEmailSubmit={handleOpenAuthDialog} />

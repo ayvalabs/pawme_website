@@ -28,7 +28,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 // import { loadStripe, type Stripe as StripeType } from '@stripe/stripe-js';
 // import { Elements } from '@stripe/react-stripe-js';
 // import { createPaymentIntent } from '@/app/actions/stripe';
-import CheckoutForm from '@/app/components/CheckoutForm';
+import { VipPaymentForm } from '@/app/components/vip-payment-form';
 import { getAppSettings, AppSettings } from '@/app/actions/settings';
 import { sendAccountDeletionCode } from '@/app/actions/auth';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/app/components/ui/input-otp';
@@ -772,58 +772,27 @@ P.S. Limited spots available for early bird pricing!`
       </div>
       
       <Dialog open={isVipDialogOpen} onOpenChange={setVipDialogOpen}>
-        <DialogContent className="max-w-4xl p-0">
-          <div className="flex min-h-[550px]">
-            <div className="w-1/2 p-8 flex flex-col justify-between">
-              <div>
-                <DialogHeader>
-                  <DialogTitle className="text-2xl">Become a PawMe VIP</DialogTitle>
-                  <DialogDescription>
-                    Make a $1.00 fully refundable deposit to secure your spot as a founding member.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="mt-6">
-                  <CheckoutForm onSuccess={finalizeVipJoin} />
-                </div>
-              </div>
-               <p className="text-xs text-muted-foreground mt-4 text-center">
-                This is a fully refundable $1.00 deposit. You can request a refund at any time before our Kickstarter launch.
-              </p>
-            </div>
-            <div className="relative hidden w-1/2 flex-col justify-between rounded-r-lg bg-gradient-to-br from-primary/20 via-secondary to-primary/20 p-8 md:flex">
-                <div className="absolute inset-0 z-0">
-                    <ImageWithFallback
-                        src="https://picsum.photos/seed/vip-pet/600/800"
-                        alt="A happy pet"
-                        data-ai-hint="happy pet"
-                        className="size-full object-cover opacity-20"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent" />
-                </div>
-                <div className="relative z-10">
-                    <div className="mb-4 text-2xl font-bold">
-                    Founding Member Benefits
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                    Your small deposit unlocks big rewards and helps us build the best companion for your pet.
-                    </p>
-                </div>
-                <div className="relative z-10 space-y-4">
-                    <div className="flex items-start gap-3">
-                      <Star className="mt-1 size-5 shrink-0 text-primary" />
-                      <p className="text-sm text-muted-foreground"><span className="font-semibold text-foreground">Earn 1.5x Points</span> on all referrals, forever.</p>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <Sparkles className="mt-1 size-5 shrink-0 text-primary" />
-                      <p className="text-sm text-muted-foreground"><span className="font-semibold text-foreground">Exclusive Discounts</span> on our Kickstarter launch.</p>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <Lock className="mt-1 size-5 shrink-0 text-primary" />
-                      <p className="text-sm text-muted-foreground"><span className="font-semibold text-foreground">Guaranteed Early Bird</span> access to the best deals.</p>
-                    </div>
-                </div>
-            </div>
-          </div>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">Become a PawMe VIP</DialogTitle>
+            <DialogDescription>
+              Make a $1.00 fully refundable deposit to secure your spot as a founding member.
+            </DialogDescription>
+          </DialogHeader>
+          {user && profile && (
+            <VipPaymentForm
+              userId={user.uid}
+              userEmail={user.email!}
+              userName={profile.name}
+              onSuccess={async () => {
+                await refreshProfile();
+                setVipCount(v => v + 1);
+                toast.success("Welcome to the VIP list! 👑 You're now a founding member.");
+                setVipDialogOpen(false);
+              }}
+              onCancel={() => setVipDialogOpen(false)}
+            />
+          )}
         </DialogContent>
       </Dialog>
       

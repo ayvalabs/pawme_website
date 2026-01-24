@@ -4,11 +4,11 @@ import { ThemeAwareLogo } from '@/app/components/theme-aware-logo';
 
 export function Footer() {
   const socialLinks = [
-    { network: 'twitter', url: 'https://twitter.com/pawme' },
-    { network: 'facebook', url: 'https://facebook.com/pawme' },
-    { network: 'instagram', url: 'https://instagram.com/pawme' },
-    { network: 'youtube', url: 'https://youtube.com/@pawme' },
-    { network: 'tiktok', url: 'https://tiktok.com/@pawme' },
+    { network: 'twitter', url: 'https://twitter.com/pawme_ai' },
+    { network: 'facebook', url: 'https://facebook.com/pawmeai' },
+    { network: 'instagram', url: 'https://instagram.com/pawme.ai' },
+    { network: 'youtube', url: 'https://youtube.com/@pawme_ai' },
+    { network: 'tiktok', url: 'https://tiktok.com/@pawme.ai' },
   ];
 
   return (
