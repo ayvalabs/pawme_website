@@ -6,8 +6,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app
 import { Globe, Youtube, Music, Instagram, Twitter, Facebook, Users, Video, TrendingUp, Calendar, ArrowUpDown, ArrowUp, ArrowDown, Link as LinkIcon, Unlink } from 'lucide-react';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { format, parseISO, startOfDay, subDays, eachDayOfInterval } from 'date-fns';
-import { Header } from '@/app/components/header';
-import { Footer } from '@/app/components/footer';
 import { Button } from '@/app/components/ui/button';
 import { toast } from 'sonner';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -59,6 +57,8 @@ function SocialsDashboardContent() {
   const [xSortField, setXSortField] = useState<'likes' | 'retweets' | 'replies' | 'views'>('likes');
   const [xSortOrder, setXSortOrder] = useState<'asc' | 'desc'>('desc');
   const [historicalMetrics, setHistoricalMetrics] = useState<any[]>([]);
+  const [allUsers, setAllUsers] = useState<Signup[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(true);
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -68,6 +68,7 @@ function SocialsDashboardContent() {
     fetchData();
     fetchHistoricalMetrics();
     createDailySnapshot();
+    fetchAllUsers();
   }, []);
 
   useEffect(() => {
@@ -357,10 +358,30 @@ function SocialsDashboardContent() {
     }
   };
 
+  const fetchAllUsers = async () => {
+    setLoadingUsers(true);
+    try {
+      const response = await fetch('/api/signups');
+      const data = await response.json();
+      setAllUsers(data.signups || []);
+    } catch (error) {
+      console.error('Error fetching all users:', error);
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
+  const getReferralTierIcon = (referralCount: number) => {
+    if (referralCount >= 25) return '💎';
+    if (referralCount >= 10) return '🥇';
+    if (referralCount >= 5) return '🥈';
+    if (referralCount >= 1) return '🥉';
+    return '';
+  };
+
   return (
     <div className="min-h-screen bg-background">
-      <Header />
-      <div className="container mx-auto p-6 space-y-6 pt-24">
+      <div className="container mx-auto p-6 space-y-6">
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-4xl font-bold">Social Media Dashboard</h1>
@@ -546,6 +567,82 @@ function SocialsDashboardContent() {
                     </tbody>
                   </table>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>All Users</CardTitle>
+              <CardDescription>Complete list of all registered users</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="border rounded-md">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b bg-muted/50">
+                      <th className="text-left py-3 px-4 font-medium">User</th>
+                      <th className="text-left py-3 px-4 font-medium">Email</th>
+                      <th className="text-center py-3 px-4 font-medium">Points</th>
+                      <th className="text-center py-3 px-4 font-medium">Referrals</th>
+                      <th className="text-center py-3 px-4 font-medium">Tier</th>
+                      <th className="text-center py-3 px-4 font-medium">VIP</th>
+                      <th className="text-center py-3 px-4 font-medium">Marketing</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {loadingUsers ? (
+                      Array.from({ length: 5 }).map((_, i) => (
+                        <tr key={i} className="border-b">
+                          <td className="py-3 px-4">
+                            <div className="h-4 bg-muted rounded animate-pulse w-32"></div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="h-4 bg-muted rounded animate-pulse w-48"></div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="h-4 bg-muted rounded animate-pulse w-12 mx-auto"></div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="h-4 bg-muted rounded animate-pulse w-12 mx-auto"></div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="h-4 bg-muted rounded animate-pulse w-8 mx-auto"></div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="h-4 bg-muted rounded animate-pulse w-8 mx-auto"></div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="h-4 bg-muted rounded animate-pulse w-8 mx-auto"></div>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      allUsers.map((user) => (
+                        <tr key={user.id} className="border-b hover:bg-muted/50">
+                          <td className="py-3 px-4 font-medium">{user.name}</td>
+                          <td className="py-3 px-4 text-muted-foreground">{user.email}</td>
+                          <td className="py-3 px-4 text-center">{user.points}</td>
+                          <td className="py-3 px-4 text-center">{user.referralCount || 0}</td>
+                          <td className="py-3 px-4 text-center text-xl">
+                            {getReferralTierIcon(user.referralCount || 0)}
+                          </td>
+                          <td className="py-3 px-4 text-center">{user.isVip ? '👑' : ''}</td>
+                          <td className="py-3 px-4 text-center">
+                            {user.email ? '✅' : '❌'}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                    {allUsers.length === 0 && !loadingUsers && (
+                      <tr>
+                        <td colSpan={7} className="py-8 text-center text-muted-foreground">
+                          No users found
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
             </CardContent>
           </Card>
@@ -1220,7 +1317,6 @@ function SocialsDashboardContent() {
         </TabsContent>
         </Tabs>
       </div>
-      <Footer />
     </div>
   );
 }
