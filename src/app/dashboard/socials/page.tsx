@@ -3,12 +3,13 @@
 import { useState, useEffect, Suspense } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
-import { Globe, Youtube, Music, Instagram, Twitter, Facebook, Users, Video, TrendingUp, Calendar, ArrowUpDown, ArrowUp, ArrowDown, Link as LinkIcon, Unlink } from 'lucide-react';
+import { Globe, Youtube, Music, Instagram, Twitter, Facebook, Users, Video, TrendingUp, Calendar, ArrowUpDown, ArrowUp, ArrowDown, Link as LinkIcon, Unlink, Heart, MessageCircle, Share2 } from 'lucide-react';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { format, parseISO, startOfDay, subDays, eachDayOfInterval } from 'date-fns';
 import { Button } from '@/app/components/ui/button';
 import { toast } from 'sonner';
 import { useRouter, useSearchParams } from 'next/navigation';
+import type { FacebookPageStats, FacebookPost, InstagramStats, InstagramPost } from '@/types/social-media';
 
 interface Signup {
   id: string;
@@ -59,6 +60,12 @@ function SocialsDashboardContent() {
   const [historicalMetrics, setHistoricalMetrics] = useState<any[]>([]);
   const [allUsers, setAllUsers] = useState<Signup[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
+  const [facebookStats, setFacebookStats] = useState<FacebookPageStats | null>(null);
+  const [facebookPosts, setFacebookPosts] = useState<FacebookPost[]>([]);
+  const [instagramStats, setInstagramStats] = useState<InstagramStats | null>(null);
+  const [instagramPosts, setInstagramPosts] = useState<InstagramPost[]>([]);
+  const [loadingFacebook, setLoadingFacebook] = useState(true);
+  const [loadingInstagram, setLoadingInstagram] = useState(true);
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -69,6 +76,8 @@ function SocialsDashboardContent() {
     fetchHistoricalMetrics();
     createDailySnapshot();
     fetchAllUsers();
+    fetchFacebookData();
+    // fetchInstagramData(); // Temporarily disabled - focus on Facebook first
   }, []);
 
   useEffect(() => {
@@ -236,6 +245,56 @@ function SocialsDashboardContent() {
       console.error('Error fetching data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchFacebookData = async () => {
+    setLoadingFacebook(true);
+    try {
+      const [statsRes, postsRes] = await Promise.all([
+        fetch('/api/facebook/stats'),
+        fetch('/api/facebook/posts?limit=10'),
+      ]);
+
+      if (statsRes.ok) {
+        const stats = await statsRes.json();
+        setFacebookStats(stats);
+      }
+
+      if (postsRes.ok) {
+        const posts = await postsRes.json();
+        setFacebookPosts(posts);
+      }
+    } catch (error) {
+      console.error('Error fetching Facebook data:', error);
+      toast.error('Failed to load Facebook data');
+    } finally {
+      setLoadingFacebook(false);
+    }
+  };
+
+  const fetchInstagramData = async () => {
+    setLoadingInstagram(true);
+    try {
+      const [statsRes, postsRes] = await Promise.all([
+        fetch('/api/instagram/stats'),
+        fetch('/api/instagram/posts?limit=10'),
+      ]);
+
+      if (statsRes.ok) {
+        const stats = await statsRes.json();
+        setInstagramStats(stats);
+      }
+
+      if (postsRes.ok) {
+        const posts = await postsRes.json();
+        setInstagramPosts(posts);
+      }
+    } catch (error) {
+      console.error('Error fetching Instagram data:', error);
+      toast.error('Failed to load Instagram data');
+    } finally {
+      setLoadingInstagram(false);
     }
   };
 
@@ -416,10 +475,12 @@ function SocialsDashboardContent() {
                 <span className="text-xs font-semibold">{tiktokStats.follower_count || 0}</span>
               )}
             </TabsTrigger>
-            <TabsTrigger value="instagram" className="flex flex-col items-center gap-1 py-4 border-b-2 border-transparent data-[state=active]:border-primary rounded-none opacity-60">
+            <TabsTrigger value="instagram" className="flex flex-col items-center gap-1 py-4 border-b-2 border-transparent data-[state=active]:border-primary rounded-none">
               <Instagram className="h-5 w-5" />
               <span className="text-xs">Instagram</span>
-              <span className="text-xs text-muted-foreground">Soon</span>
+              {instagramStats && (
+                <span className="text-xs font-semibold">{instagramStats.followers_count || 0}</span>
+              )}
             </TabsTrigger>
             <TabsTrigger value="twitter" className="flex flex-col items-center gap-1 py-4 border-b-2 border-transparent data-[state=active]:border-primary rounded-none">
               <Twitter className="h-5 w-5" />
@@ -428,10 +489,12 @@ function SocialsDashboardContent() {
                 <span className="text-xs font-semibold">{xStats.public_metrics?.followers_count || 0}</span>
               )}
             </TabsTrigger>
-            <TabsTrigger value="facebook" className="flex flex-col items-center gap-1 py-4 border-b-2 border-transparent data-[state=active]:border-primary rounded-none opacity-60">
+            <TabsTrigger value="facebook" className="flex flex-col items-center gap-1 py-4 border-b-2 border-transparent data-[state=active]:border-primary rounded-none">
               <Facebook className="h-5 w-5" />
               <span className="text-xs">Facebook</span>
-              <span className="text-xs text-muted-foreground">Soon</span>
+              {facebookStats && (
+                <span className="text-xs font-semibold">{facebookStats.fan_count || 0}</span>
+              )}
             </TabsTrigger>
           </TabsList>
 
@@ -1298,7 +1361,254 @@ function SocialsDashboardContent() {
           )}
         </TabsContent>
 
-        <TabsContent value="facebook" className="space-y-6">
+        <TabsContent value="facebook" className="space-y-6 mt-6">
+          {loadingFacebook ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <Facebook className="h-16 w-16 text-muted-foreground mb-4 animate-pulse" />
+                <p className="text-sm text-muted-foreground">Loading Facebook data...</p>
+              </CardContent>
+            </Card>
+          ) : facebookStats ? (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Page Name</CardTitle>
+                    <Facebook className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{facebookStats.name}</div>
+                    <p className="text-xs text-muted-foreground">Facebook Page</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Page Likes</CardTitle>
+                    <Heart className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{facebookStats.fan_count.toLocaleString()}</div>
+                    <p className="text-xs text-muted-foreground">Total fans</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Engagement</CardTitle>
+                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      {facebookStats.talking_about_count?.toLocaleString() || 0}
+                    </div>
+                    <p className="text-xs text-muted-foreground">People talking about this</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Recent Posts</CardTitle>
+                  <CardDescription>Latest posts from your Facebook page</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {facebookPosts.map((post) => (
+                      <div key={post.id} className="border rounded-lg p-4 hover:bg-accent/50 transition-colors">
+                        <div className="flex gap-4">
+                          {post.full_picture && (
+                            <div className="flex-shrink-0">
+                              <img
+                                src={post.full_picture}
+                                alt="Post"
+                                className="w-32 h-32 object-cover rounded"
+                              />
+                            </div>
+                          )}
+                          <div className="flex-1">
+                            {post.message && (
+                              <p className="text-sm mb-3 line-clamp-3">{post.message}</p>
+                            )}
+                            <div className="flex gap-6 text-xs text-muted-foreground mb-2">
+                              <span className="flex items-center gap-1">
+                                <Heart className="h-3 w-3" />
+                                {post.likes?.summary?.total_count || 0} likes
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <MessageCircle className="h-3 w-3" />
+                                {post.comments?.summary?.total_count || 0} comments
+                              </span>
+                              {post.shares && (
+                                <span className="flex items-center gap-1">
+                                  <Share2 className="h-3 w-3" />
+                                  {post.shares.count} shares
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <p className="text-xs text-muted-foreground">
+                                {format(new Date(post.created_time), 'MMM dd, yyyy • h:mm a')}
+                              </p>
+                              <a
+                                href={post.permalink_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-primary hover:underline"
+                              >
+                                View on Facebook →
+                              </a>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    {facebookPosts.length === 0 && (
+                      <p className="text-center text-muted-foreground py-8">No posts available</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          ) : (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <Facebook className="h-16 w-16 text-muted-foreground mb-4" />
+                <p className="text-sm text-muted-foreground">Failed to load Facebook data</p>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="instagram" className="space-y-6 mt-6">
+          {loadingInstagram ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <Instagram className="h-16 w-16 text-muted-foreground mb-4 animate-pulse" />
+                <p className="text-sm text-muted-foreground">Loading Instagram data...</p>
+              </CardContent>
+            </Card>
+          ) : instagramStats ? (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Username</CardTitle>
+                    <Instagram className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">@{instagramStats.username}</div>
+                    <p className="text-xs text-muted-foreground">Instagram handle</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Followers</CardTitle>
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{instagramStats.followers_count.toLocaleString()}</div>
+                    <p className="text-xs text-muted-foreground">Total followers</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Following</CardTitle>
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{instagramStats.follows_count.toLocaleString()}</div>
+                    <p className="text-xs text-muted-foreground">Accounts followed</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Posts</CardTitle>
+                    <Video className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{instagramStats.media_count.toLocaleString()}</div>
+                    <p className="text-xs text-muted-foreground">Total media</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Recent Posts</CardTitle>
+                  <CardDescription>Latest posts from your Instagram account</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {instagramPosts.map((post) => (
+                      <div key={post.id} className="border rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
+                        <div className="relative aspect-square">
+                          {post.media_type === 'VIDEO' ? (
+                            <div className="relative w-full h-full">
+                              <img
+                                src={post.media_url}
+                                alt={post.caption || 'Instagram post'}
+                                className="w-full h-full object-cover"
+                              />
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                                <Video className="h-12 w-12 text-white" />
+                              </div>
+                            </div>
+                          ) : (
+                            <img
+                              src={post.media_url}
+                              alt={post.caption || 'Instagram post'}
+                              className="w-full h-full object-cover"
+                            />
+                          )}
+                        </div>
+                        <div className="p-4">
+                          {post.caption && (
+                            <p className="text-sm mb-3 line-clamp-2">{post.caption}</p>
+                          )}
+                          <div className="flex gap-4 text-xs text-muted-foreground mb-2">
+                            <span className="flex items-center gap-1">
+                              <Heart className="h-3 w-3" />
+                              {post.like_count || 0}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <MessageCircle className="h-3 w-3" />
+                              {post.comments_count || 0}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <p className="text-xs text-muted-foreground">
+                              {format(new Date(post.timestamp), 'MMM dd, yyyy')}
+                            </p>
+                            <a
+                              href={post.permalink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-primary hover:underline"
+                            >
+                              View →
+                            </a>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    {instagramPosts.length === 0 && (
+                      <p className="col-span-full text-center text-muted-foreground py-8">No posts available</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          ) : (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <Instagram className="h-16 w-16 text-muted-foreground mb-4" />
+                <p className="text-sm text-muted-foreground">Failed to load Instagram data</p>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="old-facebook-placeholder" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle>Facebook Analytics</CardTitle>

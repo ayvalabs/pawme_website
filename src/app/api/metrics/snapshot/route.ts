@@ -4,9 +4,29 @@ import { adminDb } from '@/lib/firebase-admin';
 const X_BEARER_TOKEN = process.env.X_BEARER_TOKEN;
 const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
 const YOUTUBE_CHANNEL_ID = process.env.YOUTUBE_CHANNEL_ID;
+const FB_PAGE_ID = process.env.NEXT_PUBLIC_FB_PAGE_ID;
+const IG_ACCOUNT_ID = process.env.NEXT_PUBLIC_IG_BUSINESS_ACCOUNT_ID;
+const FB_ACCESS_TOKEN = process.env.FB_ACCESS_TOKEN;
+const GRAPH_API_VERSION = process.env.GRAPH_API_VERSION || 'v24.0';
 
-export async function POST() {
+export async function POST(request: Request) {
   console.log('Creating daily metrics snapshot...');
+  
+  // Verify request is from Vercel Cron or authenticated source
+  const authHeader = request.headers.get('authorization');
+  const cronSecret = process.env.CRON_SECRET;
+  
+  // Allow Vercel Cron (has special header) or requests with correct secret
+  const isVercelCron = request.headers.get('user-agent')?.includes('vercel-cron');
+  const isAuthorized = cronSecret && authHeader === `Bearer ${cronSecret}`;
+  
+  if (!isVercelCron && !isAuthorized) {
+    console.log('Unauthorized cron request');
+    return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401 }
+    );
+  }
   
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -112,6 +132,49 @@ export async function POST() {
       }
     } catch (error) {
       console.error('Error fetching TikTok metrics:', error);
+    }
+
+    // Fetch Facebook metrics
+    if (FB_ACCESS_TOKEN && FB_PAGE_ID) {
+      try {
+        const fbResponse = await fetch(
+          `https://graph.facebook.com/${GRAPH_API_VERSION}/${FB_PAGE_ID}?fields=name,fan_count,talking_about_count&access_token=${FB_ACCESS_TOKEN}`
+        );
+        const fbData = await fbResponse.json();
+        
+        if (fbData.fan_count !== undefined) {
+          metrics.facebook = {
+            name: fbData.name || 'PawMe',
+            fans: fbData.fan_count || 0,
+            engagement: fbData.talking_about_count || 0,
+          };
+          console.log('Facebook metrics captured:', metrics.facebook);
+        }
+      } catch (error) {
+        console.error('Error fetching Facebook metrics:', error);
+      }
+    }
+
+    // Fetch Instagram metrics
+    if (FB_ACCESS_TOKEN && IG_ACCOUNT_ID) {
+      try {
+        const igResponse = await fetch(
+          `https://graph.facebook.com/${GRAPH_API_VERSION}/${IG_ACCOUNT_ID}?fields=username,followers_count,follows_count,media_count&access_token=${FB_ACCESS_TOKEN}`
+        );
+        const igData = await igResponse.json();
+        
+        if (igData.followers_count !== undefined) {
+          metrics.instagram = {
+            username: igData.username || '',
+            followers: igData.followers_count || 0,
+            following: igData.follows_count || 0,
+            posts: igData.media_count || 0,
+          };
+          console.log('Instagram metrics captured:', metrics.instagram);
+        }
+      } catch (error) {
+        console.error('Error fetching Instagram metrics:', error);
+      }
     }
 
     // Fetch website signups count
