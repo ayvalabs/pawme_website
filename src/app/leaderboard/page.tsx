@@ -242,7 +242,7 @@ export default function LeaderboardPage() {
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [isReferralDialogOpen, setReferralDialogOpen] = useState(false);
   // const [stripePromise] = useState(() => {
-  //   const stripePublicKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+  //   const stripePublicKey = process.env.STRIPE_PUBLISHABLE_KEY;
   //   if (stripePublicKey) {
   //     return loadStripe(stripePublicKey);
   //   }

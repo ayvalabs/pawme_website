@@ -405,6 +405,60 @@ function SocialsDashboardContent() {
     }
   };
 
+  const getYouTubeChartData = () => {
+    return historicalMetrics
+      .filter(m => m.youtube)
+      .map(m => ({
+        date: format(parseISO(m.date), 'MMM dd'),
+        subscribers: m.youtube.subscribers || 0,
+        views: m.youtube.views || 0,
+        videos: m.youtube.videos || 0,
+      }));
+  };
+
+  const getTikTokChartData = () => {
+    return historicalMetrics
+      .filter(m => m.tiktok)
+      .map(m => ({
+        date: format(parseISO(m.date), 'MMM dd'),
+        followers: m.tiktok.followers || 0,
+        likes: m.tiktok.likes || 0,
+        videos: m.tiktok.videos || 0,
+      }));
+  };
+
+  const getXChartData = () => {
+    return historicalMetrics
+      .filter(m => m.x)
+      .map(m => ({
+        date: format(parseISO(m.date), 'MMM dd'),
+        followers: m.x.followers || 0,
+        tweets: m.x.tweets || 0,
+        likes: m.x.likes || 0,
+      }));
+  };
+
+  const getFacebookChartData = () => {
+    return historicalMetrics
+      .filter(m => m.facebook)
+      .map(m => ({
+        date: format(parseISO(m.date), 'MMM dd'),
+        fans: m.facebook.fans || 0,
+        engagement: m.facebook.engagement || 0,
+      }));
+  };
+
+  const getInstagramChartData = () => {
+    return historicalMetrics
+      .filter(m => m.instagram)
+      .map(m => ({
+        date: format(parseISO(m.date), 'MMM dd'),
+        followers: m.instagram.followers || 0,
+        following: m.instagram.following || 0,
+        posts: m.instagram.posts || 0,
+      }));
+  };
+
   const createDailySnapshot = async () => {
     try {
       const response = await fetch('/api/metrics/snapshot', {
@@ -811,25 +865,29 @@ function SocialsDashboardContent() {
               </Card>
             </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Subscriber Growth</CardTitle>
-              <CardDescription>
-                <span className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-400 text-sm">
-                  <Calendar className="h-4 w-4" />
-                  Coming Soon - Daily tracking not yet available
-                </span>
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-                <div className="text-center space-y-2">
-                  <TrendingUp className="h-12 w-12 mx-auto opacity-50" />
-                  <p>Historical data tracking will be available soon</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+            {getYouTubeChartData().length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Growth Trends</CardTitle>
+                  <CardDescription>Historical data from daily snapshots</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={getYouTubeChartData()}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" />
+                      <YAxis yAxisId="left" />
+                      <YAxis yAxisId="right" orientation="right" />
+                      <Tooltip />
+                      <Legend />
+                      <Line yAxisId="left" type="monotone" dataKey="subscribers" stroke="#8884d8" strokeWidth={2} name="Subscribers" />
+                      <Line yAxisId="right" type="monotone" dataKey="views" stroke="#82ca9d" strokeWidth={2} name="Total Views" />
+                      <Line yAxisId="left" type="monotone" dataKey="videos" stroke="#ffc658" strokeWidth={2} name="Videos" />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            )}
 
             <Card>
               <CardHeader>
@@ -1127,6 +1185,29 @@ function SocialsDashboardContent() {
                 </Card>
               </div>
 
+              {getTikTokChartData().length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Growth Trends</CardTitle>
+                    <CardDescription>Historical data from daily snapshots</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <LineChart data={getTikTokChartData()}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="date" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Line type="monotone" dataKey="followers" stroke="#8884d8" strokeWidth={2} name="Followers" />
+                        <Line type="monotone" dataKey="likes" stroke="#82ca9d" strokeWidth={2} name="Total Likes" />
+                        <Line type="monotone" dataKey="videos" stroke="#ffc658" strokeWidth={2} name="Videos" />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              )}
+
               {tiktokVideos.length > 0 && (
                 <Card>
                   <CardHeader>
@@ -1243,6 +1324,29 @@ function SocialsDashboardContent() {
               </CardContent>
             </Card>
           </div>
+
+          {getXChartData().length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Growth Trends</CardTitle>
+                <CardDescription>Historical data from daily snapshots</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={getXChartData()}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Line type="monotone" dataKey="followers" stroke="#8884d8" strokeWidth={2} name="Followers" />
+                    <Line type="monotone" dataKey="tweets" stroke="#82ca9d" strokeWidth={2} name="Posts" />
+                    <Line type="monotone" dataKey="likes" stroke="#ffc658" strokeWidth={2} name="Likes" />
+                  </LineChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          )}
 
           {xTweets.length > 0 && (
             <Card>
@@ -1406,6 +1510,28 @@ function SocialsDashboardContent() {
                 </Card>
               </div>
 
+              {getFacebookChartData().length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Growth Trends</CardTitle>
+                    <CardDescription>Historical data from daily snapshots</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <LineChart data={getFacebookChartData()}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="date" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Line type="monotone" dataKey="fans" stroke="#8884d8" strokeWidth={2} name="Page Likes" />
+                        <Line type="monotone" dataKey="engagement" stroke="#82ca9d" strokeWidth={2} name="Engagement" />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              )}
+
               <Card>
                 <CardHeader>
                   <CardTitle>Recent Posts</CardTitle>
@@ -1531,6 +1657,29 @@ function SocialsDashboardContent() {
                   </CardContent>
                 </Card>
               </div>
+
+              {getInstagramChartData().length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Growth Trends</CardTitle>
+                    <CardDescription>Historical data from daily snapshots</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <LineChart data={getInstagramChartData()}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="date" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Line type="monotone" dataKey="followers" stroke="#8884d8" strokeWidth={2} name="Followers" />
+                        <Line type="monotone" dataKey="following" stroke="#82ca9d" strokeWidth={2} name="Following" />
+                        <Line type="monotone" dataKey="posts" stroke="#ffc658" strokeWidth={2} name="Posts" />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              )}
 
               <Card>
                 <CardHeader>
