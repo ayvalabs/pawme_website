@@ -1,10 +1,14 @@
-
 "use client"
 import { motion, useInView, AnimatePresence } from "motion/react"
 import { useState, useRef, useEffect } from "react"
 import React from "react"
-import { ImageWithFallback } from "../components/figma/ImageWithFallback"
-import imageData from '../lib/placeholder-images.json'
+import { useAuth } from "@/app/context/AuthContext"
+import { SocialIcon } from "react-social-icons"
+import { toast } from "sonner"
+import { sendSignUpVerificationCode } from "@/app/actions/auth"
+import { auth, db } from "@/firebase/config"
+import { signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword } from "firebase/auth"
+import { collection, addDoc, Timestamp, doc, getDoc, setDoc } from "firebase/firestore"
 // ============================================================================
 // DESIGN TOKENS
 // ============================================================================
@@ -101,69 +105,239 @@ const Arrow = () => (
 // ============================================================================
 // COMPONENTS
 // ============================================================================
-// Email validation helper
-const isValidEmail = (email: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    return emailRegex.test(email)
-}
-function EmailPopup({
+// Social links data (same as root route footer)
+const socialLinks = [
+    { network: "twitter", url: "https://twitter.com/pawme_ai" },
+    { network: "facebook", url: "https://facebook.com/pawmeai" },
+    { network: "instagram", url: "https://instagram.com/pawme.ai" },
+    { network: "youtube", url: "https://youtube.com/@pawme_ai" },
+    { network: "tiktok", url: "https://tiktok.com/@pawme.ai" },
+]
+// Google icon SVG for the sign-in button
+const GoogleIcon = () => (
+    <svg className="mr-2" width="16" height="16" viewBox="0 0 24 24">
+        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
+        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+    </svg>
+)
+// Auth Popup - Firebase auth with Google + email/password, styled for lander
+function AuthPopup({
     isOpen,
     onClose,
-    waitlistCount,
-    onSubmitSuccess,
+    onAuthSuccess,
+    referralCode,
 }: {
     isOpen: boolean
     onClose: () => void
-    waitlistCount: string
-    onSubmitSuccess: () => void
+    onAuthSuccess: () => void
+    referralCode?: string
 }) {
-    const [firstName, setFirstName] = useState("")
-    const [lastName, setLastName] = useState("")
-    const [email, setEmail] = useState("")
-    const [isSubmitting, setIsSubmitting] = useState(false)
-    const [errors, setErrors] = useState<{
-        firstName?: string
-        email?: string
-    }>({})
-    const validateForm = (): boolean => {
-        const newErrors: { firstName?: string; email?: string } = {}
-        if (!firstName.trim()) {
-            newErrors.firstName = "First name is required"
+    const { signUp, sendPasswordReset, refreshProfile } = useAuth()
+    const [tab, setTab] = useState<"signin" | "signup">("signup")
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState("")
+    // Sign in fields
+    const [signInEmail, setSignInEmail] = useState("")
+    const [signInPassword, setSignInPassword] = useState("")
+    // Sign up fields
+    const [signUpStep, setSignUpStep] = useState<"details" | "verify">("details")
+    const [signUpName, setSignUpName] = useState("")
+    const [signUpEmail, setSignUpEmail] = useState("")
+    const [signUpPassword, setSignUpPassword] = useState("")
+    const [verificationCode, setVerificationCode] = useState("")
+    const [privacyAgreed, setPrivacyAgreed] = useState(false)
+    const [resendCooldown, setResendCooldown] = useState(0)
+    const [showPassword, setShowPassword] = useState(false)
+
+    useEffect(() => {
+        let timer: NodeJS.Timeout
+        if (resendCooldown > 0) {
+            timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000)
         }
-        if (!email.trim()) {
-            newErrors.email = "Email is required"
-        } else if (!isValidEmail(email)) {
-            newErrors.email = "Please enter a valid email address"
+        return () => clearTimeout(timer)
+    }, [resendCooldown])
+
+    const resetForm = () => {
+        setSignUpStep("details")
+        setSignUpName("")
+        setSignUpEmail("")
+        setSignUpPassword("")
+        setVerificationCode("")
+        setPrivacyAgreed(false)
+        setError("")
+        setResendCooldown(0)
+    }
+
+    const handleClose = () => {
+        resetForm()
+        onClose()
+    }
+
+    const handleSignIn = async (e: React.FormEvent) => {
+        e.preventDefault()
+        setLoading(true)
+        setError("")
+        try {
+            // Use Firebase directly to avoid AuthContext's router.push redirect
+            await signInWithEmailAndPassword(auth, signInEmail, signInPassword)
+            await refreshProfile()
+            toast.success("Welcome back!")
+            onAuthSuccess()
+        } catch (err: any) {
+            let message = "Sign in failed. Please try again."
+            if (err.code === "auth/invalid-credential" || err.code === "auth/user-not-found" || err.code === "auth/wrong-password") {
+                message = "Invalid email or password."
+            } else if (err.code === "auth/too-many-requests") {
+                message = "Too many attempts. Try again later or reset your password."
+            }
+            setError(message)
+        } finally {
+            setLoading(false)
         }
-        setErrors(newErrors)
-        return Object.keys(newErrors).length === 0
     }
-    const handleSubmit = () => {
-        if (!validateForm()) return
-        setIsSubmitting(true)
-        // Simulate form submission - in production, this would send to backend
-        setTimeout(() => {
-            setIsSubmitting(false)
-            onSubmitSuccess()
-        }, 800)
+
+    const handlePasswordReset = async () => {
+        if (!signInEmail) {
+            toast.error("Please enter your email to reset your password.")
+            return
+        }
+        setLoading(true)
+        const result = await sendPasswordReset(signInEmail)
+        if (result.success) {
+            toast.success("Password reset email sent!")
+        } else {
+            toast.error(result.message || "Failed to send reset email.")
+        }
+        setLoading(false)
     }
-    // Clear errors when user starts typing
-    const handleFirstNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setFirstName(e.target.value)
-        if (errors.firstName)
-            setErrors((prev) => ({ ...prev, firstName: undefined }))
+
+    const handleInitiateSignUp = async (e: React.FormEvent) => {
+        e.preventDefault()
+        setError("")
+        if (!privacyAgreed) {
+            toast.error("You must agree to the Privacy Policy to sign up.")
+            return
+        }
+        setLoading(true)
+        const result = await sendSignUpVerificationCode({ email: signUpEmail, name: signUpName })
+        if (result.success && result.code && result.expiresAt) {
+            try {
+                await addDoc(collection(db, "verifications"), {
+                    email: signUpEmail,
+                    code: result.code,
+                    expiresAt: Timestamp.fromMillis(result.expiresAt),
+                })
+                toast.success("Verification code sent!", { description: `A 4-digit code has been sent to ${signUpEmail}.` })
+                setResendCooldown(60)
+                setTimeout(() => setSignUpStep("verify"), 100)
+            } catch {
+                toast.error("Failed to process verification. Please try again.")
+            }
+        } else {
+            toast.error(result.message || "Failed to send verification code.")
+        }
+        setLoading(false)
     }
-    const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setEmail(e.target.value)
-        if (errors.email) setErrors((prev) => ({ ...prev, email: undefined }))
+
+    const handleResendCode = async () => {
+        if (resendCooldown > 0) return
+        setLoading(true)
+        const result = await sendSignUpVerificationCode({ email: signUpEmail, name: signUpName })
+        if (result.success && result.code && result.expiresAt) {
+            try {
+                await addDoc(collection(db, "verifications"), {
+                    email: signUpEmail,
+                    code: result.code,
+                    expiresAt: Timestamp.fromMillis(result.expiresAt),
+                })
+                toast.success("New verification code sent!")
+                setResendCooldown(60)
+            } catch {
+                toast.error("Failed to process verification.")
+            }
+        } else {
+            toast.error(result.message || "Failed to send verification code.")
+        }
+        setLoading(false)
     }
+
+    const handleCompleteSignUp = async (e: React.FormEvent) => {
+        e.preventDefault()
+        setError("")
+        setLoading(true)
+        try {
+            await signUp(signUpEmail, signUpPassword, signUpName, verificationCode, referralCode, privacyAgreed, false)
+            toast.success("Account created successfully!")
+            onAuthSuccess()
+        } catch (err: any) {
+            setError(err.message || "Sign up failed. Please try again.")
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const handleGoogleSignIn = async () => {
+        setError("")
+        try {
+            // Use Firebase directly to avoid AuthContext's router.push redirect
+            const provider = new GoogleAuthProvider()
+            const result = await signInWithPopup(auth, provider)
+            const googleUser = result.user
+            // Create user profile if new (same logic as AuthContext)
+            const userDocRef = doc(db, "users", googleUser.uid)
+            const userDoc = await getDoc(userDocRef)
+            if (!userDoc.exists()) {
+                const name = googleUser.displayName || googleUser.email!.split("@")[0]
+                const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+                const namePart = name.replace(/[^a-zA-Z0-9]/g, "").toUpperCase().substring(0, 4).padEnd(4, "X")
+                let randomPart = ""
+                for (let i = 0; i < 4; i++) randomPart += chars.charAt(Math.floor(Math.random() * chars.length))
+                const refCode = `${namePart}${randomPart}`
+                await setDoc(userDocRef, {
+                    id: googleUser.uid,
+                    email: googleUser.email!,
+                    name,
+                    referralCode: refCode,
+                    points: 100,
+                    referralCount: 0,
+                    referredBy: referralCode || null,
+                    theme: "purple",
+                    rewards: [],
+                    createdAt: new Date().toISOString(),
+                    isVip: false,
+                    privacyPolicyAgreed: true,
+                    marketingOptIn: false,
+                })
+            }
+            await refreshProfile()
+            toast.success("Signed in with Google!")
+            onAuthSuccess()
+        } catch (err: any) {
+            toast.error(err.message || "Google sign in failed")
+        }
+    }
+
+    const inputStyle: React.CSSProperties = {
+        width: "100%",
+        padding: 14,
+        borderRadius: 12,
+        border: "2px solid #EEE",
+        fontSize: 15,
+        outline: "none",
+        boxSizing: "border-box",
+        fontFamily: fonts.body,
+    }
+    const inputErrorStyle: React.CSSProperties = { ...inputStyle, border: "2px solid #FF4444" }
+
     if (!isOpen) return null
     return (
         <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={onClose}
+            onClick={handleClose}
             style={{
                 position: "fixed",
                 inset: 0,
@@ -184,153 +358,167 @@ function EmailPopup({
                 style={{
                     background: colors.white,
                     borderRadius: 28,
-                    padding: 48,
+                    padding: "40px 36px",
                     maxWidth: 440,
                     width: "100%",
-                    textAlign: "center",
                     boxShadow: "0 25px 80px rgba(0,0,0,0.3)",
                 }}
             >
-                <div style={{ fontSize: 48, marginBottom: 20 }}>🐾</div>
-                <h2
-                    style={{
-                        fontFamily: fonts.heading,
-                        fontWeight: 900,
-                        fontSize: 28,
-                        color: colors.dark,
-                        marginBottom: 8,
-                    }}
-                >
-                    Reserve Your VIP Spot
-                </h2>
-                <p
-                    style={{
-                        fontFamily: fonts.body,
-                        fontSize: 16,
-                        color: colors.textMuted,
-                        marginBottom: 28,
-                    }}
-                >
-                    Get <strong style={{ color: colors.green }}>50% off</strong>{" "}
-                    when PawMe launches on Kickstarter.
-                </p>
-                {/* First Name */}
-                <div style={{ marginBottom: 12, textAlign: "left" }}>
-                    <input
-                        value={firstName}
-                        onChange={handleFirstNameChange}
-                        placeholder="First Name *"
-                        style={{
-                            width: "100%",
-                            padding: 16,
-                            borderRadius: 12,
-                            border: errors.firstName
-                                ? "2px solid #FF4444"
-                                : "2px solid #EEE",
-                            fontSize: 16,
-                            outline: "none",
-                            boxSizing: "border-box",
-                        }}
-                    />
-                    {errors.firstName && (
-                        <p
+                <div style={{ textAlign: "center", marginBottom: 24 }}>
+                    <div style={{ fontSize: 48, marginBottom: 12 }}>🐾</div>
+                    <h2 style={{ fontFamily: fonts.heading, fontWeight: 900, fontSize: 26, color: colors.dark, marginBottom: 6 }}>
+                        Welcome to PawMe
+                    </h2>
+                    <p style={{ fontFamily: fonts.body, fontSize: 14, color: colors.textMuted }}>
+                        {referralCode ? "You've been referred! Sign up to claim your reward." : "Join the waitlist for early access and exclusive perks."}
+                    </p>
+                </div>
+
+                {error && (
+                    <div style={{ background: "rgba(255,68,68,0.1)", border: "1px solid rgba(255,68,68,0.2)", borderRadius: 10, padding: "10px 14px", marginBottom: 16 }}>
+                        <p style={{ color: "#FF4444", fontSize: 13, fontFamily: fonts.body, margin: 0 }}>{error}</p>
+                    </div>
+                )}
+
+                {/* Tab switcher */}
+                <div style={{ display: "flex", gap: 0, marginBottom: 20, background: "#F1F5F9", borderRadius: 10, padding: 3 }}>
+                    {(["signup", "signin"] as const).map((t) => (
+                        <button
+                            key={t}
+                            onClick={() => { setTab(t); setError(""); if (t === "signup") setSignUpStep("details") }}
                             style={{
-                                color: "#FF4444",
-                                fontSize: 13,
-                                marginTop: 4,
+                                flex: 1,
+                                padding: "10px 0",
+                                border: "none",
+                                borderRadius: 8,
+                                fontWeight: 700,
+                                fontSize: 14,
+                                cursor: "pointer",
                                 fontFamily: fonts.body,
+                                background: tab === t ? colors.white : "transparent",
+                                color: tab === t ? colors.dark : colors.textMuted,
+                                boxShadow: tab === t ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+                                transition: "all 0.2s",
                             }}
                         >
-                            {errors.firstName}
-                        </p>
-                    )}
+                            {t === "signup" ? "Sign Up" : "Sign In"}
+                        </button>
+                    ))}
                 </div>
-                {/* Last Name */}
-                <input
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                    placeholder="Last Name"
-                    style={{
-                        width: "100%",
-                        padding: 16,
-                        borderRadius: 12,
-                        border: "2px solid #EEE",
-                        marginBottom: 12,
-                        fontSize: 16,
-                        outline: "none",
-                        boxSizing: "border-box",
-                    }}
-                />
-                {/* Email */}
-                <div style={{ marginBottom: 20, textAlign: "left" }}>
-                    <input
-                        value={email}
-                        onChange={handleEmailChange}
-                        type="email"
-                        placeholder="Email Address *"
-                        style={{
-                            width: "100%",
-                            padding: 16,
-                            borderRadius: 12,
-                            border: errors.email
-                                ? "2px solid #FF4444"
-                                : "2px solid #EEE",
-                            fontSize: 16,
-                            outline: "none",
-                            boxSizing: "border-box",
-                        }}
-                    />
-                    {errors.email && (
-                        <p
-                            style={{
-                                color: "#FF4444",
-                                fontSize: 13,
-                                marginTop: 4,
-                                fontFamily: fonts.body,
-                            }}
-                        >
-                            {errors.email}
-                        </p>
-                    )}
+
+                {/* Sign In Tab */}
+                {tab === "signin" && (
+                    <form onSubmit={handleSignIn} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                        <input type="email" placeholder="Email" value={signInEmail} onChange={(e) => setSignInEmail(e.target.value)} required style={inputStyle} disabled={loading} />
+                        <div style={{ position: "relative" }}>
+                            <input type={showPassword ? "text" : "password"} placeholder="Password" value={signInPassword} onChange={(e) => setSignInPassword(e.target.value)} required style={inputStyle} disabled={loading} />
+                            <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: colors.textMuted }}>{showPassword ? "Hide" : "Show"}</button>
+                        </div>
+                        <div style={{ textAlign: "right" }}>
+                            <button type="button" onClick={handlePasswordReset} disabled={loading} style={{ background: "none", border: "none", color: colors.green, fontSize: 13, cursor: "pointer", fontFamily: fonts.body }}>Forgot Password?</button>
+                        </div>
+                        <motion.button type="submit" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} disabled={loading} style={{ width: "100%", padding: 16, background: gradients.primary, borderRadius: 50, border: "none", color: "white", fontSize: 15, fontWeight: 800, cursor: "pointer", opacity: loading ? 0.7 : 1 }}>
+                            {loading ? "Signing in..." : "Sign In"}
+                        </motion.button>
+                    </form>
+                )}
+
+                {/* Sign Up Tab */}
+                {tab === "signup" && signUpStep === "details" && (
+                    <form onSubmit={handleInitiateSignUp} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                        <input type="text" placeholder="Your name" value={signUpName} onChange={(e) => setSignUpName(e.target.value)} required style={inputStyle} disabled={loading} />
+                        <input type="email" placeholder="Email address" value={signUpEmail} onChange={(e) => setSignUpEmail(e.target.value)} required style={inputStyle} disabled={loading} />
+                        <div style={{ position: "relative" }}>
+                            <input type={showPassword ? "text" : "password"} placeholder="Password (min 6 characters)" value={signUpPassword} onChange={(e) => setSignUpPassword(e.target.value)} required minLength={6} style={inputStyle} disabled={loading} />
+                            <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: colors.textMuted }}>{showPassword ? "Hide" : "Show"}</button>
+                        </div>
+                        <label style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 13, color: colors.textMuted, fontFamily: fonts.body, cursor: "pointer" }}>
+                            <input type="checkbox" checked={privacyAgreed} onChange={(e) => setPrivacyAgreed(e.target.checked)} style={{ marginTop: 2 }} />
+                            <span>I agree to the <a href="/privacy" target="_blank" style={{ color: colors.green, textDecoration: "underline" }}>Privacy Policy</a></span>
+                        </label>
+                        {referralCode && (
+                            <div style={{ background: "rgba(4,218,141,0.08)", borderRadius: 10, padding: "8px 14px", fontSize: 13, color: colors.textMuted, fontFamily: fonts.body }}>
+                                Referred with code: <strong style={{ color: colors.green }}>{referralCode}</strong>
+                            </div>
+                        )}
+                        <motion.button type="submit" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} disabled={loading || !privacyAgreed} style={{ width: "100%", padding: 16, background: gradients.primary, borderRadius: 50, border: "none", color: "white", fontSize: 15, fontWeight: 800, cursor: "pointer", opacity: loading || !privacyAgreed ? 0.5 : 1 }}>
+                            {loading ? "Sending code..." : "Create Account"}
+                        </motion.button>
+                    </form>
+                )}
+
+                {/* Verification Step */}
+                {tab === "signup" && signUpStep === "verify" && (
+                    <form onSubmit={handleCompleteSignUp} style={{ display: "flex", flexDirection: "column", gap: 16, textAlign: "center" }}>
+                        <p style={{ fontSize: 14, color: colors.textMuted, fontFamily: fonts.body, margin: 0 }}>Enter the 4-digit code sent to {signUpEmail}</p>
+                        <p style={{ fontSize: 12, color: colors.textMuted, fontFamily: fonts.body, margin: 0 }}>The code expires in 10 minutes.</p>
+                        <div style={{ display: "flex", justifyContent: "center", gap: 8 }}>
+                            {[0, 1, 2, 3].map((i) => (
+                                <input
+                                    key={i}
+                                    type="text"
+                                    maxLength={1}
+                                    value={verificationCode[i] || ""}
+                                    onChange={(e) => {
+                                        const val = e.target.value.replace(/\D/g, "")
+                                        const newCode = verificationCode.split("")
+                                        newCode[i] = val
+                                        setVerificationCode(newCode.join(""))
+                                        if (val && e.target.nextElementSibling) {
+                                            (e.target.nextElementSibling as HTMLInputElement).focus()
+                                        }
+                                    }}
+                                    style={{ width: 48, height: 56, textAlign: "center", fontSize: 24, fontWeight: 700, borderRadius: 12, border: "2px solid #EEE", outline: "none" }}
+                                />
+                            ))}
+                        </div>
+                        <motion.button type="submit" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} disabled={loading || verificationCode.length !== 4} style={{ width: "100%", padding: 16, background: gradients.primary, borderRadius: 50, border: "none", color: "white", fontSize: 15, fontWeight: 800, cursor: "pointer", opacity: loading || verificationCode.length !== 4 ? 0.5 : 1 }}>
+                            {loading ? "Verifying..." : "Verify & Create Account"}
+                        </motion.button>
+                        <button type="button" onClick={handleResendCode} disabled={loading || resendCooldown > 0} style={{ background: "none", border: "none", color: colors.green, fontSize: 13, cursor: "pointer", fontFamily: fonts.body }}>
+                            {resendCooldown > 0 ? `Resend code in ${resendCooldown}s` : "Didn't receive a code? Resend"}
+                        </button>
+                        <button type="button" onClick={() => setSignUpStep("details")} disabled={loading} style={{ background: "none", border: "none", color: colors.textMuted, fontSize: 13, cursor: "pointer", fontFamily: fonts.body }}>
+                            Back to details
+                        </button>
+                    </form>
+                )}
+
+                {/* Divider */}
+                <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "20px 0" }}>
+                    <div style={{ flex: 1, height: 1, background: "#EEE" }} />
+                    <span style={{ fontSize: 12, color: colors.textMuted, fontFamily: fonts.body, textTransform: "uppercase" }}>Or continue with</span>
+                    <div style={{ flex: 1, height: 1, background: "#EEE" }} />
                 </div>
+
+                {/* Google Sign In */}
                 <motion.button
-                    onClick={handleSubmit}
+                    onClick={handleGoogleSignIn}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
+                    disabled={loading}
                     style={{
                         width: "100%",
-                        padding: 18,
-                        background: gradients.primary,
+                        padding: 14,
                         borderRadius: 50,
-                        border: "none",
-                        color: "white",
-                        fontSize: 16,
-                        fontWeight: 800,
+                        border: "2px solid #EEE",
+                        background: colors.white,
+                        fontSize: 15,
+                        fontWeight: 600,
                         cursor: "pointer",
-                        opacity: isSubmitting ? 0.7 : 1,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 8,
+                        fontFamily: fonts.body,
+                        color: colors.dark,
                     }}
-                    disabled={isSubmitting}
                 >
-                    {isSubmitting ? "RESERVING..." : "RESERVE MY SPOT →"}
+                    <GoogleIcon />
+                    Continue with Google
                 </motion.button>
-                <p
-                    style={{
-                        fontFamily: fonts.body,
-                        fontSize: 14,
-                        color: colors.textMuted,
-                        marginTop: 20,
-                    }}
-                >
-                    Join {waitlistCount} VIPs who've already reserved.
-                </p>
-                <p
-                    style={{
-                        fontFamily: fonts.body,
-                        fontSize: 12,
-                        color: colors.textMuted,
-                        marginTop: 8,
-                    }}
-                >
+
+                <p style={{ fontFamily: fonts.body, fontSize: 12, color: colors.textMuted, marginTop: 16, textAlign: "center" }}>
                     🔒 No spam. Unsubscribe anytime.
                 </p>
             </motion.div>
@@ -338,9 +526,9 @@ function EmailPopup({
     )
 }
 // ============================================================================
-// VIP UPGRADE PAGE - Shows after form submission
+// POST-SIGNUP PAGE - Share referral link + follow social media
 // ============================================================================
-function VIPUpgradePage({
+function PostSignupPage({
     vipSpotsRemaining,
     stripeCheckoutUrl,
     onSkip,
@@ -349,6 +537,45 @@ function VIPUpgradePage({
     stripeCheckoutUrl: string
     onSkip: () => void
 }) {
+    const { profile } = useAuth()
+    const [copied, setCopied] = useState(false)
+    const referralUrl = typeof window !== "undefined" && profile?.referralCode
+        ? `${window.location.origin}/lander?ref=${profile.referralCode}`
+        : ""
+
+    const handleCopyLink = () => {
+        if (referralUrl) {
+            navigator.clipboard.writeText(referralUrl)
+            setCopied(true)
+            toast.success("Referral link copied!")
+            setTimeout(() => setCopied(false), 2000)
+        }
+    }
+
+    const handleShare = (platform: string) => {
+        const text = encodeURIComponent("I just joined the PawMe waitlist! PawMe is an AI-powered companion robot for pets. Join with my link to get 100 bonus points!")
+        const url = encodeURIComponent(referralUrl)
+        let shareUrl = ""
+        switch (platform) {
+            case "twitter": shareUrl = `https://twitter.com/intent/tweet?text=${text}&url=${url}`; break
+            case "facebook": shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${url}`; break
+            case "whatsapp": shareUrl = `https://wa.me/?text=${text} ${url}`; break
+        }
+        if (shareUrl) window.open(shareUrl, "_blank", "width=600,height=400")
+    }
+
+    const handleNativeShare = () => {
+        if (navigator.share) {
+            navigator.share({
+                title: "Join me on the PawMe waitlist!",
+                text: "I'm on the waitlist for PawMe, an amazing AI companion for pets. Join with my link to get 100 bonus points!",
+                url: referralUrl,
+            })
+        } else {
+            handleCopyLink()
+        }
+    }
+
     return (
         <motion.div
             initial={{ opacity: 0 }}
@@ -366,307 +593,214 @@ function VIPUpgradePage({
             }}
         >
             {/* Background decorative elements */}
-            <div
-                style={{
-                    position: "absolute",
-                    top: -100,
-                    left: -100,
-                    width: 400,
-                    height: 400,
-                    background: "rgba(4,218,141,0.1)",
-                    borderRadius: "50%",
-                    filter: "blur(120px)",
-                }}
-            />
-            <div
-                style={{
-                    position: "absolute",
-                    bottom: -150,
-                    right: -100,
-                    width: 500,
-                    height: 500,
-                    background: "rgba(0,133,255,0.08)",
-                    borderRadius: "50%",
-                    filter: "blur(150px)",
-                }}
-            />
-            <div
-                style={{
-                    position: "absolute",
-                    top: "30%",
-                    right: "10%",
-                    width: 200,
-                    height: 200,
-                    background: "rgba(142,84,233,0.06)",
-                    borderRadius: "50%",
-                    filter: "blur(80px)",
-                }}
-            />
+            <div style={{ position: "absolute", top: -100, left: -100, width: 400, height: 400, background: "rgba(4,218,141,0.1)", borderRadius: "50%", filter: "blur(120px)" }} />
+            <div style={{ position: "absolute", bottom: -150, right: -100, width: 500, height: 500, background: "rgba(0,133,255,0.08)", borderRadius: "50%", filter: "blur(150px)" }} />
+            <div style={{ position: "absolute", top: "30%", right: "10%", width: 200, height: 200, background: "rgba(142,84,233,0.06)", borderRadius: "50%", filter: "blur(80px)" }} />
+
             <motion.div
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                style={{
-                    maxWidth: 600,
-                    width: "100%",
-                    textAlign: "center",
-                    position: "relative",
-                    zIndex: 1,
-                }}
+                style={{ maxWidth: 600, width: "100%", textAlign: "center", position: "relative", zIndex: 1 }}
             >
                 {/* Success Badge */}
-                <motion.div
-                    animate={{ scale: [1, 1.1, 1] }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                    style={{ fontSize: 72, marginBottom: 24 }}
-                >
+                <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 2, repeat: Infinity }} style={{ fontSize: 72, marginBottom: 24 }}>
                     🎉
                 </motion.div>
+
                 {/* Main Headline */}
-                <h1
-                    style={{
-                        fontFamily: fonts.heading,
-                        fontSize: "clamp(32px, 5vw, 48px)",
-                        fontWeight: 900,
-                        color: colors.white,
-                        marginBottom: 12,
-                        lineHeight: 1.2,
-                    }}
-                >
+                <h1 style={{ fontFamily: fonts.heading, fontSize: "clamp(32px, 5vw, 48px)", fontWeight: 900, color: colors.white, marginBottom: 12, lineHeight: 1.2 }}>
                     You're In! But Don't Leave Yet...
                 </h1>
+
                 {/* Sub-headline */}
-                <p
-                    style={{
-                        fontFamily: fonts.heading,
-                        fontSize: "clamp(20px, 3vw, 28px)",
-                        fontWeight: 800,
-                        background: gradients.primary,
-                        WebkitBackgroundClip: "text",
-                        WebkitTextFillColor: "transparent",
-                        marginBottom: 40,
-                    }}
-                >
+                <p style={{ fontFamily: fonts.heading, fontSize: "clamp(20px, 3vw, 28px)", fontWeight: 800, background: gradients.primary, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", marginBottom: 40 }}>
                     Lock in 50% OFF before anyone else — for just $1
                 </p>
+
                 {/* Benefits Card */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.4 }}
-                    style={{
-                        background: "rgba(255,255,255,0.08)",
-                        backdropFilter: "blur(20px)",
-                        borderRadius: 28,
-                        padding: "40px 36px",
-                        marginBottom: 32,
-                        border: "1px solid rgba(255,255,255,0.1)",
-                        boxShadow: "0 25px 60px rgba(0,0,0,0.3)",
-                    }}
+                    style={{ background: "rgba(255,255,255,0.08)", backdropFilter: "blur(20px)", borderRadius: 28, padding: "40px 36px", marginBottom: 32, border: "1px solid rgba(255,255,255,0.1)", boxShadow: "0 25px 60px rgba(0,0,0,0.3)" }}
                 >
-                    <p
-                        style={{
-                            fontFamily: fonts.body,
-                            fontSize: 18,
-                            color: "rgba(255,255,255,0.9)",
-                            marginBottom: 28,
-                            lineHeight: 1.6,
-                        }}
-                    >
-                        As a{" "}
-                        <strong style={{ color: colors.neonGreen }}>
-                            VIP Member
-                        </strong>
-                        , you get exclusive perks that regular waitlist members
-                        don't:
+                    <p style={{ fontFamily: fonts.body, fontSize: 18, color: "rgba(255,255,255,0.9)", marginBottom: 28, lineHeight: 1.6 }}>
+                        As a <strong style={{ color: colors.neonGreen }}>VIP Member</strong>, you get exclusive perks that regular waitlist members don't:
                     </p>
                     <div style={{ textAlign: "left" }}>
                         {[
-                            {
-                                emoji: "💰",
-                                text: "Guaranteed 50% discount",
-                                detail: "$299 → $149",
-                            },
-                            {
-                                emoji: "🚀",
-                                text: "First access when we launch",
-                                detail: "Before the public",
-                            },
-                            {
-                                emoji: "🎁",
-                                text: "Free charging dock",
-                                detail: "$49 value included",
-                            },
-                            {
-                                emoji: "📦",
-                                text: "Priority shipping",
-                                detail: "2 weeks before regular backers",
-                            },
-                            {
-                                emoji: "✅",
-                                text: "100% refundable",
-                                detail: "Change your mind? No problem",
-                            },
+                            { emoji: "💰", text: "Guaranteed 50% discount", detail: "$299 → $149" },
+                            { emoji: "🚀", text: "First access when we launch", detail: "Before the public" },
+                            { emoji: "🎁", text: "Free charging dock", detail: "$49 value included" },
+                            { emoji: "📦", text: "Priority shipping", detail: "2 weeks before regular backers" },
+                            { emoji: "✅", text: "100% refundable", detail: "Change your mind? No problem" },
                         ].map((benefit, i) => (
-                            <motion.div
-                                key={i}
-                                initial={{ opacity: 0, x: -20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: 0.5 + i * 0.1 }}
-                                style={{
-                                    display: "flex",
-                                    alignItems: "flex-start",
-                                    gap: 16,
-                                    marginBottom: 20,
-                                    padding: "12px 16px",
-                                    background: "rgba(4,218,141,0.08)",
-                                    borderRadius: 12,
-                                    border: "1px solid rgba(4,218,141,0.15)",
-                                }}
-                            >
-                                <span style={{ fontSize: 24, flexShrink: 0 }}>
-                                    {benefit.emoji}
-                                </span>
+                            <motion.div key={i} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 + i * 0.1 }} style={{ display: "flex", alignItems: "flex-start", gap: 16, marginBottom: 20, padding: "12px 16px", background: "rgba(4,218,141,0.08)", borderRadius: 12, border: "1px solid rgba(4,218,141,0.15)" }}>
+                                <span style={{ fontSize: 24, flexShrink: 0 }}>{benefit.emoji}</span>
                                 <div>
-                                    <span
-                                        style={{
-                                            color: colors.white,
-                                            fontWeight: 700,
-                                            fontSize: 16,
-                                        }}
-                                    >
-                                        {benefit.text}
-                                    </span>
-                                    <span
-                                        style={{
-                                            color: colors.neonGreen,
-                                            fontWeight: 600,
-                                            fontSize: 14,
-                                            marginLeft: 8,
-                                        }}
-                                    >
-                                        — {benefit.detail}
-                                    </span>
+                                    <span style={{ color: colors.white, fontWeight: 700, fontSize: 16 }}>{benefit.text}</span>
+                                    <span style={{ color: colors.neonGreen, fontWeight: 600, fontSize: 14, marginLeft: 8 }}>— {benefit.detail}</span>
                                 </div>
                             </motion.div>
                         ))}
                     </div>
                 </motion.div>
+
                 {/* Scarcity Alert */}
-                <motion.div
-                    animate={{ opacity: [0.7, 1, 0.7] }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                    style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 10,
-                        background: "rgba(255,100,100,0.15)",
-                        padding: "12px 24px",
-                        borderRadius: 50,
-                        marginBottom: 32,
-                        border: "1px solid rgba(255,100,100,0.3)",
-                    }}
-                >
-                    <span
-                        style={{
-                            width: 10,
-                            height: 10,
-                            background: "#FF6B6B",
-                            borderRadius: "50%",
-                            animation: "pulse 1s infinite",
-                        }}
-                    />
-                    <span
-                        style={{
-                            color: "#FF6B6B",
-                            fontWeight: 800,
-                            fontSize: 16,
-                        }}
-                    >
-                        Only {vipSpotsRemaining} VIP spots remaining at this
-                        price
-                    </span>
+                <motion.div animate={{ opacity: [0.7, 1, 0.7] }} transition={{ duration: 2, repeat: Infinity }} style={{ display: "inline-flex", alignItems: "center", gap: 10, background: "rgba(255,100,100,0.15)", padding: "12px 24px", borderRadius: 50, marginBottom: 32, border: "1px solid rgba(255,100,100,0.3)" }}>
+                    <span style={{ width: 10, height: 10, background: "#FF6B6B", borderRadius: "50%", animation: "pulse 1s infinite" }} />
+                    <span style={{ color: "#FF6B6B", fontWeight: 800, fontSize: 16 }}>Only {vipSpotsRemaining} VIP spots remaining at this price</span>
                 </motion.div>
+
                 {/* Main CTA Button */}
-                <motion.a
-                    href={stripeCheckoutUrl || "#"}
-                    whileHover={{
-                        scale: 1.03,
-                        boxShadow: "0 20px 60px rgba(4,218,141,0.4)",
-                    }}
-                    whileTap={{ scale: 0.98 }}
-                    style={{
-                        display: "block",
-                        width: "100%",
-                        padding: "24px 48px",
-                        fontSize: 20,
-                        fontWeight: 900,
-                        background: gradients.primary,
-                        color: colors.white,
-                        borderRadius: 60,
-                        border: "none",
-                        cursor: "pointer",
-                        textDecoration: "none",
-                        textAlign: "center",
-                        boxShadow: "0 15px 40px rgba(4,218,141,0.3)",
-                        marginBottom: 20,
-                    }}
-                >
+                <motion.a href={stripeCheckoutUrl || "#"} whileHover={{ scale: 1.03, boxShadow: "0 20px 60px rgba(4,218,141,0.4)" }} whileTap={{ scale: 0.98 }} style={{ display: "block", width: "100%", padding: "24px 48px", fontSize: 20, fontWeight: 900, background: gradients.primary, color: colors.white, borderRadius: 60, border: "none", cursor: "pointer", textDecoration: "none", textAlign: "center", boxShadow: "0 15px 40px rgba(4,218,141,0.3)", marginBottom: 20 }}>
                     YES! Lock In My 50% Discount ($1) →
                 </motion.a>
-                {/* Price breakdown */}
-                <p
-                    style={{
-                        fontFamily: fonts.body,
-                        fontSize: 14,
-                        color: "rgba(255,255,255,0.7)",
-                        marginBottom: 32,
-                    }}
-                >
-                    Just $1 today to reserve your spot. You'll pay the remaining
-                    $148 when we ship.
+
+                <p style={{ fontFamily: fonts.body, fontSize: 14, color: "rgba(255,255,255,0.7)", marginBottom: 32 }}>
+                    Just $1 today to reserve your spot. You'll pay the remaining $148 when we ship.
                 </p>
+
                 {/* Skip link */}
-                <motion.button
-                    onClick={onSkip}
-                    whileHover={{ opacity: 0.8 }}
-                    style={{
-                        background: "none",
-                        border: "none",
-                        color: "rgba(255,255,255,0.4)",
-                        fontSize: 14,
-                        fontFamily: fonts.body,
-                        cursor: "pointer",
-                        textDecoration: "underline",
-                    }}
-                >
+                <motion.button onClick={onSkip} whileHover={{ opacity: 0.8 }} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.4)", fontSize: 14, fontFamily: fonts.body, cursor: "pointer", textDecoration: "underline", marginBottom: 48 }}>
                     No thanks, I'll take my chances with the regular waitlist →
                 </motion.button>
-                {/* Trust badges */}
-                <div
-                    style={{
-                        display: "flex",
-                        justifyContent: "center",
-                        gap: 24,
-                        marginTop: 40,
-                        flexWrap: "wrap",
-                    }}
+
+                {/* ========== REFERRAL SHARE SECTION ========== */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.8 }}
+                    style={{ background: "rgba(255,255,255,0.08)", backdropFilter: "blur(20px)", borderRadius: 28, padding: "40px 36px", marginBottom: 32, border: "1px solid rgba(255,255,255,0.1)", boxShadow: "0 25px 60px rgba(0,0,0,0.3)" }}
                 >
-                    {[
-                        "🔒 Secure Payment",
-                        "💳 Stripe Powered",
-                        "↩️ 100% Refundable",
-                    ].map((badge, i) => (
-                        <span
-                            key={i}
+                    <h2 style={{ fontFamily: fonts.heading, fontSize: 24, fontWeight: 900, color: colors.white, marginBottom: 8 }}>
+                        Share & Earn Rewards 🎁
+                    </h2>
+                    <p style={{ fontFamily: fonts.body, fontSize: 15, color: "rgba(255,255,255,0.7)", marginBottom: 24, lineHeight: 1.6 }}>
+                        Share PawMe with friends & family. Each signup earns you <strong style={{ color: colors.neonGreen }}>100 bonus points</strong> toward exclusive rewards!
+                    </p>
+
+                    {/* Referral Link */}
+                    {referralUrl && (
+                        <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+                            <input
+                                readOnly
+                                value={referralUrl}
+                                style={{
+                                    flex: 1,
+                                    padding: "12px 16px",
+                                    borderRadius: 12,
+                                    border: "1px solid rgba(255,255,255,0.2)",
+                                    background: "rgba(255,255,255,0.05)",
+                                    color: colors.white,
+                                    fontSize: 13,
+                                    outline: "none",
+                                    fontFamily: fonts.body,
+                                }}
+                            />
+                            <motion.button
+                                onClick={handleCopyLink}
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                style={{
+                                    padding: "12px 20px",
+                                    borderRadius: 12,
+                                    border: "none",
+                                    background: copied ? colors.green : gradients.primary,
+                                    color: colors.white,
+                                    fontWeight: 700,
+                                    fontSize: 13,
+                                    cursor: "pointer",
+                                    whiteSpace: "nowrap",
+                                }}
+                            >
+                                {copied ? "Copied!" : "Copy"}
+                            </motion.button>
+                        </div>
+                    )}
+
+                    {/* Share Buttons */}
+                    <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+                        {[
+                            { label: "Twitter", platform: "twitter", bg: "#1DA1F2" },
+                            { label: "Facebook", platform: "facebook", bg: "#4267B2" },
+                            { label: "WhatsApp", platform: "whatsapp", bg: "#25D366" },
+                        ].map((s) => (
+                            <motion.button
+                                key={s.platform}
+                                onClick={() => handleShare(s.platform)}
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                style={{
+                                    padding: "10px 20px",
+                                    borderRadius: 50,
+                                    border: "none",
+                                    background: s.bg,
+                                    color: colors.white,
+                                    fontWeight: 700,
+                                    fontSize: 13,
+                                    cursor: "pointer",
+                                    fontFamily: fonts.body,
+                                }}
+                            >
+                                {s.label}
+                            </motion.button>
+                        ))}
+                        <motion.button
+                            onClick={handleNativeShare}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
                             style={{
-                                color: "rgba(255,255,255,0.5)",
+                                padding: "10px 20px",
+                                borderRadius: 50,
+                                border: "1px solid rgba(255,255,255,0.3)",
+                                background: "transparent",
+                                color: colors.white,
+                                fontWeight: 700,
                                 fontSize: 13,
-                                fontWeight: 600,
+                                cursor: "pointer",
+                                fontFamily: fonts.body,
                             }}
                         >
-                            {badge}
-                        </span>
+                            Share...
+                        </motion.button>
+                    </div>
+                </motion.div>
+
+                {/* ========== FOLLOW US SECTION ========== */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 1.0 }}
+                    style={{ background: "rgba(255,255,255,0.08)", backdropFilter: "blur(20px)", borderRadius: 28, padding: "32px 36px", border: "1px solid rgba(255,255,255,0.1)" }}
+                >
+                    <h3 style={{ fontFamily: fonts.heading, fontSize: 20, fontWeight: 800, color: colors.white, marginBottom: 8 }}>
+                        Follow Us for Updates 🐾
+                    </h3>
+                    <p style={{ fontFamily: fonts.body, fontSize: 14, color: "rgba(255,255,255,0.6)", marginBottom: 20 }}>
+                        Stay in the loop — behind-the-scenes, launch updates, and pet content!
+                    </p>
+                    <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
+                        {socialLinks.map((social) => (
+                            <SocialIcon
+                                key={social.network}
+                                url={social.url}
+                                network={social.network}
+                                bgColor="transparent"
+                                fgColor="white"
+                                style={{ height: 48, width: 48, transition: "transform 0.2s" }}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            />
+                        ))}
+                    </div>
+                </motion.div>
+
+                {/* Trust badges */}
+                <div style={{ display: "flex", justifyContent: "center", gap: 24, marginTop: 40, flexWrap: "wrap" }}>
+                    {["🔒 Secure Payment", "💳 Stripe Powered", "↩️ 100% Refundable"].map((badge, i) => (
+                        <span key={i} style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, fontWeight: 600 }}>{badge}</span>
                     ))}
                 </div>
             </motion.div>
@@ -700,10 +834,10 @@ function AnimatedSection({
  * PawMe Landing Page
  */
 export default function PawMeLandingPage() {
+    const { user, profile } = useAuth()
     const heroHeadline = "Your Pet Camera Sits Still. Your Pet Doesn't."
     const heroSubheadline = "Meet the AI companion that moves with them."
     const ctaText = "GET EARLY ACCESS →"
-    const waitlistCount = "847"
     const totalWaitlist = "2,847"
     const vipSpotsRemaining = "73"
     const stripeCheckoutUrl = ""
@@ -720,39 +854,50 @@ export default function PawMeLandingPage() {
     const problemClosingLine = "We built PawMe to fix this."
     const [popupOpen, setPopupOpen] = useState(false)
     const [showSticky, setShowSticky] = useState(false)
-    const [showVIPUpgrade, setShowVIPUpgrade] = useState(false) // VIP upgrade page state
-    const [isMobile, setIsMobile] = useState(false) // Mobile detection
+    const [showPostSignup, setShowPostSignup] = useState(false)
+    const [isMobile, setIsMobile] = useState(false)
+    const [referralCodeFromUrl, setReferralCodeFromUrl] = useState<string | undefined>(undefined)
     const heroRef = useRef<HTMLDivElement>(null)
-    // Handle successful form submission - show VIP upgrade
-    const handleFormSuccess = () => {
-        setPopupOpen(false)
-        setShowVIPUpgrade(true)
-        // Push state so browser back button works
+    // Detect referral code from URL
+    useEffect(() => {
         if (typeof window !== "undefined") {
-            window.history.pushState({ page: "vip" }, "", "#vip-upgrade")
+            const urlParams = new URLSearchParams(window.location.search)
+            const refCode = urlParams.get("ref")
+            if (refCode) {
+                setReferralCodeFromUrl(refCode)
+                if (!user) {
+                    setPopupOpen(true)
+                }
+            }
+        }
+    }, [user])
+    // Handle successful auth - show post-signup page
+    const handleAuthSuccess = () => {
+        setPopupOpen(false)
+        setShowPostSignup(true)
+        if (typeof window !== "undefined") {
+            window.history.pushState({ page: "postsignup" }, "", "#welcome")
             window.scrollTo({ top: 0, behavior: "smooth" })
         }
     }
-    // Handle skip on VIP page - could redirect or show thank you
-    const handleVIPSkip = () => {
-        // Go back in history when skipping
+    // Handle skip on post-signup page
+    const handlePostSignupSkip = () => {
         if (typeof window !== "undefined") {
             window.history.back()
         }
-        setShowVIPUpgrade(false)
+        setShowPostSignup(false)
     }
     // Listen for browser back button (popstate)
     useEffect(() => {
         if (typeof window === "undefined") return
-        const handlePopState = (event: PopStateEvent) => {
-            // If we're on VIP page and user presses back, show landing page
-            if (showVIPUpgrade) {
-                setShowVIPUpgrade(false)
+        const handlePopState = () => {
+            if (showPostSignup) {
+                setShowPostSignup(false)
             }
         }
         window.addEventListener("popstate", handlePopState)
         return () => window.removeEventListener("popstate", handlePopState)
-    }, [showVIPUpgrade])
+    }, [showPostSignup])
     // Fonts
     useEffect(() => {
         if (typeof document === "undefined") return
@@ -804,8 +949,8 @@ export default function PawMeLandingPage() {
         margin: "0 auto",
         width: "100%",
     }
-    // ========== CONDITIONAL RENDER: VIP UPGRADE PAGE ==========
-    if (showVIPUpgrade) {
+    // ========== CONDITIONAL RENDER: POST-SIGNUP PAGE ==========
+    if (showPostSignup) {
         return (
             <div
                 style={{
@@ -816,10 +961,10 @@ export default function PawMeLandingPage() {
                     width: "100%",
                 }}
             >
-                <VIPUpgradePage
+                <PostSignupPage
                     vipSpotsRemaining={vipSpotsRemaining}
                     stripeCheckoutUrl={stripeCheckoutUrl}
-                    onSkip={handleVIPSkip}
+                    onSkip={handlePostSignupSkip}
                 />
             </div>
         )
@@ -834,11 +979,11 @@ export default function PawMeLandingPage() {
                 width: "100%",
             }}
         >
-            <EmailPopup
+            <AuthPopup
                 isOpen={popupOpen}
                 onClose={() => setPopupOpen(false)}
-                waitlistCount={waitlistCount}
-                onSubmitSuccess={handleFormSuccess}
+                onAuthSuccess={handleAuthSuccess}
+                referralCode={referralCodeFromUrl}
             />
             {/* STICKY HEADER */}
             <AnimatePresence>
@@ -862,16 +1007,9 @@ export default function PawMeLandingPage() {
                             borderBottom: "1px solid rgba(0,0,0,0.05)",
                         }}
                     >
-                        <div
-                            style={{
-                                fontWeight: 900,
-                                fontSize: 22,
-                                background: gradients.primary,
-                                WebkitBackgroundClip: "text",
-                                WebkitTextFillColor: "transparent",
-                            }}
-                        >
-                            PawMe
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <img src="/favicon.svg" alt="PawMe" style={{ height: 32, width: 32 }} />
+                            <img src="/text_logo.svg" alt="PawMe" style={{ height: 24, width: "auto" }} />
                         </div>
                         <motion.button
                             onClick={openPopup}
@@ -1151,7 +1289,7 @@ export default function PawMeLandingPage() {
                 >
                     Join{" "}
                     <strong style={{ color: colors.green }}>
-                        {waitlistCount} VIPs
+                        847 VIPs
                     </strong>{" "}
                     who've already reserved. Get 50% off at launch.
                 </motion.p>
@@ -2033,7 +2171,7 @@ export default function PawMeLandingPage() {
                                 }}
                             >
                                 <img
-                                    src="/lander/founder.png"
+                                    src="/founder.png"
                                     alt="Founder"
                                     style={{
                                         width: "100%",
@@ -2361,40 +2499,40 @@ export default function PawMeLandingPage() {
                     textAlign: "center",
                 }}
             >
-                <div
-                    style={{
-                        fontSize: 24,
-                        fontWeight: 900,
-                        color: "white",
-                        marginBottom: 20,
-                    }}
-                >
-                    PawMe
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 20 }}>
+                    <img src="/favicon.svg" alt="PawMe" style={{ height: 36, width: 36 }} />
+                    <img src="/text_logo.svg" alt="PawMe" style={{ height: 28, width: "auto", filter: "brightness(0) invert(1)" }} />
                 </div>
+                <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 14, marginBottom: 20, fontFamily: fonts.body }}>
+                    The AI companion robot that understands and cares for your pets.
+                </p>
                 <div
                     style={{
                         display: "flex",
                         justifyContent: "center",
-                        gap: 24,
-                        marginBottom: 20,
+                        gap: 4,
+                        marginBottom: 24,
                     }}
                 >
-                    {["Instagram", "TikTok", "Facebook"].map((s) => (
-                        <a
-                            key={s}
-                            href="#"
-                            style={{
-                                color: "rgba(255,255,255,0.5)",
-                                fontSize: 14,
-                                textDecoration: "none",
-                            }}
-                        >
-                            {s}
-                        </a>
+                    {socialLinks.map((social) => (
+                        <SocialIcon
+                            key={social.network}
+                            url={social.url}
+                            network={social.network}
+                            bgColor="transparent"
+                            fgColor="rgba(255,255,255,0.6)"
+                            style={{ height: 44, width: 44 }}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        />
                     ))}
                 </div>
-                <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 13 }}>
-                    © 2026 PawMe. All rights reserved.
+                <div style={{ display: "flex", justifyContent: "center", gap: 24, marginBottom: 16 }}>
+                    <a href="/privacy" style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, textDecoration: "none" }}>Privacy Policy</a>
+                    <a href="/terms" style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, textDecoration: "none" }}>Terms of Service</a>
+                </div>
+                <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 12 }}>
+                    © 2026 Ayva Labs Limited. All rights reserved.
                 </p>
             </footer>
         </div>
