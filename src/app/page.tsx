@@ -530,15 +530,14 @@ function AuthPopup({
 // ============================================================================
 function PostSignupPage({
     vipSpotsRemaining,
-    stripeCheckoutUrl,
     onSkip,
 }: {
     vipSpotsRemaining: string
-    stripeCheckoutUrl: string
     onSkip: () => void
 }) {
-    const { profile } = useAuth()
+    const { user, profile } = useAuth()
     const [copied, setCopied] = useState(false)
+    const [checkoutLoading, setCheckoutLoading] = useState(false)
     const referralUrl = typeof window !== "undefined" && profile?.referralCode
         ? `${window.location.origin}/?ref=${profile.referralCode}`
         : ""
@@ -573,6 +572,37 @@ function PostSignupPage({
             })
         } else {
             handleCopyLink()
+        }
+    }
+
+    const handleVipCheckout = async () => {
+        if (!user || !profile) {
+            toast.error("Please sign in first")
+            return
+        }
+        setCheckoutLoading(true)
+        try {
+            const { createVipCheckoutSession } = await import("@/app/actions/stripe")
+            const appUrl = window.location.origin
+            const result = await createVipCheckoutSession({
+                userId: user.uid,
+                userEmail: user.email || "",
+                userName: profile.name || user.displayName || "",
+                successUrl: `${appUrl}/?payment=success&session_id={CHECKOUT_SESSION_ID}`,
+                cancelUrl: `${appUrl}/?payment=cancelled`,
+            })
+            if (result.error) {
+                toast.error(result.error)
+                setCheckoutLoading(false)
+                return
+            }
+            if (result.url) {
+                window.location.href = result.url
+            }
+        } catch (err: any) {
+            console.error("Checkout error:", err)
+            toast.error("Failed to start checkout. Please try again.")
+            setCheckoutLoading(false)
         }
     }
 
@@ -654,9 +684,9 @@ function PostSignupPage({
                 </motion.div>
 
                 {/* Main CTA Button */}
-                <motion.a href={stripeCheckoutUrl || "#"} whileHover={{ scale: 1.03, boxShadow: "0 20px 60px rgba(4,218,141,0.4)" }} whileTap={{ scale: 0.98 }} style={{ display: "block", width: "100%", padding: "24px 48px", fontSize: 20, fontWeight: 900, background: gradients.primary, color: colors.white, borderRadius: 60, border: "none", cursor: "pointer", textDecoration: "none", textAlign: "center", boxShadow: "0 15px 40px rgba(4,218,141,0.3)", marginBottom: 20 }}>
-                    YES! Lock In My 50% Discount ($1) →
-                </motion.a>
+                <motion.button onClick={handleVipCheckout} disabled={checkoutLoading} whileHover={{ scale: 1.03, boxShadow: "0 20px 60px rgba(4,218,141,0.4)" }} whileTap={{ scale: 0.98 }} style={{ display: "block", width: "100%", padding: "24px 48px", fontSize: 20, fontWeight: 900, background: checkoutLoading ? "rgba(255,255,255,0.2)" : gradients.primary, color: colors.white, borderRadius: 60, border: "none", cursor: checkoutLoading ? "wait" : "pointer", textAlign: "center", boxShadow: "0 15px 40px rgba(4,218,141,0.3)", marginBottom: 20 }}>
+                    {checkoutLoading ? "Redirecting to checkout..." : "YES! Lock In My 50% Discount ($1) →"}
+                </motion.button>
 
                 <p style={{ fontFamily: fonts.body, fontSize: 14, color: "rgba(255,255,255,0.7)", marginBottom: 32 }}>
                     Just $1 today to reserve your spot. You'll pay the remaining $148 when we ship.
@@ -840,7 +870,6 @@ export default function PawMeLandingPage() {
     const ctaText = "GET EARLY ACCESS →"
     const totalWaitlist = "2,847"
     const vipSpotsRemaining = "73"
-    const stripeCheckoutUrl = ""
     const headlineSize = 80
     const subheadlineSize = 22
     const portraitSize = 200
@@ -858,7 +887,7 @@ export default function PawMeLandingPage() {
     const [isMobile, setIsMobile] = useState(false)
     const [referralCodeFromUrl, setReferralCodeFromUrl] = useState<string | undefined>(undefined)
     const heroRef = useRef<HTMLDivElement>(null)
-    // Detect referral code from URL
+    // Detect referral code and payment status from URL
     useEffect(() => {
         if (typeof window !== "undefined") {
             const urlParams = new URLSearchParams(window.location.search)
@@ -868,6 +897,15 @@ export default function PawMeLandingPage() {
                 if (!user) {
                     setPopupOpen(true)
                 }
+            }
+            const paymentStatus = urlParams.get("payment")
+            if (paymentStatus === "success") {
+                toast.success("Payment successful! Welcome to VIP! 👑")
+                // Clean up URL params
+                window.history.replaceState({}, "", window.location.pathname)
+            } else if (paymentStatus === "cancelled") {
+                toast.info("Payment cancelled. You can try again anytime.")
+                window.history.replaceState({}, "", window.location.pathname)
             }
         }
     }, [user])
@@ -963,7 +1001,6 @@ export default function PawMeLandingPage() {
             >
                 <PostSignupPage
                     vipSpotsRemaining={vipSpotsRemaining}
-                    stripeCheckoutUrl={stripeCheckoutUrl}
                     onSkip={handlePostSignupSkip}
                 />
             </div>

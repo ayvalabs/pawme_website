@@ -38,11 +38,15 @@ export async function createPaymentIntent(amount: number) {
 export async function createVipCheckoutSession({ 
   userId, 
   userEmail, 
-  userName 
+  userName,
+  successUrl,
+  cancelUrl,
 }: { 
   userId: string; 
   userEmail: string; 
   userName: string;
+  successUrl?: string;
+  cancelUrl?: string;
 }) {
   if (!stripe) {
     console.error('❌ Stripe secret key is not set.');
@@ -77,8 +81,8 @@ export async function createVipCheckoutSession({
         },
       ],
       mode: 'payment',
-      success_url: `${appUrl}/dashboard?payment=success&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${appUrl}/dashboard?payment=cancelled`,
+      success_url: successUrl || `${appUrl}/dashboard?payment=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: cancelUrl || `${appUrl}/dashboard?payment=cancelled`,
       customer_email: userEmail,
       client_reference_id: userId,
       metadata: {
