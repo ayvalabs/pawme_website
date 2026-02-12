@@ -122,7 +122,7 @@ const GoogleIcon = () => (
         <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
     </svg>
 )
-// Auth Popup - Firebase auth with Google + email/password, styled for lander
+// Auth Popup - Firebase auth with Google + email/password
 function AuthPopup({
     isOpen,
     onClose,
@@ -540,7 +540,7 @@ function PostSignupPage({
     const { profile } = useAuth()
     const [copied, setCopied] = useState(false)
     const referralUrl = typeof window !== "undefined" && profile?.referralCode
-        ? `${window.location.origin}/lander?ref=${profile.referralCode}`
+        ? `${window.location.origin}/?ref=${profile.referralCode}`
         : ""
 
     const handleCopyLink = () => {
@@ -1008,8 +1008,8 @@ export default function PawMeLandingPage() {
                         }}
                     >
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                            <img src="/favicon.svg" alt="PawMe" style={{ height: 32, width: 32 }} />
-                            <img src="/text_logo.svg" alt="PawMe" style={{ height: 24, width: "auto" }} />
+                            <div aria-label="PawMe" style={{ height: 32, width: 32, background: gradients.primary, WebkitMaskImage: "url(/favicon.svg)", WebkitMaskSize: "contain", WebkitMaskRepeat: "no-repeat", WebkitMaskPosition: "center", maskImage: "url(/favicon.svg)", maskSize: "contain", maskRepeat: "no-repeat", maskPosition: "center" }} />
+                            <div aria-label="PawMe" style={{ height: 24, width: 120, background: gradients.primary, WebkitMaskImage: "url(/text_logo.svg)", WebkitMaskSize: "contain", WebkitMaskRepeat: "no-repeat", WebkitMaskPosition: "center", maskImage: "url(/text_logo.svg)", maskSize: "contain", maskRepeat: "no-repeat", maskPosition: "center" }} />
                         </div>
                         <motion.button
                             onClick={openPopup}
@@ -1379,24 +1379,44 @@ export default function PawMeLandingPage() {
                 <motion.div
                     animate={{ x: ["0%", "-50%"] }}
                     transition={{
-                        duration: 20,
+                        duration: 40,
                         repeat: Infinity,
                         ease: "linear",
                     }}
-                    style={{ display: "flex", gap: 60, whiteSpace: "nowrap" }}
+                    style={{ display: "flex", gap: 48, whiteSpace: "nowrap" }}
                 >
-                    {[...Array(16)].map((_, i) => (
-                        <span
-                            key={i}
-                            style={{
-                                fontSize: 18,
-                                fontWeight: 700,
-                                color: "white",
-                                opacity: 0.9,
-                            }}
-                        >
-                            🐾 AI Health Monitoring · Interactive Play · 24/7 HD Video · Smart Alerts
-                        </span>
+                    {[...Array(2)].map((_, setIdx) => (
+                        <React.Fragment key={setIdx}>
+                            {[
+                                "🤖 AI-Powered Pet Companion",
+                                "📹 360° Movement Tracking",
+                                "💚 Early Health Detection",
+                                "🎯 Interactive Laser Play",
+                                "📱 Control From Anywhere",
+                                "🎬 Daily Highlight Reels",
+                                "🔊 Two-Way Audio",
+                                "🐾 Learns Your Pet's Behavior",
+                                "🏠 Whole-Home Coverage",
+                                "⚡ Smart Alerts & Notifications",
+                                "🛡️ Skin & Tick Detection",
+                                "🎮 Remote Control via App",
+                                "📦 50% Off for Early Backers",
+                                "🏆 Refer Friends, Earn Rewards",
+                            ].map((item, i) => (
+                                <span
+                                    key={`${setIdx}-${i}`}
+                                    style={{
+                                        fontSize: 18,
+                                        fontWeight: 700,
+                                        color: "white",
+                                        opacity: 0.9,
+                                    }}
+                                >
+                                    {item}
+                                    <span style={{ margin: "0 24px", opacity: 0.4 }}>·</span>
+                                </span>
+                            ))}
+                        </React.Fragment>
                     ))}
                 </motion.div>
             </div>
@@ -2500,8 +2520,8 @@ export default function PawMeLandingPage() {
                 }}
             >
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 20 }}>
-                    <img src="/favicon.svg" alt="PawMe" style={{ height: 36, width: 36 }} />
-                    <img src="/text_logo.svg" alt="PawMe" style={{ height: 28, width: "auto", filter: "brightness(0) invert(1)" }} />
+                    <div aria-label="PawMe" style={{ height: 36, width: 36, background: gradients.primary, WebkitMaskImage: "url(/favicon.svg)", WebkitMaskSize: "contain", WebkitMaskRepeat: "no-repeat", WebkitMaskPosition: "center", maskImage: "url(/favicon.svg)", maskSize: "contain", maskRepeat: "no-repeat", maskPosition: "center" }} />
+                    <div aria-label="PawMe" style={{ height: 28, width: 140, background: gradients.primary, WebkitMaskImage: "url(/text_logo.svg)", WebkitMaskSize: "contain", WebkitMaskRepeat: "no-repeat", WebkitMaskPosition: "center", maskImage: "url(/text_logo.svg)", maskSize: "contain", maskRepeat: "no-repeat", maskPosition: "center" }} />
                 </div>
                 <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 14, marginBottom: 20, fontFamily: fonts.body }}>
                     The AI companion robot that understands and cares for your pets.
