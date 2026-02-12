@@ -1,7 +1,10 @@
+
 "use client"
 import { motion, useInView, AnimatePresence } from "motion/react"
 import { useState, useRef, useEffect } from "react"
 import React from "react"
+import { ImageWithFallback } from "../components/figma/ImageWithFallback"
+import imageData from '../lib/placeholder-images.json'
 // ============================================================================
 // DESIGN TOKENS
 // ============================================================================
@@ -1254,7 +1257,7 @@ export default function PawMeLandingPage() {
                                 opacity: 0.9,
                             }}
                         >
-                            🐾 Trusted by {totalWaitlist}+ pet parents
+                            🐾 AI Health Monitoring · Interactive Play · 24/7 HD Video · Smart Alerts
                         </span>
                     ))}
                 </motion.div>
@@ -2030,7 +2033,7 @@ export default function PawMeLandingPage() {
                                 }}
                             >
                                 <img
-                                    src="/lander/portrait-beagle.png"
+                                    src="/lander/founder.png"
                                     alt="Founder"
                                     style={{
                                         width: "100%",
@@ -2048,7 +2051,7 @@ export default function PawMeLandingPage() {
                                     color: colors.textMuted,
                                 }}
                             >
-                                Me & Luna 🐕
+                                Me & Zoe 🐾
                             </p>
                         </motion.div>
                     </AnimatedSection>
@@ -2065,23 +2068,24 @@ export default function PawMeLandingPage() {
                             </h2>
                             <p
                                 style={{
-                                    fontSize: 18,
+                                    fontSize: 14,
                                     lineHeight: 1.8,
                                     color: colors.textMuted,
                                     fontFamily: fonts.body,
+                                    fontStyle: "italic",
                                 }}
                             >
-                                "Every day I'd check my pet camera, and she was
-                                never in frame. I'd spend 5 minutes refreshing,
-                                wondering if she was okay or just in the other
-                                room. One day she got into trouble and I only
-                                found out hours later.
-                                <br />
-                                <br />
-                                That's when I realized: static cameras weren't
-                                built for curious pets. So I built PawMe — a
-                                camera that actually follows them. Now I never
-                                miss a moment, no matter where she roams."
+                                "Every day I'd check my pet camera, and Zoe was never in frame. I'd spend 5 minutes refreshing, wondering if she was okay or just in the other room. One day she run away from the house and I only found out hours later. That's when I realized: static cameras weren't built for curious pets. So I built PawMe — a camera that actually follows them. Now I never miss a moment, no matter where she roams."
+                            </p>
+                            <p
+                                style={{
+                                    fontSize: 14,
+                                    fontWeight: "bold",
+                                    color: colors.dark,
+                                    marginTop: 16,
+                                }}
+                            >
+                                Ashok Jaiswal, Founder at Ayva Labs
                             </p>
                         </div>
                     </AnimatedSection>
@@ -2396,6 +2400,3 @@ export default function PawMeLandingPage() {
         </div>
     )
 }
-
-
-
