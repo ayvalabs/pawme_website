@@ -60,12 +60,7 @@ export async function createVipCheckoutSession({
 
     // Create Stripe Checkout Session
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card', 'alipay', 'wechat_pay'],
-      payment_method_options: {
-        wechat_pay: {
-          client: 'web',
-        },
-      },
+      payment_method_types: ['card'],
       line_items: [
         {
           price_data: {
