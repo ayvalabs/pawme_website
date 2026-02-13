@@ -1,3 +1,4 @@
+
 import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
 
@@ -8,6 +9,7 @@ export async function GET() {
     
     const signups = querySnapshot.docs.map(doc => {
       const data = doc.data();
+      const createdAtTimestamp = data.createdAt;
       return {
         id: doc.id,
         name: data.name,
@@ -15,7 +17,9 @@ export async function GET() {
         points: data.points || 0,
         referralCount: data.referralCount || 0,
         referredBy: data.referredBy || null,
-        createdAt: data.createdAt,
+        createdAt: createdAtTimestamp && typeof createdAtTimestamp.toDate === 'function' 
+          ? createdAtTimestamp.toDate().toISOString() 
+          : createdAtTimestamp,
         isVip: data.isVip || false,
       };
     });
