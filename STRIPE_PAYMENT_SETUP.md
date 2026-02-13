@@ -64,12 +64,12 @@ Stripe will ask for:
 
 ## Step 3: Configure Environment Variables
 
-Add these to your `.env.local` file:
+Add these to your `.env.local` file. **Important:** The publishable key must be prefixed with `NEXT_PUBLIC_` to be accessible in the browser.
 
 ```bash
 # Stripe Configuration
 STRIPE_SECRET_KEY=sk_test_xxxxxxxxxxxxxxxxxxxxx  # Use sk_live_ for production
-STRIPE_PUBLISHABLE_KEY=pk_test_xxxxxxxxxxxxxxxxxxxxx  # Use pk_live_ for production
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_xxxxxxxxxxxxxxxxxxxxx  # Use pk_live_ for production
 STRIPE_WEBHOOK_SECRET=whsec_xxxxxxxxxxxxxxxxxxxxx  # Get this in Step 4
 ```
 
@@ -198,7 +198,7 @@ Use Stripe's test accounts:
 Replace test keys with live keys in your production environment:
 ```bash
 STRIPE_SECRET_KEY=sk_live_xxxxxxxxxxxxxxxxxxxxx
-STRIPE_PUBLISHABLE_KEY=pk_live_xxxxxxxxxxxxxxxxxxxxx
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_xxxxxxxxxxxxxxxxxxxxx
 STRIPE_WEBHOOK_SECRET=whsec_xxxxxxxxxxxxxxxxxxxxx  # From production webhook
 ```
 

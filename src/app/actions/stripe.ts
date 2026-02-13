@@ -27,7 +27,7 @@ export async function createPaymentIntent(amount: number) {
     };
   } catch (error: any) {
     console.error('Error creating PaymentIntent:', error);
-    return { error: 'Failed to create PaymentIntent.' };
+    return { error: error.message || 'Failed to create PaymentIntent.' };
   }
 }
 
