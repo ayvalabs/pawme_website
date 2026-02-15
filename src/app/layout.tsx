@@ -27,6 +27,40 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 })(window,document,'script','dataLayer','GTM-MGGJVX7P');`}
         </Script>
         {/* End Google Tag Manager */}
+        {/* PawMe Tracking Helper */}
+        <Script id="pawme-tracking" strategy="afterInteractive">
+          {`window.dataLayer = window.dataLayer || [];
+function generateEventId() {
+  return 'evt_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+}
+function trackPawMeLead(firstName, lastName, email) {
+  window.dataLayer.push({
+    event: 'generate_lead',
+    event_id: generateEventId(),
+    user_data: { email: email || '', first_name: firstName || '', last_name: lastName || '', phone: '' }
+  });
+  console.log('PawMe Tracking: Lead event fired');
+}
+function trackPawMeCheckout(email, firstName, lastName) {
+  window.dataLayer.push({
+    event: 'begin_checkout',
+    event_id: generateEventId(),
+    ecommerce: { value: 1.00, currency: 'USD' },
+    user_data: { email: email || '', first_name: firstName || '', last_name: lastName || '', phone: '' }
+  });
+  console.log('PawMe Tracking: Checkout event fired');
+}
+function trackPawMePurchase(email, firstName, lastName, stripeSessionId) {
+  window.dataLayer.push({
+    event: 'purchase',
+    event_id: generateEventId(),
+    ecommerce: { value: 1.00, currency: 'USD', transaction_id: stripeSessionId || 'stripe_' + Date.now() },
+    user_data: { email: email || '', first_name: firstName || '', last_name: lastName || '', phone: '' }
+  });
+  console.log('PawMe Tracking: Purchase event fired');
+}`}
+        </Script>
+        {/* End PawMe Tracking Helper */}
         <AuthProvider>
           <FaviconHandler />
           {children}

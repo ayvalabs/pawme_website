@@ -270,6 +270,8 @@ function AuthPopup({
         try {
             await signUp(signUpEmail, signUpPassword, signUpName, verificationCode, referralCode, privacyAgreed, false)
             toast.success("Account created successfully!")
+            const nameParts = signUpName.trim().split(/\s+/)
+            ;(window as any).trackPawMeLead?.(nameParts[0] || "", nameParts.slice(1).join(" ") || "", signUpEmail)
             onAuthSuccess()
         } catch (err: any) {
             setError(err.message || "Sign up failed. Please try again.")
@@ -313,6 +315,11 @@ function AuthPopup({
             }
             await refreshProfile()
             toast.success("Signed in with Google!")
+            if (!userDoc.exists()) {
+                const gName = googleUser.displayName || ""
+                const gParts = gName.trim().split(/\s+/)
+                ;(window as any).trackPawMeLead?.(gParts[0] || "", gParts.slice(1).join(" ") || "", googleUser.email || "")
+            }
             onAuthSuccess()
         } catch (err: any) {
             toast.error(err.message || "Google sign in failed")
@@ -597,6 +604,8 @@ function PostSignupPage({
                 return
             }
             if (result.url) {
+                const nameParts = (profile.name || "").trim().split(/\s+/)
+                ;(window as any).trackPawMeCheckout?.(user.email || "", nameParts[0] || "", nameParts.slice(1).join(" ") || "")
                 window.location.href = result.url
             }
         } catch (err: any) {
@@ -900,6 +909,9 @@ export default function PawMeLandingPage() {
             }
             const paymentStatus = urlParams.get("payment")
             if (paymentStatus === "success") {
+                const sessionId = urlParams.get("session_id") || ""
+                const nameParts = (profile?.name || "").trim().split(/\s+/)
+                ;(window as any).trackPawMePurchase?.(user?.email || "", nameParts[0] || "", nameParts.slice(1).join(" ") || "", sessionId)
                 toast.success("Payment successful! Welcome to VIP! 👑")
                 // Clean up URL params
                 window.history.replaceState({}, "", window.location.pathname)
