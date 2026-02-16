@@ -9,6 +9,7 @@ import { sendSignUpVerificationCode } from "@/app/actions/auth"
 import { auth, db } from "@/firebase/config"
 import { signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword } from "firebase/auth"
 import { collection, addDoc, Timestamp, doc, getDoc, setDoc } from "firebase/firestore"
+import { ReferralShareSection } from "@/app/components/referral-share-section"
 // ============================================================================
 // DESIGN TOKENS
 // ============================================================================
@@ -543,44 +544,7 @@ function PostSignupPage({
     onSkip: () => void
 }) {
     const { user, profile } = useAuth()
-    const [copied, setCopied] = useState(false)
     const [checkoutLoading, setCheckoutLoading] = useState(false)
-    const referralUrl = typeof window !== "undefined" && profile?.referralCode
-        ? `${window.location.origin}/?ref=${profile.referralCode}`
-        : ""
-
-    const handleCopyLink = () => {
-        if (referralUrl) {
-            navigator.clipboard.writeText(referralUrl)
-            setCopied(true)
-            toast.success("Referral link copied!")
-            setTimeout(() => setCopied(false), 2000)
-        }
-    }
-
-    const handleShare = (platform: string) => {
-        const text = encodeURIComponent("I just joined the PawMe waitlist! PawMe is an AI-powered companion robot for pets. Join with my link to get 100 bonus points!")
-        const url = encodeURIComponent(referralUrl)
-        let shareUrl = ""
-        switch (platform) {
-            case "twitter": shareUrl = `https://twitter.com/intent/tweet?text=${text}&url=${url}`; break
-            case "facebook": shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${url}`; break
-            case "whatsapp": shareUrl = `https://wa.me/?text=${text} ${url}`; break
-        }
-        if (shareUrl) window.open(shareUrl, "_blank", "width=600,height=400")
-    }
-
-    const handleNativeShare = () => {
-        if (navigator.share) {
-            navigator.share({
-                title: "Join me on the PawMe waitlist!",
-                text: "I'm on the waitlist for PawMe, an amazing AI companion for pets. Join with my link to get 100 bonus points!",
-                url: referralUrl,
-            })
-        } else {
-            handleCopyLink()
-        }
-    }
 
     const handleVipCheckout = async () => {
         if (!user || !profile) {
@@ -595,7 +559,7 @@ function PostSignupPage({
                 userId: user.uid,
                 userEmail: user.email || "",
                 userName: profile.name || user.displayName || "",
-                successUrl: `${appUrl}/?payment=success&session_id={CHECKOUT_SESSION_ID}`,
+                successUrl: `${appUrl}/thanks?session_id={CHECKOUT_SESSION_ID}`,
                 cancelUrl: `${appUrl}/?payment=cancelled`,
             })
             if (result.error) {
@@ -706,135 +670,8 @@ function PostSignupPage({
                     No thanks, I'll take my chances with the regular waitlist →
                 </motion.button>
 
-                {/* ========== REFERRAL SHARE SECTION ========== */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.8 }}
-                    style={{ background: "rgba(255,255,255,0.08)", backdropFilter: "blur(20px)", borderRadius: 28, padding: "40px 36px", marginBottom: 32, border: "1px solid rgba(255,255,255,0.1)", boxShadow: "0 25px 60px rgba(0,0,0,0.3)" }}
-                >
-                    <h2 style={{ fontFamily: fonts.heading, fontSize: 24, fontWeight: 900, color: colors.white, marginBottom: 8 }}>
-                        Share & Earn Rewards 🎁
-                    </h2>
-                    <p style={{ fontFamily: fonts.body, fontSize: 15, color: "rgba(255,255,255,0.7)", marginBottom: 24, lineHeight: 1.6 }}>
-                        Share PawMe with friends & family. Each signup earns you <strong style={{ color: colors.neonGreen }}>100 bonus points</strong> toward exclusive rewards!
-                    </p>
-
-                    {/* Referral Link */}
-                    {referralUrl && (
-                        <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
-                            <input
-                                readOnly
-                                value={referralUrl}
-                                style={{
-                                    flex: 1,
-                                    padding: "12px 16px",
-                                    borderRadius: 12,
-                                    border: "1px solid rgba(255,255,255,0.2)",
-                                    background: "rgba(255,255,255,0.05)",
-                                    color: colors.white,
-                                    fontSize: 13,
-                                    outline: "none",
-                                    fontFamily: fonts.body,
-                                }}
-                            />
-                            <motion.button
-                                onClick={handleCopyLink}
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                style={{
-                                    padding: "12px 20px",
-                                    borderRadius: 12,
-                                    border: "none",
-                                    background: copied ? colors.green : gradients.primary,
-                                    color: colors.white,
-                                    fontWeight: 700,
-                                    fontSize: 13,
-                                    cursor: "pointer",
-                                    whiteSpace: "nowrap",
-                                }}
-                            >
-                                {copied ? "Copied!" : "Copy"}
-                            </motion.button>
-                        </div>
-                    )}
-
-                    {/* Share Buttons */}
-                    <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
-                        {[
-                            { label: "Twitter", platform: "twitter", bg: "#1DA1F2" },
-                            { label: "Facebook", platform: "facebook", bg: "#4267B2" },
-                            { label: "WhatsApp", platform: "whatsapp", bg: "#25D366" },
-                        ].map((s) => (
-                            <motion.button
-                                key={s.platform}
-                                onClick={() => handleShare(s.platform)}
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                style={{
-                                    padding: "10px 20px",
-                                    borderRadius: 50,
-                                    border: "none",
-                                    background: s.bg,
-                                    color: colors.white,
-                                    fontWeight: 700,
-                                    fontSize: 13,
-                                    cursor: "pointer",
-                                    fontFamily: fonts.body,
-                                }}
-                            >
-                                {s.label}
-                            </motion.button>
-                        ))}
-                        <motion.button
-                            onClick={handleNativeShare}
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            style={{
-                                padding: "10px 20px",
-                                borderRadius: 50,
-                                border: "1px solid rgba(255,255,255,0.3)",
-                                background: "transparent",
-                                color: colors.white,
-                                fontWeight: 700,
-                                fontSize: 13,
-                                cursor: "pointer",
-                                fontFamily: fonts.body,
-                            }}
-                        >
-                            Share...
-                        </motion.button>
-                    </div>
-                </motion.div>
-
-                {/* ========== FOLLOW US SECTION ========== */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 1.0 }}
-                    style={{ background: "rgba(255,255,255,0.08)", backdropFilter: "blur(20px)", borderRadius: 28, padding: "32px 36px", border: "1px solid rgba(255,255,255,0.1)" }}
-                >
-                    <h3 style={{ fontFamily: fonts.heading, fontSize: 20, fontWeight: 800, color: colors.white, marginBottom: 8 }}>
-                        Follow Us for Updates 🐾
-                    </h3>
-                    <p style={{ fontFamily: fonts.body, fontSize: 14, color: "rgba(255,255,255,0.6)", marginBottom: 20 }}>
-                        Stay in the loop — behind-the-scenes, launch updates, and pet content!
-                    </p>
-                    <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
-                        {socialLinks.map((social) => (
-                            <SocialIcon
-                                key={social.network}
-                                url={social.url}
-                                network={social.network}
-                                bgColor="transparent"
-                                fgColor="white"
-                                style={{ height: 48, width: 48, transition: "transform 0.2s" }}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                            />
-                        ))}
-                    </div>
-                </motion.div>
+                {/* ========== REFERRAL SHARE & FOLLOW US ========== */}
+                <ReferralShareSection variant="dark" animationDelay={0.8} />
 
                 {/* Trust badges */}
                 <div style={{ display: "flex", justifyContent: "center", gap: 24, marginTop: 40, flexWrap: "wrap" }}>
@@ -908,14 +745,7 @@ export default function PawMeLandingPage() {
                 }
             }
             const paymentStatus = urlParams.get("payment")
-            if (paymentStatus === "success") {
-                const sessionId = urlParams.get("session_id") || ""
-                const nameParts = (profile?.name || "").trim().split(/\s+/)
-                ;(window as any).trackPawMePurchase?.(user?.email || "", nameParts[0] || "", nameParts.slice(1).join(" ") || "", sessionId)
-                toast.success("Payment successful! Welcome to VIP! 👑")
-                // Clean up URL params
-                window.history.replaceState({}, "", window.location.pathname)
-            } else if (paymentStatus === "cancelled") {
+            if (paymentStatus === "cancelled") {
                 toast.info("Payment cancelled. You can try again anytime.")
                 window.history.replaceState({}, "", window.location.pathname)
             }
