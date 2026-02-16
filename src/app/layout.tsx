@@ -8,6 +8,27 @@ import { FaviconHandler } from './components/favicon-handler';
 export const metadata: Metadata = {
   title: 'PawMe - AI Companion Robot for Pets | Coming Soon on Kickstarter',
   description: 'PawMe is an AI-powered companion robot that keeps your pet happy, healthy, and entertained. Join the waitlist for our March 2026 Kickstarter launch!',
+  metadataBase: new URL('https://www.ayvalabs.com'),
+  openGraph: {
+    title: 'PawMe - AI Companion Robot for Pets | Coming Soon on Kickstarter',
+    description: 'PawMe is an AI-powered companion robot that keeps your pet happy, healthy, and entertained. Join the waitlist for our March 2026 Kickstarter launch!',
+    images: [
+      {
+        url: '/bot-hero.png',
+        width: 1200,
+        height: 630,
+        alt: 'PawMe AI Companion Robot',
+      },
+    ],
+    siteName: 'PawMe',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'PawMe - AI Companion Robot for Pets | Coming Soon on Kickstarter',
+    description: 'PawMe is an AI-powered companion robot that keeps your pet happy, healthy, and entertained. Join the waitlist for our March 2026 Kickstarter launch!',
+    images: ['/bot-hero.png'],
+  },
 };
 
 export default function RootLayout({
