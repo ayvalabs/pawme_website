@@ -89,7 +89,7 @@ export default function TemplatesPage() {
   const [brandingEditorContent, setBrandingEditorContent] = useState('');
 
   useEffect(() => {
-    if (user && profile?.email === 'pawme@ayvalabs.com') {
+    if (user && profile) {
       fetchEmailTemplates();
       fetchSettings();
     }

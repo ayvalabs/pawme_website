@@ -58,7 +58,7 @@ export default function RewardsPage() {
   const [catalogView, setCatalogView] = useState<'grid' | 'list'>('grid');
 
   useEffect(() => {
-    if (user && profile?.email === 'pawme@ayvalabs.com') {
+    if (user && profile) {
       fetchAllUsers();
       fetchRewardCatalog();
     }

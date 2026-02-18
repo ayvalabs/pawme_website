@@ -6,7 +6,9 @@ service cloud.firestore {
     // Helper function to check if user is admin
     function isAdmin() {
       return request.auth != null && 
-             (request.auth.token.admin == true || request.auth.token.email == 'pawme@ayvalabs.com');
+             (request.auth.token.admin == true || 
+              request.auth.token.email == 'pawme+admin@ayvalabs.com' ||
+              exists(/databases/$(database)/documents/admins/$(request.auth.token.email)));
     }
 
     // Rules for the 'users' collection
@@ -70,6 +72,15 @@ service cloud.firestore {
       allow read: if isAdmin();
       
       // Only admin can create, update, or delete email templates
+      allow write: if isAdmin();
+    }
+
+    // Rules for the 'admins' collection
+    match /admins/{adminEmail} {
+      // Only admins can read the admin list
+      allow read: if isAdmin();
+      
+      // Only admins can add or remove other admins
       allow write: if isAdmin();
     }
 

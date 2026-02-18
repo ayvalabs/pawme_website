@@ -3,6 +3,7 @@
 
 import { Resend } from 'resend';
 import { defaultTemplates } from '@/lib/email-templates';
+import { adminDb } from '@/lib/firebase-admin';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const fromEmail = 'PawMe <pawme@ayvalabs.com>';
@@ -165,10 +166,26 @@ export async function sendShippingNotificationEmail({ to, userName, rewardTitle,
 export async function sendVipDepositReceiptEmail({ to, name, amount }: { to: string, name: string, amount: string }) {
   const appUrl = await getAppUrl();
   console.log(`🔵 [EMAIL_ACTION] Sending VIP deposit receipt to: ${to}`);
+
+  // Look up user's referral code from Firestore
+  let referralLink = appUrl;
+  try {
+    const usersSnapshot = await adminDb.collection('users').where('email', '==', to).limit(1).get();
+    if (!usersSnapshot.empty) {
+      const referralCode = usersSnapshot.docs[0].data()?.referralCode;
+      if (referralCode) {
+        referralLink = `${appUrl}/?ref=${referralCode}`;
+      }
+    }
+  } catch (err) {
+    console.warn('⚠️ Could not look up referral code for VIP receipt email:', err);
+  }
+
   await renderAndSend('vipDepositReceipt', to, { 
     userName: name,
     amount,
     appUrl,
+    referralLink,
     emailTitle: 'VIP Deposit Receipt - Welcome to PawMe!' 
   });
 }

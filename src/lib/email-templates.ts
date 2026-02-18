@@ -38,11 +38,15 @@ const footer = `          <!-- Footer -->
                 Follow us for updates and behind-the-scenes content:
               </p>
               <div style="margin-bottom: 20px;">
-                <a href="https://twitter.com/pawme" style="display: inline-block; margin: 0 8px; color: #7678EE; text-decoration: none; font-size: 14px;">Twitter</a>
+                <a href="https://twitter.com/pawme_ai" style="display: inline-block; margin: 0 6px; color: #7678EE; text-decoration: none; font-size: 14px;">X</a>
                 <span style="color: #cccccc;">•</span>
-                <a href="https://instagram.com/pawme" style="display: inline-block; margin: 0 8px; color: #7678EE; text-decoration: none; font-size: 14px;">Instagram</a>
+                <a href="https://instagram.com/pawme.ai" style="display: inline-block; margin: 0 6px; color: #7678EE; text-decoration: none; font-size: 14px;">Instagram</a>
                 <span style="color: #cccccc;">•</span>
-                <a href="https://www.ayvalabs.com" style="display: inline-block; margin: 0 8px; color: #7678EE; text-decoration: none; font-size: 14px;">Website</a>
+                <a href="https://facebook.com/pawmeai" style="display: inline-block; margin: 0 6px; color: #7678EE; text-decoration: none; font-size: 14px;">Facebook</a>
+                <span style="color: #cccccc;">•</span>
+                <a href="https://tiktok.com/@pawme.ai" style="display: inline-block; margin: 0 6px; color: #7678EE; text-decoration: none; font-size: 14px;">TikTok</a>
+                <span style="color: #cccccc;">•</span>
+                <a href="https://youtube.com/@pawme_ai" style="display: inline-block; margin: 0 6px; color: #7678EE; text-decoration: none; font-size: 14px;">YouTube</a>
               </div>
               <p style="margin: 0 0 10px; color: #999999; font-size: 12px; line-height: 1.5;">
                 © 2026 PawMe by AyvaLabs. All rights reserved.
@@ -459,6 +463,30 @@ export const defaultTemplates: { [key: string]: EmailTemplate } = {
       </tr>
     </table>
     
+    <!-- Share With Friends Section -->
+    <table role="presentation" style="width: 100%; margin-bottom: 30px;">
+      <tr>
+        <td style="background: linear-gradient(135deg, #04DA8D10 0%, #0085FF10 100%); border: 1px solid #04DA8D30; border-radius: 8px; padding: 25px; text-align: center;">
+          <h3 style="margin: 0 0 10px; color: #333333; font-size: 18px; font-weight: 700;">🎉 Share the Love!</h3>
+          <p style="margin: 0 0 20px; color: #666666; font-size: 14px; line-height: 1.6;">
+            Know someone who'd love PawMe? Share your referral link and earn <strong style="color: #7678EE;">1.5x VIP bonus points</strong> for every friend who joins!
+          </p>
+          <table role="presentation" style="width: 100%; margin-bottom: 15px;">
+            <tr>
+              <td style="background-color: #ffffff; border: 1px solid #e5e5e5; border-radius: 6px; padding: 12px 16px; text-align: center;">
+                <a href="{{referralLink}}" target="_blank" style="color: #7678EE; text-decoration: none; font-size: 14px; font-weight: 600; word-break: break-all;">{{referralLink}}</a>
+              </td>
+            </tr>
+          </table>
+          <div>
+            <a href="https://twitter.com/intent/tweet?text=I%20just%20became%20a%20PawMe%20VIP%20founding%20member!%20%F0%9F%90%BE%20PawMe%20is%20an%20AI%20companion%20robot%20for%20pets.%20Join%20with%20my%20link%20for%20bonus%20points!&url={{referralLink}}" target="_blank" style="display: inline-block; margin: 4px; padding: 8px 16px; background-color: #1DA1F2; color: #ffffff; text-decoration: none; border-radius: 4px; font-size: 13px; font-weight: 600;">Share on X</a>
+            <a href="https://www.facebook.com/sharer/sharer.php?u={{referralLink}}" target="_blank" style="display: inline-block; margin: 4px; padding: 8px 16px; background-color: #1877F2; color: #ffffff; text-decoration: none; border-radius: 4px; font-size: 13px; font-weight: 600;">Share on Facebook</a>
+            <a href="https://api.whatsapp.com/send?text=I%20just%20became%20a%20PawMe%20VIP%20founding%20member!%20%F0%9F%90%BE%20Join%20with%20my%20link%20for%20bonus%20points!%20{{referralLink}}" target="_blank" style="display: inline-block; margin: 4px; padding: 8px 16px; background-color: #25D366; color: #ffffff; text-decoration: none; border-radius: 4px; font-size: 13px; font-weight: 600;">Share on WhatsApp</a>
+          </div>
+        </td>
+      </tr>
+    </table>
+
     <p style="margin: 0 0 30px; color: #333333; font-size: 16px; line-height: 1.6;">
       Start sharing your referral link now to maximize your points and climb the leaderboard!
     </p>
@@ -477,6 +505,6 @@ export const defaultTemplates: { [key: string]: EmailTemplate } = {
     </p>
   </td>
 </tr>`,
-    variables: ['userName', 'amount', 'appUrl'],
+    variables: ['userName', 'amount', 'appUrl', 'referralLink'],
   },
 };

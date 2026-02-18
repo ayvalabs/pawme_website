@@ -8,7 +8,7 @@ import { Input } from '@/app/components/ui/input';
 import { Label } from '@/app/components/ui/label';
 import { Skeleton } from '@/app/components/ui/skeleton';
 import { toast } from 'sonner';
-import { Trash2 } from 'lucide-react';
+import { Trash2, UserPlus, Shield, X } from 'lucide-react';
 import { getAppSettings, type AppSettings, type ReferralTier } from '@/app/actions/settings';
 import { saveAppSettings } from '@/app/services/adminService';
 
@@ -19,10 +19,15 @@ export default function SettingsPage() {
   const [savingSettings, setSavingSettings] = useState(false);
   const [localVipSpots, setLocalVipSpots] = useState(100);
   const [localReferralTiers, setLocalReferralTiers] = useState<ReferralTier[]>([]);
+  const [admins, setAdmins] = useState<{ email: string; addedAt: string; addedBy: string }[]>([]);
+  const [loadingAdmins, setLoadingAdmins] = useState(true);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviting, setInviting] = useState(false);
 
   useEffect(() => {
-    if (user && profile?.email === 'pawme@ayvalabs.com') {
+    if (user && profile) {
       fetchSettings();
+      fetchAdmins();
     }
   }, [user, profile]);
 
@@ -54,6 +59,52 @@ export default function SettingsPage() {
       toast.error(error.message || "Failed to save settings.");
     } finally {
       setSavingSettings(false);
+    }
+  };
+
+  const fetchAdmins = async () => {
+    setLoadingAdmins(true);
+    try {
+      const { getAdmins } = await import('@/app/actions/admin');
+      const adminList = await getAdmins();
+      setAdmins(adminList);
+    } catch (error) {
+      console.error('Error fetching admins:', error);
+    }
+    setLoadingAdmins(false);
+  };
+
+  const handleInviteAdmin = async () => {
+    if (!inviteEmail.trim()) return;
+    setInviting(true);
+    try {
+      const { addAdmin } = await import('@/app/actions/admin');
+      const result = await addAdmin(user?.email || '', inviteEmail.trim());
+      if (result.success) {
+        toast.success(`${inviteEmail.trim()} added as admin`);
+        setInviteEmail('');
+        await fetchAdmins();
+      } else {
+        toast.error(result.error || 'Failed to add admin');
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to add admin');
+    }
+    setInviting(false);
+  };
+
+  const handleRemoveAdmin = async (email: string) => {
+    try {
+      const { removeAdmin } = await import('@/app/actions/admin');
+      const result = await removeAdmin(user?.email || '', email);
+      if (result.success) {
+        toast.success(`${email} removed from admins`);
+        await fetchAdmins();
+      } else {
+        toast.error(result.error || 'Failed to remove admin');
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to remove admin');
     }
   };
 
@@ -116,6 +167,65 @@ export default function SettingsPage() {
                     {savingSettings ? 'Saving...' : 'Save Referral Tiers'}
                   </Button>
                 </div>
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="w-5 h-5" />
+            Admin Management
+          </CardTitle>
+          <CardDescription>Manage who has access to this dashboard. Invite team members by email.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {loadingAdmins ? <Skeleton className="h-32 w-full" /> : (
+            <>
+              <div className="space-y-3">
+                {admins.map((admin) => (
+                  <div key={admin.email} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                        <Shield className="w-4 h-4 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">{admin.email}</p>
+                        {admin.addedBy && admin.addedBy !== 'system' && (
+                          <p className="text-xs text-muted-foreground">Added by {admin.addedBy}</p>
+                        )}
+                        {admin.addedBy === 'system' && (
+                          <p className="text-xs text-muted-foreground">Super Admin</p>
+                        )}
+                      </div>
+                    </div>
+                    {admin.addedBy !== 'system' && (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => handleRemoveAdmin(admin.email)}
+                        title="Remove admin"
+                      >
+                        <X className="w-4 h-4 text-destructive" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex gap-2">
+                <Input
+                  type="email"
+                  placeholder="Enter email to invite as admin"
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleInviteAdmin()}
+                />
+                <Button onClick={handleInviteAdmin} disabled={inviting || !inviteEmail.trim()} className="gap-2">
+                  <UserPlus className="w-4 h-4" />
+                  {inviting ? 'Adding...' : 'Invite'}
+                </Button>
               </div>
             </>
           )}

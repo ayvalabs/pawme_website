@@ -328,9 +328,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
 
-      if (userCredential.user.email === 'pawme@ayvalabs.com') {
-        router.push('/dashboard');
-      } else {
+      // Check if user is an admin
+      try {
+        const { isAdmin } = await import('@/app/actions/admin');
+        const adminStatus = await isAdmin(userCredential.user.email || '');
+        if (adminStatus) {
+          router.push('/dashboard');
+        } else {
+          router.push('/leaderboard');
+        }
+      } catch {
         router.push('/leaderboard');
       }
       return userCredential.user;
@@ -382,9 +389,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setProfile(userProfile);
     }
     
-    if (user.email === 'pawme@ayvalabs.com') {
-      router.push('/dashboard');
-    } else {
+    // Check if user is an admin
+    try {
+      const { isAdmin } = await import('@/app/actions/admin');
+      const adminStatus = await isAdmin(user.email || '');
+      if (adminStatus) {
+        router.push('/dashboard');
+      } else {
+        router.push('/leaderboard');
+      }
+    } catch {
       router.push('/leaderboard');
     }
 

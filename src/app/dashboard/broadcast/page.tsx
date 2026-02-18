@@ -37,7 +37,7 @@ export default function BroadcastPage() {
   const [previewContent, setPreviewContent] = useState({ subject: '', html: '' });
 
   useEffect(() => {
-    if (user && profile?.email === 'pawme@ayvalabs.com') {
+    if (user && profile) {
       fetchAllUsers();
       fetchEmailTemplates();
     }
@@ -86,7 +86,7 @@ export default function BroadcastPage() {
   };
 
   const filteredUsers = useMemo(() => {
-    return allUsers.filter(u => u.email !== 'pawme@ayvalabs.com');
+    return allUsers.filter(u => u.email !== 'pawme+admin@ayvalabs.com');
   }, [allUsers]);
 
   const handleSelectUser = (userId: string) => {
