@@ -85,9 +85,10 @@ function Star({
 }
 // ========== MAIN THANK YOU PAGE COMPONENT ==========
 export default function ThankYouPage() {
-    const { user, profile } = useAuth()
+    const { user, profile, refreshProfile } = useAuth()
     const [showConfetti, setShowConfetti] = useState(true)
     const [isMobile, setIsMobile] = useState(false)
+    const [verified, setVerified] = useState(false)
     // Mobile detection
     useEffect(() => {
         if (typeof window === "undefined") return
@@ -96,11 +97,16 @@ export default function ThankYouPage() {
         window.addEventListener("resize", checkMobile)
         return () => window.removeEventListener("resize", checkMobile)
     }, [])
-    // Track purchase event on mount
+    // Verify payment with Stripe, update Firestore VIP status, and track purchase
     useEffect(() => {
-        if (typeof window === "undefined") return
+        if (typeof window === "undefined" || verified) return
         const urlParams = new URLSearchParams(window.location.search)
         const sessionId = urlParams.get("session_id") || ""
+        if (!sessionId) return
+
+        setVerified(true)
+
+        // Fire GTM purchase tracking
         const nameParts = (profile?.name || user?.displayName || "").trim().split(/\s+/)
         ;(window as any).trackPawMePurchase?.(
             user?.email || "",
@@ -108,11 +114,30 @@ export default function ThankYouPage() {
             nameParts.slice(1).join(" ") || "",
             sessionId
         )
-        if (sessionId) {
-            toast.success("Payment successful! Welcome to VIP! 👑")
+
+        // Verify with Stripe and update Firestore (fallback if webhook hasn't fired)
+        const verifyPayment = async () => {
+            try {
+                const { verifyVipPayment } = await import("@/app/actions/stripe")
+                const result = await verifyVipPayment(sessionId)
+                if (result.success) {
+                    console.log("✅ VIP payment verified and Firestore updated")
+                    toast.success("Payment successful! Welcome to VIP! 👑")
+                    // Refresh profile so UI reflects VIP status immediately
+                    await refreshProfile()
+                } else {
+                    console.warn("⚠️ Payment verification returned:", result.error)
+                    toast.success("Payment received! Welcome to VIP! 👑")
+                }
+            } catch (err) {
+                console.error("⚠️ Payment verification failed:", err)
+                toast.success("Payment received! Welcome to VIP! 👑")
+            }
+            // Clean up URL
             window.history.replaceState({}, "", "/thanks")
         }
-    }, [user, profile])
+        verifyPayment()
+    }, [user, profile, verified, refreshProfile])
     // Confetti colors
     const confettiColors = [
         colors.green,

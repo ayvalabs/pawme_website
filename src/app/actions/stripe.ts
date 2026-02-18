@@ -2,6 +2,8 @@
 'use server';
 
 import Stripe from 'stripe';
+import { adminDb } from '@/lib/firebase-admin';
+import { sendVipDepositReceiptEmail } from '@/app/actions/email';
 
 const stripe = process.env.STRIPE_SECRET_KEY 
   ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2024-06-20' })
@@ -122,13 +124,51 @@ export async function verifyVipPayment(sessionId: string) {
     const session = await stripe.checkout.sessions.retrieve(sessionId);
 
     if (session.payment_status === 'paid') {
-      console.log('✅ Payment verified for user:', session.metadata?.userId);
-      
+      const userId = session.metadata?.userId;
+      const userName = session.metadata?.userName;
+      const userEmail = session.customer_email;
+
+      console.log('✅ Payment verified for user:', userId);
+
+      // Update Firestore VIP status (idempotent — safe even if webhook already ran)
+      if (userId) {
+        try {
+          const userRef = adminDb.collection('users').doc(userId);
+          const userDoc = await userRef.get();
+          if (userDoc.exists && !userDoc.data()?.isVip) {
+            await userRef.update({
+              isVip: true,
+              vipPaidAt: new Date(),
+              stripeSessionId: session.id,
+              stripePaymentIntentId: session.payment_intent,
+            });
+            console.log('✅ User VIP status updated in Firestore (via verify fallback)');
+
+            // Send receipt email if not already sent by webhook
+            if (userEmail) {
+              try {
+                await sendVipDepositReceiptEmail({
+                  to: userEmail,
+                  name: userName || 'VIP Member',
+                  amount: '$1.00',
+                });
+              } catch (emailErr) {
+                console.error('⚠️ Receipt email failed (may have been sent by webhook):', emailErr);
+              }
+            }
+          } else {
+            console.log('ℹ️ User already marked as VIP (webhook likely handled it)');
+          }
+        } catch (dbErr) {
+          console.error('⚠️ Firestore update failed in verify fallback:', dbErr);
+        }
+      }
+
       return {
         success: true,
-        userId: session.metadata?.userId,
-        userName: session.metadata?.userName,
-        userEmail: session.customer_email,
+        userId,
+        userName,
+        userEmail,
         amountPaid: session.amount_total ? session.amount_total / 100 : 1,
         currency: session.currency?.toUpperCase() || 'USD',
       };
