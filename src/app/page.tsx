@@ -7,7 +7,7 @@ import { SocialIcon } from "react-social-icons"
 import { toast } from "sonner"
 import { sendSignUpVerificationCode } from "@/app/actions/auth"
 import { auth, db } from "@/firebase/config"
-import { signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword } from "firebase/auth"
+import { signInWithPopup, GoogleAuthProvider, OAuthProvider, signInWithEmailAndPassword } from "firebase/auth"
 import { collection, addDoc, Timestamp, doc, getDoc, setDoc } from "firebase/firestore"
 import { ReferralShareSection } from "@/app/components/referral-share-section"
 // ============================================================================
@@ -327,6 +327,55 @@ function AuthPopup({
         }
     }
 
+    const handleAppleSignIn = async () => {
+        setError("")
+        try {
+            // Use Firebase directly to avoid AuthContext's router.push redirect
+            const provider = new OAuthProvider('apple.com')
+            provider.addScope('email')
+            provider.addScope('name')
+            const result = await signInWithPopup(auth, provider)
+            const appleUser = result.user
+            // Create user profile if new (same logic as AuthContext)
+            const userDocRef = doc(db, "users", appleUser.uid)
+            const userDoc = await getDoc(userDocRef)
+            if (!userDoc.exists()) {
+                const name = appleUser.displayName || appleUser.email?.split("@")[0] || "Apple User"
+                const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+                const namePart = name.replace(/[^a-zA-Z0-9]/g, "").toUpperCase().substring(0, 4).padEnd(4, "X")
+                let randomPart = ""
+                for (let i = 0; i < 4; i++) randomPart += chars.charAt(Math.floor(Math.random() * chars.length))
+                const refCode = `${namePart}${randomPart}`
+                await setDoc(userDocRef, {
+                    id: appleUser.uid,
+                    email: appleUser.email || '',
+                    name,
+                    referralCode: refCode,
+                    points: 100,
+                    referralCount: 0,
+                    referredBy: referralCode || null,
+                    theme: "purple",
+                    rewards: [],
+                    createdAt: new Date().toISOString(),
+                    isVip: false,
+                    privacyPolicyAgreed: true,
+                    marketingOptIn: false,
+                })
+            }
+            await refreshProfile()
+            toast.success("Signed in with Apple!")
+            if (!userDoc.exists()) {
+                const aName = appleUser.displayName || ""
+                const aParts = aName.trim().split(/\s+/)
+                ;(window as any).trackPawMeLead?.(aParts[0] || "", aParts.slice(1).join(" ") || "", appleUser.email || "")
+            }
+            onAuthSuccess()
+        } catch (err: any) {
+            if (err.code === 'auth/popup-closed-by-user') return
+            toast.error(err.message || "Apple sign in failed")
+        }
+    }
+
     const inputStyle: React.CSSProperties = {
         width: "100%",
         padding: 14,
@@ -373,7 +422,7 @@ function AuthPopup({
                 }}
             >
                 <div style={{ textAlign: "center", marginBottom: 24 }}>
-                    <div style={{ fontSize: 48, marginBottom: 12 }}>🐾</div>
+                    {/* <div style={{ fontSize: 48, marginBottom: 12 }}>🐾</div> */}
                     <h2 style={{ fontFamily: fonts.heading, fontWeight: 900, fontSize: 26, color: colors.dark, marginBottom: 6 }}>
                         Welcome to PawMe
                     </h2>
@@ -500,31 +549,56 @@ function AuthPopup({
                 </div>
 
                 {/* Google Sign In */}
-                <motion.button
-                    onClick={handleGoogleSignIn}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    disabled={loading}
-                    style={{
-                        width: "100%",
-                        padding: 14,
-                        borderRadius: 50,
-                        border: "2px solid #EEE",
-                        background: colors.white,
-                        fontSize: 15,
-                        fontWeight: 600,
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: 8,
-                        fontFamily: fonts.body,
-                        color: colors.dark,
-                    }}
-                >
-                    <GoogleIcon />
-                    Continue with Google
-                </motion.button>
+                <div style={{ display: "flex", gap: 12, width: "100%" }}>
+                    <motion.button
+                        onClick={handleGoogleSignIn}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        style={{
+                            flex: 1,
+                            padding: 14,
+                            borderRadius: 50,
+                            border: "2px solid #EEE",
+                            background: colors.white,
+                            fontSize: 15,
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: 8,
+                            fontFamily: fonts.body,
+                            color: colors.dark,
+                        }}
+                    >
+                        <GoogleIcon />
+                        Google
+                    </motion.button>
+                    <motion.button
+                        onClick={handleAppleSignIn}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        style={{
+                            flex: 1,
+                            padding: 14,
+                            borderRadius: 50,
+                            border: "2px solid #EEE",
+                            background: colors.white,
+                            fontSize: 15,
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: 8,
+                            fontFamily: fonts.body,
+                            color: colors.dark,
+                        }}
+                    >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>
+                        Apple
+                    </motion.button>
+                </div>
 
                 <p style={{ fontFamily: fonts.body, fontSize: 12, color: colors.textMuted, marginTop: 16, textAlign: "center" }}>
                     🔒 No spam. Unsubscribe anytime.

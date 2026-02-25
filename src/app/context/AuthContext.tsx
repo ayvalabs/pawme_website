@@ -9,6 +9,7 @@ import {
   signInWithEmailAndPassword,
   signInWithPopup,
   GoogleAuthProvider,
+  OAuthProvider,
   signOut as firebaseSignOut,
   User as FirebaseUser,
   updateProfile as updateUserProfile,
@@ -71,6 +72,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, name: string, code: string, referredByCode: string | undefined, privacyPolicyAgreed: boolean, marketingOptIn: boolean) => Promise<void>;
   signIn: (email: string, password: string) => Promise<FirebaseUser>;
   signInWithGoogle: () => Promise<FirebaseUser>;
+  signInWithApple: () => Promise<FirebaseUser>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   updateTheme: (theme: string) => Promise<void>;
@@ -405,6 +407,54 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return user;
   };
 
+  const signInWithApple = async () => {
+    const provider = new OAuthProvider('apple.com');
+    provider.addScope('email');
+    provider.addScope('name');
+
+    const result = await signInWithPopup(auth, provider);
+    const user = result.user;
+
+    const userDocRef = doc(db, 'users', user.uid);
+    const userDoc = await getDoc(userDocRef);
+
+    if (!userDoc.exists()) {
+      const referralCode = await generateReferralCode(user.displayName || user.email?.split('@')[0] || 'user', user.uid);
+      const userProfile: UserProfile = {
+        id: user.uid,
+        email: user.email || '',
+        name: user.displayName || user.email?.split('@')[0] || 'Apple User',
+        referralCode,
+        points: 100,
+        referralCount: 0,
+        referredBy: null,
+        theme: 'purple',
+        rewards: [],
+        createdAt: new Date().toISOString(),
+        isVip: false,
+        privacyPolicyAgreed: true,
+        marketingOptIn: false,
+      };
+      await setDoc(userDocRef, userProfile);
+      setProfile(userProfile);
+    }
+
+    // Check if user is an admin
+    try {
+      const { isAdmin } = await import('@/app/actions/admin');
+      const adminStatus = await isAdmin(user.email || '');
+      if (adminStatus) {
+        router.push('/dashboard');
+      } else {
+        router.push('/leaderboard');
+      }
+    } catch {
+      router.push('/leaderboard');
+    }
+
+    return user;
+  };
+
   const signOut = async () => {
     await firebaseSignOut(auth);
     document.documentElement.setAttribute('data-theme', 'purple');
@@ -508,6 +558,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signUp,
         signIn,
         signInWithGoogle,
+        signInWithApple,
         signOut,
         refreshProfile,
         updateTheme,
