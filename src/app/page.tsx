@@ -815,7 +815,7 @@ export default function PawMeLandingPage() {
     const heroHeadline = "Your Pet Camera Sits Still. Your Pet Doesn't."
     const heroSubheadline = "Meet the AI companion that moves with them."
     const ctaText = "CLAIM Your VIP SPOT →"
-    const totalWaitlist = "2,847"
+    const [totalWaitlist, setTotalWaitlist] = useState("800")
     const headlineSize = 80
     const subheadlineSize = 22
     const portraitSize = 200
@@ -835,6 +835,7 @@ export default function PawMeLandingPage() {
     const [vipCount, setVipCount] = useState(0)
     const vipSpotsRemaining = Math.max(0, TOTAL_VIP_SPOTS - vipCount).toString()
     const heroRef = useRef<HTMLDivElement>(null)
+    
     // Fetch VIP count from API (server-side to avoid permission issues)
     useEffect(() => {
         const fetchVipCount = async () => {
@@ -849,6 +850,22 @@ export default function PawMeLandingPage() {
             }
         }
         fetchVipCount()
+    }, [])
+    
+    // Fetch total signups count
+    useEffect(() => {
+        const fetchTotalSignups = async () => {
+            try {
+                const response = await fetch('/api/total-signups')
+                const data = await response.json()
+                if (data.success) {
+                    setTotalWaitlist(data.count.toLocaleString())
+                }
+            } catch (error) {
+                console.error('Error fetching total signups:', error)
+            }
+        }
+        fetchTotalSignups()
     }, [])
     
     // Detect referral code and payment status from URL
