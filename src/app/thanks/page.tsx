@@ -146,7 +146,7 @@ export default function ThankYouPage() {
         "#FF6B6B",
         "#A855F7",
     ]
-    const contactEmail = "hello@pawme.pet"
+    const contactEmail = "pawme+hello@ayvalabs.com"
     return (
         <div
             style={{
