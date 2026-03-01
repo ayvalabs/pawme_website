@@ -1759,7 +1759,7 @@ export default function PawMeLandingPage() {
                                 }}
                             >
                                 <video
-                                    src="/pawme-demo.mp4"
+                                    src="/pawme-demo-optimized.mp4"
                                     autoPlay
                                     loop
                                     muted
