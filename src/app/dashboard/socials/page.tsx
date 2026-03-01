@@ -60,6 +60,12 @@ function SocialsDashboardContent() {
   const [historicalMetrics, setHistoricalMetrics] = useState<any[]>([]);
   const [allUsers, setAllUsers] = useState<Signup[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
+  const [showVipOnly, setShowVipOnly] = useState(false);
+  const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailContent, setEmailContent] = useState('');
+  const [sendingEmail, setSendingEmail] = useState(false);
   const [facebookStats, setFacebookStats] = useState<FacebookPageStats | null>(null);
   const [facebookPosts, setFacebookPosts] = useState<FacebookPost[]>([]);
   const [instagramStats, setInstagramStats] = useState<InstagramStats | null>(null);
@@ -640,71 +646,64 @@ function SocialsDashboardContent() {
           </Card>
 
             <Card>
-              <CardHeader>
-                <CardTitle>Recent Signups</CardTitle>
-                <CardDescription>Latest user registrations</CardDescription>
-              </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left py-2 px-4">Name</th>
-                        <th className="text-left py-2 px-4">Email</th>
-                        <th className="text-left py-2 px-4">Points</th>
-                        <th className="text-left py-2 px-4">Referrals</th>
-                        <th className="text-left py-2 px-4">Status</th>
-                        <th className="text-left py-2 px-4">Joined</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {signups.slice(0, 20).map((signup) => (
-                        <tr key={signup.id} className="border-b hover:bg-muted/50">
-                          <td className="py-2 px-4">{signup.name}</td>
-                          <td className="py-2 px-4 text-sm text-muted-foreground">{signup.email}</td>
-                          <td className="py-2 px-4 font-semibold">{signup.points}</td>
-                          <td className="py-2 px-4">{signup.referralCount}</td>
-                          <td className="py-2 px-4">
-                            {signup.isVip ? (
-                              <span className="px-2 py-1 text-xs rounded bg-yellow-500/20 text-yellow-700 dark:text-yellow-400">
-                                VIP
-                              </span>
-                            ) : (
-                              <span className="px-2 py-1 text-xs rounded bg-green-500/20 text-green-700 dark:text-green-400">
-                                Free
-                              </span>
-                            )}
-                          </td>
-                          <td className="py-2 px-4 text-sm text-muted-foreground">
-                            {signup.createdAt ? format(parseISO(signup.createdAt), 'MMM dd, yyyy') : 'N/A'}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>All Users ({showVipOnly ? allUsers.filter(u => u.isVip).length : allUsers.length})</CardTitle>
+                  <CardDescription>Manage and email your users</CardDescription>
+                </div>
+                <div className="flex items-center gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={showVipOnly}
+                      onChange={(e) => setShowVipOnly(e.target.checked)}
+                      className="w-4 h-4"
+                    />
+                    <span className="text-sm font-medium">VIP Only 👑</span>
+                  </label>
+                  {selectedUsers.size > 0 && (
+                    <Button
+                      onClick={() => setShowEmailDialog(true)}
+                      size="sm"
+                      className="gap-2"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                      Email {selectedUsers.size} user{selectedUsers.size > 1 ? 's' : ''}
+                    </Button>
+                  )}
                 </div>
               </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>All Users</CardTitle>
-              <CardDescription>Complete list of all registered users</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="border rounded-md">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b bg-muted/50">
+                      <th className="w-12 py-3 px-4">
+                        <input
+                          type="checkbox"
+                          checked={selectedUsers.size === (showVipOnly ? allUsers.filter(u => u.isVip) : allUsers).length && allUsers.length > 0}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              const usersToSelect = showVipOnly ? allUsers.filter(u => u.isVip) : allUsers;
+                              setSelectedUsers(new Set(usersToSelect.map(u => u.id)));
+                            } else {
+                              setSelectedUsers(new Set());
+                            }
+                          }}
+                          className="w-4 h-4"
+                        />
+                      </th>
                       <th className="text-left py-3 px-4 font-medium">User</th>
                       <th className="text-left py-3 px-4 font-medium">Email</th>
                       <th className="text-center py-3 px-4 font-medium">Points</th>
                       <th className="text-center py-3 px-4 font-medium">Referrals</th>
                       <th className="text-center py-3 px-4 font-medium">Tier</th>
                       <th className="text-center py-3 px-4 font-medium">VIP</th>
-                      <th className="text-center py-3 px-4 font-medium">Marketing</th>
+                      <th className="text-center py-3 px-4 font-medium">Joined</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -735,8 +734,24 @@ function SocialsDashboardContent() {
                         </tr>
                       ))
                     ) : (
-                      allUsers.map((user) => (
+                      (showVipOnly ? allUsers.filter(u => u.isVip) : allUsers).map((user) => (
                         <tr key={user.id} className="border-b hover:bg-muted/50">
+                          <td className="py-3 px-4">
+                            <input
+                              type="checkbox"
+                              checked={selectedUsers.has(user.id)}
+                              onChange={(e) => {
+                                const newSelected = new Set(selectedUsers);
+                                if (e.target.checked) {
+                                  newSelected.add(user.id);
+                                } else {
+                                  newSelected.delete(user.id);
+                                }
+                                setSelectedUsers(newSelected);
+                              }}
+                              className="w-4 h-4"
+                            />
+                          </td>
                           <td className="py-3 px-4 font-medium">{user.name}</td>
                           <td className="py-3 px-4 text-muted-foreground">{user.email}</td>
                           <td className="py-3 px-4 text-center">{user.points}</td>
@@ -745,16 +760,23 @@ function SocialsDashboardContent() {
                             {getReferralTierIcon(user.referralCount || 0)}
                           </td>
                           <td className="py-3 px-4 text-center">{user.isVip ? '👑' : ''}</td>
-                          <td className="py-3 px-4 text-center">
-                            {user.email ? '✅' : '❌'}
+                          <td className="py-3 px-4 text-center text-sm text-muted-foreground">
+                            {user.createdAt ? format(parseISO(user.createdAt), 'MMM dd, yyyy') : 'N/A'}
                           </td>
                         </tr>
                       ))
                     )}
                     {allUsers.length === 0 && !loadingUsers && (
                       <tr>
-                        <td colSpan={7} className="py-8 text-center text-muted-foreground">
+                        <td colSpan={8} className="py-8 text-center text-muted-foreground">
                           No users found
+                        </td>
+                      </tr>
+                    )}
+                    {showVipOnly && allUsers.filter(u => u.isVip).length === 0 && !loadingUsers && (
+                      <tr>
+                        <td colSpan={8} className="py-8 text-center text-muted-foreground">
+                          No VIP users found
                         </td>
                       </tr>
                     )}
@@ -1775,6 +1797,93 @@ function SocialsDashboardContent() {
           </Card>
         </TabsContent>
         </Tabs>
+
+        {/* Email Dialog */}
+        {showEmailDialog && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowEmailDialog(false)}>
+            <div className="bg-background rounded-lg p-6 max-w-2xl w-full mx-4" onClick={(e) => e.stopPropagation()}>
+              <h2 className="text-2xl font-bold mb-4">Send Email to {selectedUsers.size} User{selectedUsers.size > 1 ? 's' : ''}</h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Subject</label>
+                  <input
+                    type="text"
+                    value={emailSubject}
+                    onChange={(e) => setEmailSubject(e.target.value)}
+                    placeholder="Email subject"
+                    className="w-full px-3 py-2 border rounded-md"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Message (use {'{'}{'{'} name {'}'}{'}'}  for personalization)
+                  </label>
+                  <textarea
+                    value={emailContent}
+                    onChange={(e) => setEmailContent(e.target.value)}
+                    placeholder="Hi {{name}},&#10;&#10;Your message here..."
+                    rows={10}
+                    className="w-full px-3 py-2 border rounded-md font-mono text-sm"
+                  />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowEmailDialog(false);
+                      setEmailSubject('');
+                      setEmailContent('');
+                    }}
+                    disabled={sendingEmail}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={async () => {
+                      if (!emailSubject || !emailContent) {
+                        toast.error('Please fill in subject and message');
+                        return;
+                      }
+                      setSendingEmail(true);
+                      try {
+                        const selectedUserData = allUsers.filter(u => selectedUsers.has(u.id));
+                        const recipients = selectedUserData.map(u => ({ email: u.email, name: u.name }));
+                        
+                        const response = await fetch('/api/send-bulk-email', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            recipients,
+                            subject: emailSubject,
+                            htmlContent: emailContent.replace(/\n/g, '<br>'),
+                          }),
+                        });
+                        
+                        const data = await response.json();
+                        if (data.success) {
+                          toast.success(`Email sent to ${data.sent} user${data.sent > 1 ? 's' : ''}!`);
+                          setShowEmailDialog(false);
+                          setEmailSubject('');
+                          setEmailContent('');
+                          setSelectedUsers(new Set());
+                        } else {
+                          toast.error(data.message || 'Failed to send emails');
+                        }
+                      } catch (error) {
+                        toast.error('Failed to send emails');
+                      } finally {
+                        setSendingEmail(false);
+                      }
+                    }}
+                    disabled={sendingEmail}
+                  >
+                    {sendingEmail ? 'Sending...' : 'Send Email'}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -8,8 +8,13 @@ import { toast } from "sonner"
 import { sendSignUpVerificationCode } from "@/app/actions/auth"
 import { auth, db } from "@/firebase/config"
 import { signInWithPopup, GoogleAuthProvider, OAuthProvider, signInWithEmailAndPassword } from "firebase/auth"
-import { collection, addDoc, Timestamp, doc, getDoc, setDoc } from "firebase/firestore"
+import { collection, addDoc, Timestamp, doc, getDoc, setDoc, query, where, getDocs } from "firebase/firestore"
 import { ReferralShareSection } from "@/app/components/referral-share-section"
+// ============================================================================
+// CONSTANTS
+// ============================================================================
+const TOTAL_VIP_SPOTS = 100;
+
 // ============================================================================
 // DESIGN TOKENS
 // ============================================================================
@@ -463,6 +468,65 @@ function AuthPopup({
                     ))}
                 </div>
 
+                {/* Google/Apple Sign In - Above Email Forms */}
+                <div style={{ display: "flex", gap: 12, width: "100%", marginBottom: 16 }}>
+                    <motion.button
+                        onClick={handleGoogleSignIn}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        style={{
+                            flex: 1,
+                            padding: 14,
+                            borderRadius: 50,
+                            border: "2px solid #EEE",
+                            background: colors.white,
+                            fontSize: 15,
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: 8,
+                            fontFamily: fonts.body,
+                            color: colors.dark,
+                        }}
+                    >
+                        <GoogleIcon />
+                        Google
+                    </motion.button>
+                    <motion.button
+                        onClick={handleAppleSignIn}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        style={{
+                            flex: 1,
+                            padding: 14,
+                            borderRadius: 50,
+                            border: "2px solid #EEE",
+                            background: colors.white,
+                            fontSize: 15,
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: 8,
+                            fontFamily: fonts.body,
+                            color: colors.dark,
+                        }}
+                    >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>
+                        Apple
+                    </motion.button>
+                </div>
+
+                {/* Divider */}
+                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+                    <div style={{ flex: 1, height: 1, background: "#EEE" }} />
+                    <span style={{ fontSize: 12, color: colors.textMuted, fontFamily: fonts.body, textTransform: "uppercase" }}>Or use email</span>
+                    <div style={{ flex: 1, height: 1, background: "#EEE" }} />
+                </div>
+
                 {/* Sign In Tab */}
                 {tab === "signin" && (
                     <form onSubmit={handleSignIn} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -541,65 +605,6 @@ function AuthPopup({
                     </form>
                 )}
 
-                {/* Divider */}
-                <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "20px 0" }}>
-                    <div style={{ flex: 1, height: 1, background: "#EEE" }} />
-                    <span style={{ fontSize: 12, color: colors.textMuted, fontFamily: fonts.body, textTransform: "uppercase" }}>Or continue with</span>
-                    <div style={{ flex: 1, height: 1, background: "#EEE" }} />
-                </div>
-
-                {/* Google Sign In */}
-                <div style={{ display: "flex", gap: 12, width: "100%" }}>
-                    <motion.button
-                        onClick={handleGoogleSignIn}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        style={{
-                            flex: 1,
-                            padding: 14,
-                            borderRadius: 50,
-                            border: "2px solid #EEE",
-                            background: colors.white,
-                            fontSize: 15,
-                            fontWeight: 600,
-                            cursor: "pointer",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            gap: 8,
-                            fontFamily: fonts.body,
-                            color: colors.dark,
-                        }}
-                    >
-                        <GoogleIcon />
-                        Google
-                    </motion.button>
-                    <motion.button
-                        onClick={handleAppleSignIn}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        style={{
-                            flex: 1,
-                            padding: 14,
-                            borderRadius: 50,
-                            border: "2px solid #EEE",
-                            background: colors.white,
-                            fontSize: 15,
-                            fontWeight: 600,
-                            cursor: "pointer",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            gap: 8,
-                            fontFamily: fonts.body,
-                            color: colors.dark,
-                        }}
-                    >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>
-                        Apple
-                    </motion.button>
-                </div>
-
                 <p style={{ fontFamily: fonts.body, fontSize: 12, color: colors.textMuted, marginTop: 16, textAlign: "center" }}>
                     🔒 No spam. Unsubscribe anytime.
                 </p>
@@ -619,6 +624,7 @@ function PostSignupPage({
 }) {
     const { user, profile } = useAuth()
     const [checkoutLoading, setCheckoutLoading] = useState(false)
+    const isVip = profile?.isVip || false
 
     const handleVipCheckout = async () => {
         if (!user || !profile) {
@@ -682,17 +688,17 @@ function PostSignupPage({
             >
                 {/* Success Badge */}
                 <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 2, repeat: Infinity }} style={{ fontSize: 72, marginBottom: 24 }}>
-                    🎉
+                    {isVip ? '👑' : '🎉'}
                 </motion.div>
 
                 {/* Main Headline */}
                 <h1 style={{ fontFamily: fonts.heading, fontSize: "clamp(32px, 5vw, 48px)", fontWeight: 900, color: colors.white, marginBottom: 12, lineHeight: 1.2 }}>
-                    You're In! But Don't Leave Yet...
+                    {isVip ? "Welcome, VIP Member!" : "You're In! But Don't Leave Yet..."}
                 </h1>
 
                 {/* Sub-headline */}
                 <p style={{ fontFamily: fonts.heading, fontSize: "clamp(20px, 3vw, 28px)", fontWeight: 800, background: gradients.primary, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", marginBottom: 40 }}>
-                    Lock in 50% OFF before anyone else — for just $1
+                    {isVip ? "You're all set with exclusive VIP benefits" : "Lock in 50% OFF before anyone else — for just $1"}
                 </p>
 
                 {/* Benefits Card */}
@@ -703,7 +709,11 @@ function PostSignupPage({
                     style={{ background: "rgba(255,255,255,0.08)", backdropFilter: "blur(20px)", borderRadius: 28, padding: "40px 36px", marginBottom: 32, border: "1px solid rgba(255,255,255,0.1)", boxShadow: "0 25px 60px rgba(0,0,0,0.3)" }}
                 >
                     <p style={{ fontFamily: fonts.body, fontSize: 18, color: "rgba(255,255,255,0.9)", marginBottom: 28, lineHeight: 1.6 }}>
-                        As a <strong style={{ color: colors.neonGreen }}>VIP Member</strong>, you get exclusive perks that regular waitlist members don't:
+                        {isVip ? (
+                            <><strong style={{ color: colors.neonGreen }}>✅ You're a VIP Member!</strong> Here are your exclusive benefits:</>
+                        ) : (
+                            <>As a <strong style={{ color: colors.neonGreen }}>VIP Member</strong>, you get exclusive perks that regular waitlist members don't:</>
+                        )}
                     </p>
                     <div style={{ textAlign: "left" }}>
                         {[
@@ -724,25 +734,42 @@ function PostSignupPage({
                     </div>
                 </motion.div>
 
-                {/* Scarcity Alert */}
-                <motion.div animate={{ opacity: [0.7, 1, 0.7] }} transition={{ duration: 2, repeat: Infinity }} style={{ display: "inline-flex", alignItems: "center", gap: 10, background: "rgba(255,100,100,0.15)", padding: "12px 24px", borderRadius: 50, marginBottom: 32, border: "1px solid rgba(255,100,100,0.3)" }}>
-                    <span style={{ width: 10, height: 10, background: "#FF6B6B", borderRadius: "50%", animation: "pulse 1s infinite" }} />
-                    <span style={{ color: "#FF6B6B", fontWeight: 800, fontSize: 16 }}>Only {vipSpotsRemaining} VIP spots remaining at this price</span>
-                </motion.div>
+                {/* Scarcity Alert or VIP Status */}
+                {!isVip && (
+                    <motion.div animate={{ opacity: [0.7, 1, 0.7] }} transition={{ duration: 2, repeat: Infinity }} style={{ display: "inline-flex", alignItems: "center", gap: 10, background: "rgba(255,100,100,0.15)", padding: "12px 24px", borderRadius: 50, marginBottom: 32, border: "1px solid rgba(255,100,100,0.3)" }}>
+                        <span style={{ width: 10, height: 10, background: "#FF6B6B", borderRadius: "50%", animation: "pulse 1s infinite" }} />
+                        <span style={{ color: "#FF6B6B", fontWeight: 800, fontSize: 16 }}>Only {vipSpotsRemaining} VIP spots remaining at this price</span>
+                    </motion.div>
+                )}
 
-                {/* Main CTA Button */}
-                <motion.button onClick={handleVipCheckout} disabled={checkoutLoading} whileHover={{ scale: 1.03, boxShadow: "0 20px 60px rgba(4,218,141,0.4)" }} whileTap={{ scale: 0.98 }} style={{ display: "block", width: "100%", padding: "24px 48px", fontSize: 20, fontWeight: 900, background: checkoutLoading ? "rgba(255,255,255,0.2)" : gradients.primary, color: colors.white, borderRadius: 60, border: "none", cursor: checkoutLoading ? "wait" : "pointer", textAlign: "center", boxShadow: "0 15px 40px rgba(4,218,141,0.3)", marginBottom: 20 }}>
-                    {checkoutLoading ? "Redirecting to checkout..." : "YES! Lock In My 50% Discount ($1) →"}
-                </motion.button>
+                {isVip && (
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        style={{ display: "inline-flex", alignItems: "center", gap: 10, background: "rgba(4,218,141,0.15)", padding: "16px 32px", borderRadius: 50, marginBottom: 32, border: "2px solid rgba(4,218,141,0.4)" }}
+                    >
+                        <span style={{ fontSize: 24 }}>👑</span>
+                        <span style={{ color: colors.neonGreen, fontWeight: 800, fontSize: 18 }}>VIP Status Active</span>
+                    </motion.div>
+                )}
 
-                <p style={{ fontFamily: fonts.body, fontSize: 14, color: "rgba(255,255,255,0.7)", marginBottom: 32 }}>
-                    Just $1 today to reserve your spot. You'll pay the remaining $148 when we ship.
-                </p>
+                {/* Main CTA Button - Only show for non-VIP */}
+                {!isVip && (
+                    <>
+                        <motion.button onClick={handleVipCheckout} disabled={checkoutLoading} whileHover={{ scale: 1.03, boxShadow: "0 20px 60px rgba(4,218,141,0.4)" }} whileTap={{ scale: 0.98 }} style={{ display: "block", width: "100%", padding: "24px 48px", fontSize: 20, fontWeight: 900, background: checkoutLoading ? "rgba(255,255,255,0.2)" : gradients.primary, color: colors.white, borderRadius: 60, border: "none", cursor: checkoutLoading ? "wait" : "pointer", textAlign: "center", boxShadow: "0 15px 40px rgba(4,218,141,0.3)", marginBottom: 20 }}>
+                            {checkoutLoading ? "Redirecting to checkout..." : "YES! Lock In My 50% Discount ($1) →"}
+                        </motion.button>
 
-                {/* Skip link */}
-                <motion.button onClick={onSkip} whileHover={{ opacity: 0.8 }} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.4)", fontSize: 14, fontFamily: fonts.body, cursor: "pointer", textDecoration: "underline", marginBottom: 48 }}>
-                    No thanks, I'll take my chances with the regular waitlist →
-                </motion.button>
+                        <p style={{ fontFamily: fonts.body, fontSize: 14, color: "rgba(255,255,255,0.7)", marginBottom: 32 }}>
+                            Just $1 today to reserve your spot. You'll pay the remaining $148 when we ship.
+                        </p>
+
+                        {/* Skip link */}
+                        <motion.button onClick={onSkip} whileHover={{ opacity: 0.8 }} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.4)", fontSize: 14, fontFamily: fonts.body, cursor: "pointer", textDecoration: "underline", marginBottom: 48 }}>
+                            No thanks, I'll take my chances with the regular waitlist →
+                        </motion.button>
+                    </>
+                )}
 
                 {/* ========== REFERRAL SHARE & FOLLOW US ========== */}
                 <ReferralShareSection variant="dark" animationDelay={0.8} />
@@ -787,9 +814,8 @@ export default function PawMeLandingPage() {
     const { user, profile } = useAuth()
     const heroHeadline = "Your Pet Camera Sits Still. Your Pet Doesn't."
     const heroSubheadline = "Meet the AI companion that moves with them."
-    const ctaText = "GET EARLY ACCESS →"
+    const ctaText = "CLAIM Your VIP SPOT →"
     const totalWaitlist = "2,847"
-    const vipSpotsRemaining = "73"
     const headlineSize = 80
     const subheadlineSize = 22
     const portraitSize = 200
@@ -806,7 +832,25 @@ export default function PawMeLandingPage() {
     const [showPostSignup, setShowPostSignup] = useState(false)
     const [isMobile, setIsMobile] = useState(false)
     const [referralCodeFromUrl, setReferralCodeFromUrl] = useState<string | undefined>(undefined)
+    const [vipCount, setVipCount] = useState(0)
+    const vipSpotsRemaining = Math.max(0, TOTAL_VIP_SPOTS - vipCount).toString()
     const heroRef = useRef<HTMLDivElement>(null)
+    // Fetch VIP count from API (server-side to avoid permission issues)
+    useEffect(() => {
+        const fetchVipCount = async () => {
+            try {
+                const response = await fetch('/api/vip-count')
+                const data = await response.json()
+                if (data.success) {
+                    setVipCount(data.count)
+                }
+            } catch (error) {
+                console.error('Error fetching VIP count:', error)
+            }
+        }
+        fetchVipCount()
+    }, [])
+    
     // Detect referral code and payment status from URL
     useEffect(() => {
         if (typeof window !== "undefined") {

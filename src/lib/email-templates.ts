@@ -399,7 +399,7 @@ export const defaultTemplates: { [key: string]: EmailTemplate } = {
   vipDepositReceipt: {
     id: 'vipDepositReceipt',
     name: 'VIP Deposit Receipt',
-    subject: '👑 Thank You for Your VIP Deposit!',
+    subject: 'You\'re in. Welcome to the PawMe founding team.',
     html: `<!-- This is just the body content. The header and footer are added dynamically. -->
 <tr>
   <td style="padding: 40px;">
@@ -407,8 +407,12 @@ export const defaultTemplates: { [key: string]: EmailTemplate } = {
       Hi {{userName}},
     </p>
     
+    <p style="margin: 0 0 10px; color: #333333; font-size: 16px; line-height: 1.6;">
+      You just did something most pet parents won't do until it's too late — <strong>you moved first.</strong>
+    </p>
+    
     <p style="margin: 0 0 30px; color: #333333; font-size: 16px; line-height: 1.6;">
-      Thank you for becoming a PawMe VIP founding member! 🎉 Your deposit has been successfully received.
+      Welcome to the PawMe VIP founding team. Your $1 deposit is confirmed and your spot is locked.
     </p>
     
     <!-- Receipt Box -->
@@ -421,7 +425,7 @@ export const defaultTemplates: { [key: string]: EmailTemplate } = {
           <table role="presentation" style="width: 100%;">
             <tr>
               <td style="padding: 10px 0; border-bottom: 1px solid #e5e5e5;">
-                <p style="margin: 0; color: #666666; font-size: 14px;">Deposit Amount:</p>
+                <p style="margin: 0; color: #666666; font-size: 14px;">Deposit Amount</p>
               </td>
               <td style="padding: 10px 0; border-bottom: 1px solid #e5e5e5; text-align: right;">
                 <p style="margin: 0; color: #333333; font-size: 16px; font-weight: 600;">{{amount}}</p>
@@ -429,18 +433,26 @@ export const defaultTemplates: { [key: string]: EmailTemplate } = {
             </tr>
             <tr>
               <td style="padding: 10px 0; border-bottom: 1px solid #e5e5e5;">
-                <p style="margin: 0; color: #666666; font-size: 14px;">Status:</p>
+                <p style="margin: 0; color: #666666; font-size: 14px;">Status</p>
               </td>
               <td style="padding: 10px 0; border-bottom: 1px solid #e5e5e5; text-align: right;">
                 <p style="margin: 0; color: #22c55e; font-size: 14px; font-weight: 600;">✓ Confirmed</p>
               </td>
             </tr>
             <tr>
+              <td style="padding: 10px 0; border-bottom: 1px solid #e5e5e5;">
+                <p style="margin: 0; color: #666666; font-size: 14px;">VIP Price Locked</p>
+              </td>
+              <td style="padding: 10px 0; border-bottom: 1px solid #e5e5e5; text-align: right;">
+                <p style="margin: 0; color: #7678EE; font-size: 14px; font-weight: 600;">$149 <span style="color: #999; text-decoration: line-through;">$299</span></p>
+              </td>
+            </tr>
+            <tr>
               <td style="padding: 10px 0;">
-                <p style="margin: 0; color: #666666; font-size: 14px;">Refundable:</p>
+                <p style="margin: 0; color: #666666; font-size: 14px;">Refundable</p>
               </td>
               <td style="padding: 10px 0; text-align: right;">
-                <p style="margin: 0; color: #333333; font-size: 14px; font-weight: 600;">Yes, until Kickstarter launch</p>
+                <p style="margin: 0; color: #333333; font-size: 14px; font-weight: 600;">Yes, anytime before launch</p>
               </td>
             </tr>
           </table>
@@ -448,29 +460,86 @@ export const defaultTemplates: { [key: string]: EmailTemplate } = {
       </tr>
     </table>
     
-    <!-- Benefits Section -->
+    <!-- What Happens Next -->
+    <h3 style="margin: 0 0 20px; color: #333333; font-size: 18px; font-weight: 700;">What happens next:</h3>
     <table role="presentation" style="width: 100%; margin-bottom: 30px;">
       <tr>
         <td style="background-color: #f8f8fc; border-radius: 8px; padding: 25px;">
-          <h3 style="margin: 0 0 20px; color: #333333; font-size: 18px; font-weight: 700;">Your VIP Benefits:</h3>
-          <ul style="margin: 0; padding-left: 20px; color: #666666; font-size: 14px; line-height: 2;">
-            <li><strong style="color: #7678EE;">1.5x Points</strong> on all referrals, forever</li>
-            <li><strong style="color: #7678EE;">Exclusive Discounts</strong> on our Kickstarter launch</li>
-            <li><strong style="color: #7678EE;">Guaranteed Early Bird</strong> access to the best deals</li>
-            <li><strong style="color: #7678EE;">Founding Member Badge</strong> on your profile</li>
-          </ul>
+          <table role="presentation" style="width: 100%;">
+            <tr>
+              <td style="padding: 0 0 15px 0; vertical-align: top; width: 30px;">
+                <span style="display: inline-block; width: 24px; height: 24px; background-color: #7678EE; color: #ffffff; border-radius: 50%; text-align: center; line-height: 24px; font-size: 14px; font-weight: 700;">1</span>
+              </td>
+              <td style="padding: 0 0 15px 10px;">
+                <p style="margin: 0; color: #333333; font-size: 15px; line-height: 1.5;"><strong>Before launch</strong> — You'll get exclusive updates and early access to everything.</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding: 0 0 15px 0; vertical-align: top; width: 30px;">
+                <span style="display: inline-block; width: 24px; height: 24px; background-color: #7678EE; color: #ffffff; border-radius: 50%; text-align: center; line-height: 24px; font-size: 14px; font-weight: 700;">2</span>
+              </td>
+              <td style="padding: 0 0 15px 10px;">
+                <p style="margin: 0; color: #333333; font-size: 15px; line-height: 1.5;"><strong>Launch day</strong> — You'll be first in line at $149 (everyone else pays $299). We'll email you the purchase link before anyone else.</p>
+              </td>
+            </tr>
+          </table>
         </td>
       </tr>
     </table>
     
-    <!-- Share With Friends Section -->
+    <!-- What is PawMe -->
+    <h3 style="margin: 0 0 15px; color: #333333; font-size: 18px; font-weight: 700;">What is PawMe?</h3>
+    <p style="margin: 0 0 30px; color: #666666; font-size: 15px; line-height: 1.6;">
+      PawMe is an AI-powered robot companion that plays with your pet while you're away. It moves room to room, learns their personality, dispenses treats, and has a built-in camera — so they're never bored and you're never worried.
+    </p>
+    <p style="margin: 0 0 30px; color: #333333; font-size: 15px; line-height: 1.6; font-weight: 600;">
+      One device. No monthly fees. No strangers in your home.
+    </p>
+    
+    <!-- VIP Benefits -->
+    <h3 style="margin: 0 0 20px; color: #333333; font-size: 18px; font-weight: 700;">Your VIP Benefits:</h3>
+    <table role="presentation" style="width: 100%; margin-bottom: 30px;">
+      <tr>
+        <td style="background-color: #f8f8fc; border-radius: 8px; padding: 25px;">
+          <table role="presentation" style="width: 100%;">
+            <tr>
+              <td style="padding: 0 0 12px 0;">
+                <p style="margin: 0; color: #333333; font-size: 15px; line-height: 1.6;">💰 <strong>$150 saved</strong> — Locked at $149 instead of $299 retail</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding: 0 0 12px 0;">
+                <p style="margin: 0; color: #333333; font-size: 15px; line-height: 1.6;">⭐ <strong>1.5x referral points</strong> — Every friend you refer earns you 1.5x the points on the leaderboard</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding: 0 0 12px 0;">
+                <p style="margin: 0; color: #333333; font-size: 15px; line-height: 1.6;">👑 <strong>Founding Member badge</strong> — Permanent badge on your PawMe profile</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding: 0;">
+                <p style="margin: 0; color: #333333; font-size: 15px; line-height: 1.6;">🚀 <strong>Early bird access</strong> — First to order before public launch</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+    
+    <!-- Referral Section -->
+    <h3 style="margin: 0 0 15px; color: #333333; font-size: 18px; font-weight: 700;">One more thing.</h3>
+    <p style="margin: 0 0 20px; color: #333333; font-size: 15px; line-height: 1.6;">
+      Every VIP member gets a unique referral link. Share it, climb the leaderboard, and unlock bonus rewards.
+    </p>
+    <p style="margin: 0 0 25px; color: #666666; font-size: 15px; line-height: 1.6;">
+      The top referrers get something special at launch. We'll reveal what soon.
+    </p>
+    
     <table role="presentation" style="width: 100%; margin-bottom: 30px;">
       <tr>
         <td style="background: linear-gradient(135deg, #04DA8D10 0%, #0085FF10 100%); border: 1px solid #04DA8D30; border-radius: 8px; padding: 25px; text-align: center;">
-          <h3 style="margin: 0 0 10px; color: #333333; font-size: 18px; font-weight: 700;">🎉 Share the Love!</h3>
-          <p style="margin: 0 0 20px; color: #666666; font-size: 14px; line-height: 1.6;">
-            Know someone who'd love PawMe? Share your referral link and earn <strong style="color: #7678EE;">1.5x VIP bonus points</strong> for every friend who joins!
-          </p>
+          <p style="margin: 0 0 15px; color: #666666; font-size: 14px;">Your Unique Referral Link</p>
           <table role="presentation" style="width: 100%; margin-bottom: 15px;">
             <tr>
               <td style="background-color: #ffffff; border: 1px solid #e5e5e5; border-radius: 6px; padding: 12px 16px; text-align: center;">
@@ -479,17 +548,13 @@ export const defaultTemplates: { [key: string]: EmailTemplate } = {
             </tr>
           </table>
           <div>
-            <a href="https://twitter.com/intent/tweet?text=I%20just%20became%20a%20PawMe%20VIP%20founding%20member!%20%F0%9F%90%BE%20PawMe%20is%20an%20AI%20companion%20robot%20for%20pets.%20Join%20with%20my%20link%20for%20bonus%20points!&url={{referralLink}}" target="_blank" style="display: inline-block; margin: 4px; padding: 8px 16px; background-color: #1DA1F2; color: #ffffff; text-decoration: none; border-radius: 4px; font-size: 13px; font-weight: 600;">Share on X</a>
+            <a href="https://twitter.com/intent/tweet?text=I%20just%20became%20a%20PawMe%20VIP%20founding%20member!%20%F0%9F%90%BE%20Join%20me%20and%20lock%20in%2050%25%20off!&url={{referralLink}}" target="_blank" style="display: inline-block; margin: 4px; padding: 8px 16px; background-color: #1DA1F2; color: #ffffff; text-decoration: none; border-radius: 4px; font-size: 13px; font-weight: 600;">Share on X</a>
             <a href="https://www.facebook.com/sharer/sharer.php?u={{referralLink}}" target="_blank" style="display: inline-block; margin: 4px; padding: 8px 16px; background-color: #1877F2; color: #ffffff; text-decoration: none; border-radius: 4px; font-size: 13px; font-weight: 600;">Share on Facebook</a>
-            <a href="https://api.whatsapp.com/send?text=I%20just%20became%20a%20PawMe%20VIP%20founding%20member!%20%F0%9F%90%BE%20Join%20with%20my%20link%20for%20bonus%20points!%20{{referralLink}}" target="_blank" style="display: inline-block; margin: 4px; padding: 8px 16px; background-color: #25D366; color: #ffffff; text-decoration: none; border-radius: 4px; font-size: 13px; font-weight: 600;">Share on WhatsApp</a>
+            <a href="https://api.whatsapp.com/send?text=I%20just%20became%20a%20PawMe%20VIP%20founding%20member!%20%F0%9F%90%BE%20Join%20me%20and%20lock%20in%2050%25%20off!%20{{referralLink}}" target="_blank" style="display: inline-block; margin: 4px; padding: 8px 16px; background-color: #25D366; color: #ffffff; text-decoration: none; border-radius: 4px; font-size: 13px; font-weight: 600;">Share on WhatsApp</a>
           </div>
         </td>
       </tr>
     </table>
-
-    <p style="margin: 0 0 30px; color: #333333; font-size: 16px; line-height: 1.6;">
-      Start sharing your referral link now to maximize your points and climb the leaderboard!
-    </p>
     
     <!-- CTA Button -->
     <table role="presentation" style="width: 100%; text-align: center; margin-bottom: 30px;">
@@ -500,8 +565,14 @@ export const defaultTemplates: { [key: string]: EmailTemplate } = {
       </tr>
     </table>
     
-    <p style="margin: 0; color: #666666; font-size: 14px; line-height: 1.6;">
-      If you have any questions about your VIP membership or need to request a refund, please don't hesitate to contact us.
+    <!-- Closing -->
+    <p style="margin: 0 0 10px; color: #333333; font-size: 15px; line-height: 1.6;">
+      Talk soon,<br>
+      <strong>The PawMe Team</strong>
+    </p>
+    
+    <p style="margin: 30px 0 0; color: #666666; font-size: 14px; line-height: 1.6; font-style: italic; border-left: 3px solid #7678EE; padding-left: 15px;">
+      <strong>P.S.</strong> — You're one of the earliest founding members. That matters to us. When PawMe ships, you'll know you were here from day one.
     </p>
   </td>
 </tr>`,
