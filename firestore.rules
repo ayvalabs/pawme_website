@@ -81,5 +81,58 @@ service cloud.firestore {
       // Only admin can create, update, or delete app settings
       allow write: if isAdmin();
     }
+
+    // ============================================
+    // SHOP COLLECTIONS (for PawMe Shop)
+    // ============================================
+    
+    // Helper function to check if user is shop admin
+    function isShopAdmin() {
+      return request.auth != null && 
+             exists(/databases/$(database)/documents/shopUsers/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/shopUsers/$(request.auth.uid)).data.isAdmin == true;
+    }
+
+    // Rules for the 'shopUsers' collection
+    match /shopUsers/{userId} {
+      // Users can read their own data, admins can read all
+      allow read: if request.auth != null && 
+                     (request.auth.uid == userId || isShopAdmin());
+      
+      // Users can create their own document
+      allow create: if request.auth != null && request.auth.uid == userId;
+      
+      // Users can update their own data, admins can update any
+      allow update: if request.auth != null && 
+                       (request.auth.uid == userId || isShopAdmin());
+      
+      // Only admins can delete users
+      allow delete: if isShopAdmin();
+    }
+
+    // Rules for the 'shopProducts' collection
+    match /shopProducts/{productId} {
+      // Anyone can read products (for public shop)
+      allow read: if true;
+      
+      // Only shop admins can create, update, or delete products
+      allow create, update, delete: if isShopAdmin();
+    }
+
+    // Rules for the 'shopOrders' collection
+    match /shopOrders/{orderId} {
+      // Users can read their own orders, admins can read all
+      allow read: if request.auth != null && 
+                     (resource.data.userId == request.auth.uid || isShopAdmin());
+      
+      // Authenticated users can create orders
+      allow create: if request.auth != null;
+      
+      // Only admins can update orders (status, tracking, etc.)
+      allow update: if isShopAdmin();
+      
+      // Only admins can delete orders
+      allow delete: if isShopAdmin();
+    }
   }
 }

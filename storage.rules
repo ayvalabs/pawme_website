@@ -9,11 +9,23 @@ service firebase.storage {
               request.auth.token.email == 'pawme@ayvalabs.com');
     }
 
+    // Helper function to check if user is shop admin
+    function isShopAdmin() {
+      return request.auth != null && 
+             request.auth.token.email == 'pawme+admin@ayvalabs.com';
+    }
+
     // Public read access for reward images
     match /rewards/{allPaths=**} {
       allow read;
       // Allow write only for admin users
       allow write: if isAdmin();
+    }
+
+    // Product images - public read, shop admin write
+    match /products/{allPaths=**} {
+      allow read: if true; // Anyone can read product images
+      allow write: if isShopAdmin(); // Only shop admin can upload product images
     }
   }
 }
