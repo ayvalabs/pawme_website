@@ -886,6 +886,14 @@ export default function PawMeLandingPage() {
             }
         }
     }, [user])
+    
+    // Detect #welcome hash on mount for VIP users
+    useEffect(() => {
+        if (typeof window === "undefined") return
+        if (window.location.hash === "#welcome" && user && profile?.isVip) {
+            setShowPostSignup(true)
+        }
+    }, [user, profile])
     // Handle successful auth - show post-signup page
     const handleAuthSuccess = () => {
         setPopupOpen(false)
