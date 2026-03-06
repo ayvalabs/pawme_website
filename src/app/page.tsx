@@ -774,6 +774,25 @@ function PostSignupPage({
                 {/* ========== REFERRAL SHARE & FOLLOW US ========== */}
                 <ReferralShareSection variant="dark" animationDelay={0.8} />
 
+                {/* Email Check Reminder */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.9 }}
+                    style={{
+                        marginTop: 40,
+                        padding: "20px 28px",
+                        background: "rgba(4, 218, 141, 0.12)",
+                        borderRadius: 16,
+                        border: "1px solid rgba(4, 218, 141, 0.25)",
+                        textAlign: "center",
+                    }}
+                >
+                    <p style={{ fontFamily: fonts.body, fontSize: 14, color: "rgba(255,255,255,0.85)", lineHeight: 1.6, margin: 0 }}>
+                        📧 Check your inbox for our email! If you don't see it, check your <strong style={{ color: colors.neonGreen }}>Promotions</strong> or <strong style={{ color: colors.neonGreen }}>Spam</strong> folder and move it to your Primary inbox so you don't miss future updates.
+                    </p>
+                </motion.div>
+
                 {/* Trust badges */}
                 <div style={{ display: "flex", justifyContent: "center", gap: 24, marginTop: 40, flexWrap: "wrap" }}>
                     {["🔒 Secure Payment", "💳 Stripe Powered", "↩️ 100% Refundable"].map((badge, i) => (

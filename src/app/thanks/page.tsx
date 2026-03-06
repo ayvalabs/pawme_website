@@ -429,12 +429,39 @@ export default function ThankYouPage() {
                 </motion.div>
                 {/* Referral Share & Follow Us */}
                 <ReferralShareSection variant="light" animationDelay={1.2} />
+                
+                {/* Email Check Reminder */}
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 1.3 }}
+                    style={{
+                        textAlign: "center",
+                        marginTop: isMobile ? 32 : 40,
+                        padding: isMobile ? "16px 20px" : "20px 32px",
+                        background: "rgba(4, 218, 141, 0.08)",
+                        borderRadius: 16,
+                        border: "1px solid rgba(4, 218, 141, 0.2)",
+                    }}
+                >
+                    <p
+                        style={{
+                            fontSize: isMobile ? 13 : 14,
+                            color: colors.textMuted,
+                            lineHeight: 1.6,
+                            margin: 0,
+                        }}
+                    >
+                        📧 Check your inbox for our email! If you don't see it, check your <strong>Promotions</strong> or <strong>Spam</strong> folder and move it to your Primary inbox so you don't miss future updates.
+                    </p>
+                </motion.div>
+
                 {/* Footer Message */}
                 <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 1.4 }}
-                    style={{ textAlign: "center" }}
+                    style={{ textAlign: "center", marginTop: isMobile ? 32 : 40 }}
                 >
                     <p
                         style={{
