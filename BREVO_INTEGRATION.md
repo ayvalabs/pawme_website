@@ -8,11 +8,11 @@ PawMe automatically syncs all new signups and VIP conversions to Brevo for email
 ### Environment Variables
 Add to `.env.local`:
 ```
-BREVO_API_KEY=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
+BREVO_API_KEY=your_brevo_api_key_here
 ```
 
 ### Brevo Settings
-- **API Key**: `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`
+- **API Key**: Get from Brevo dashboard (Settings > API & Forms > API Keys)
 - **List ID**: `3`
 - **List Name**: PawMe VIP Campaign
 - **Sender Email**: pawme@ayvalabs.com
