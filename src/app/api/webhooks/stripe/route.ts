@@ -44,6 +44,24 @@ export async function POST(request: NextRequest) {
             stripePaymentIntentId: session.payment_intent,
           });
 
+          // Sync VIP status to Brevo
+          if (userEmail) {
+            try {
+              const { syncContactToBrevo } = await import('@/lib/brevo');
+              const userDoc = await adminDb.collection('users').doc(userId).get();
+              await syncContactToBrevo({
+                email: userEmail,
+                name: userName || 'VIP Member',
+                isVip: true,
+                signupDate: userDoc.data()?.createdAt?.split('T')[0] || new Date().toISOString().split('T')[0],
+                source: 'pawme-website',
+              });
+              console.log('✅ VIP status synced to Brevo');
+            } catch (brevoErr) {
+              console.error('⚠️ Brevo sync failed:', brevoErr);
+            }
+          }
+
           // Send VIP receipt email
           if (userEmail) {
             await sendVipDepositReceiptEmail({

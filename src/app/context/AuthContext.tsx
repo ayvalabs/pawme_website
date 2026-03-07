@@ -261,6 +261,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       await setDoc(doc(db, 'users', newUser.uid), userProfile);
       
+      // Sync new contact to Brevo
+      try {
+        await fetch('/api/brevo-sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: newUser.email,
+            name: name,
+            isVip: false,
+            signupDate: new Date().toISOString().split('T')[0],
+            source: 'pawme-website',
+          }),
+        });
+        console.log('✅ [SIGNUP] Contact synced to Brevo');
+      } catch (error) {
+        console.error('❌ [SIGNUP] Failed to sync to Brevo:', error);
+        // Don't fail signup if Brevo sync fails
+      }
+      
       await deleteDoc(verificationDoc.ref);
       
       if (referredByCode) {
@@ -389,6 +408,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       };
       await setDoc(userDocRef, userProfile);
       setProfile(userProfile);
+      
+      // Sync new Google OAuth user to Brevo
+      try {
+        await fetch('/api/brevo-sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: user.email,
+            name: user.displayName || user.email!.split('@')[0],
+            isVip: false,
+            signupDate: new Date().toISOString().split('T')[0],
+            source: 'pawme-website-google',
+          }),
+        });
+        console.log('✅ [GOOGLE SIGNUP] Contact synced to Brevo');
+      } catch (error) {
+        console.error('❌ [GOOGLE SIGNUP] Failed to sync to Brevo:', error);
+      }
     }
     
     // Check if user is an admin
@@ -437,6 +474,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       };
       await setDoc(userDocRef, userProfile);
       setProfile(userProfile);
+      
+      // Sync new Apple OAuth user to Brevo
+      try {
+        await fetch('/api/brevo-sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: user.email || '',
+            name: user.displayName || user.email?.split('@')[0] || 'Apple User',
+            isVip: false,
+            signupDate: new Date().toISOString().split('T')[0],
+            source: 'pawme-website-apple',
+          }),
+        });
+        console.log('✅ [APPLE SIGNUP] Contact synced to Brevo');
+      } catch (error) {
+        console.error('❌ [APPLE SIGNUP] Failed to sync to Brevo:', error);
+      }
     }
 
     // Check if user is an admin

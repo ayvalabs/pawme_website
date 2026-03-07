@@ -144,6 +144,23 @@ export async function verifyVipPayment(sessionId: string) {
             });
             console.log('✅ User VIP status updated in Firestore (via verify fallback)');
 
+            // Sync VIP status to Brevo
+            if (userEmail) {
+              try {
+                const { syncContactToBrevo } = await import('@/lib/brevo');
+                await syncContactToBrevo({
+                  email: userEmail,
+                  name: userName || 'VIP Member',
+                  isVip: true,
+                  signupDate: userDoc.data()?.createdAt?.split('T')[0] || new Date().toISOString().split('T')[0],
+                  source: 'pawme-website',
+                });
+                console.log('✅ VIP status synced to Brevo');
+              } catch (brevoErr) {
+                console.error('⚠️ Brevo sync failed:', brevoErr);
+              }
+            }
+
             // Send receipt email if not already sent by webhook
             if (userEmail) {
               try {
