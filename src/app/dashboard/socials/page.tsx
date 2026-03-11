@@ -304,14 +304,15 @@ function SocialsDashboardContent() {
     }
   };
 
-  const getSignupChartData = (period: 'daily' | 'weekly' | 'monthly') => {
+  const getSignupChartData = (period: 'daily' | 'weekly' | 'monthly' | 'quarterly') => {
     if (!signups.length) return [];
 
     const now = new Date();
     let days = 30;
-    if (period === 'daily') days = 7;
-    if (period === 'weekly') days = 28;
-    if (period === 'monthly') days = 90;
+    if (period === 'daily') days = 30; // Extended from 7 to 30 days
+    if (period === 'weekly') days = 56; // Extended from 28 to 56 days (8 weeks)
+    if (period === 'monthly') days = 180; // Extended from 90 to 180 days (6 months)
+    if (period === 'quarterly') days = 365; // New quarterly view (1 year)
 
     const dateRange = eachDayOfInterval({
       start: subDays(now, days),
@@ -326,29 +327,42 @@ function SocialsDashboardContent() {
       return acc;
     }, {} as Record<string, number>);
 
+    const vipsByDate = signups.reduce((acc, signup) => {
+      if (signup.createdAt && signup.isVip) {
+        const date = format(startOfDay(parseISO(signup.createdAt)), 'yyyy-MM-dd');
+        acc[date] = (acc[date] || 0) + 1;
+      }
+      return acc;
+    }, {} as Record<string, number>);
+
     if (period === 'daily') {
       return dateRange.map(date => ({
         date: format(date, 'MMM dd'),
         signups: signupsByDate[format(date, 'yyyy-MM-dd')] || 0,
+        vips: vipsByDate[format(date, 'yyyy-MM-dd')] || 0,
       }));
     }
 
     if (period === 'weekly') {
-      const weeks: { date: string; signups: number }[] = [];
+      const weeks: { date: string; signups: number; vips: number }[] = [];
       for (let i = 0; i < dateRange.length; i += 7) {
         const weekDates = dateRange.slice(i, i + 7);
         const weekSignups = weekDates.reduce((sum, date) => {
           return sum + (signupsByDate[format(date, 'yyyy-MM-dd')] || 0);
         }, 0);
+        const weekVips = weekDates.reduce((sum, date) => {
+          return sum + (vipsByDate[format(date, 'yyyy-MM-dd')] || 0);
+        }, 0);
         weeks.push({
           date: `Week ${Math.floor(i / 7) + 1}`,
           signups: weekSignups,
+          vips: weekVips,
         });
       }
       return weeks;
     }
 
-    const months: { date: string; signups: number }[] = [];
+    const months: { date: string; signups: number; vips: number }[] = [];
     const monthGroups = dateRange.reduce((acc, date) => {
       const month = format(date, 'MMM yyyy');
       if (!acc[month]) acc[month] = [];
@@ -360,13 +374,16 @@ function SocialsDashboardContent() {
       const monthSignups = dates.reduce((sum, date) => {
         return sum + (signupsByDate[format(date, 'yyyy-MM-dd')] || 0);
       }, 0);
-      months.push({ date: month, signups: monthSignups });
+      const monthVips = dates.reduce((sum, date) => {
+        return sum + (vipsByDate[format(date, 'yyyy-MM-dd')] || 0);
+      }, 0);
+      months.push({ date: month, signups: monthSignups, vips: monthVips });
     });
 
     return months;
   };
 
-  const [chartPeriod, setChartPeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily');
+  const [chartPeriod, setChartPeriod] = useState<'daily' | 'weekly' | 'monthly' | 'quarterly'>('daily');
   const [videoSortField, setVideoSortField] = useState<'views' | 'likes' | 'comments'>('views');
   const [videoSortOrder, setVideoSortOrder] = useState<'asc' | 'desc'>('desc');
 
@@ -600,8 +617,8 @@ function SocialsDashboardContent() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle>Signup Trends</CardTitle>
-                    <CardDescription>Track user registrations over time</CardDescription>
+                    <CardTitle>Signup & VIP Trends</CardTitle>
+                    <CardDescription>Track user registrations and VIP conversions over time</CardDescription>
                   </div>
                 <div className="flex gap-2">
                   <button
@@ -610,7 +627,7 @@ function SocialsDashboardContent() {
                       chartPeriod === 'daily' ? 'bg-primary text-primary-foreground' : 'bg-secondary'
                     }`}
                   >
-                    Daily
+                    30 Days
                   </button>
                   <button
                     onClick={() => setChartPeriod('weekly')}
@@ -618,7 +635,7 @@ function SocialsDashboardContent() {
                       chartPeriod === 'weekly' ? 'bg-primary text-primary-foreground' : 'bg-secondary'
                     }`}
                   >
-                    Weekly
+                    8 Weeks
                   </button>
                   <button
                     onClick={() => setChartPeriod('monthly')}
@@ -626,7 +643,15 @@ function SocialsDashboardContent() {
                       chartPeriod === 'monthly' ? 'bg-primary text-primary-foreground' : 'bg-secondary'
                     }`}
                   >
-                    Monthly
+                    6 Months
+                  </button>
+                  <button
+                    onClick={() => setChartPeriod('quarterly')}
+                    className={`px-3 py-1 text-sm rounded ${
+                      chartPeriod === 'quarterly' ? 'bg-primary text-primary-foreground' : 'bg-secondary'
+                    }`}
+                  >
+                    1 Year
                   </button>
                 </div>
               </div>
@@ -639,7 +664,8 @@ function SocialsDashboardContent() {
                   <YAxis />
                   <Tooltip />
                   <Legend />
-                  <Line type="monotone" dataKey="signups" stroke="#8884d8" strokeWidth={2} />
+                  <Line type="monotone" dataKey="signups" stroke="#8884d8" strokeWidth={2} name="Total Signups" />
+                  <Line type="monotone" dataKey="vips" stroke="#f59e0b" strokeWidth={2} name="VIP Signups" />
                 </LineChart>
               </ResponsiveContainer>
             </CardContent>
