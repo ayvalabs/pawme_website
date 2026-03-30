@@ -130,38 +130,71 @@ function formatTweetDate(dateStr: string): string {
   }
 }
 
+/** Get the thumbnail URL for a video at a given media index */
+function getVideoThumbnailUrl(
+  mediaIdx: number,
+  mediaTypes: ('image' | 'video')[],
+  videoThumbnailUrls?: string[]
+): string | undefined {
+  if (!videoThumbnailUrls || videoThumbnailUrls.length === 0) return undefined;
+  let videoIdx = 0;
+  for (let i = 0; i < mediaIdx; i++) {
+    if (mediaTypes?.[i] === 'video') videoIdx++;
+  }
+  return videoThumbnailUrls[videoIdx] || undefined;
+}
+
+/** Render a single media item (image or video with optional thumbnail) */
+function MediaItem({
+  url,
+  isVideo,
+  thumbnail,
+  className,
+}: {
+  url: string;
+  isVideo: boolean;
+  thumbnail?: string;
+  className: string;
+}) {
+  if (isVideo) {
+    return (
+      <div className="relative w-full h-full">
+        {thumbnail ? (
+          <img src={thumbnail} alt="Video thumbnail" className={className} loading="lazy" />
+        ) : (
+          <video src={url} className={`${className} bg-black`} preload="metadata" />
+        )}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className="bg-black/60 rounded-full p-3">
+            <Play className="w-6 h-6 text-white fill-white" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+  return <img src={url} alt="Post media" className={className} loading="lazy" />;
+}
+
 /** Media grid component - mimics X's media layout */
-function MediaGrid({ mediaUrls, mediaTypes }: { mediaUrls: string[]; mediaTypes: ('image' | 'video')[] }) {
+function MediaGrid({
+  mediaUrls,
+  mediaTypes,
+  videoThumbnailUrls,
+}: {
+  mediaUrls: string[];
+  mediaTypes: ('image' | 'video')[];
+  videoThumbnailUrls?: string[];
+}) {
   if (!mediaUrls || mediaUrls.length === 0) return null;
 
   const count = mediaUrls.length;
 
   if (count === 1) {
     const isVideo = mediaTypes?.[0] === 'video';
+    const thumb = getVideoThumbnailUrl(0, mediaTypes, videoThumbnailUrls);
     return (
       <div className="mt-3 rounded-2xl overflow-hidden border border-gray-200">
-        {isVideo ? (
-          <div className="relative">
-            <video
-              src={mediaUrls[0]}
-              className="w-full max-h-[400px] object-cover bg-black"
-              controls
-              preload="metadata"
-            />
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="bg-black/60 rounded-full p-3">
-                <Play className="w-6 h-6 text-white fill-white" />
-              </div>
-            </div>
-          </div>
-        ) : (
-          <img
-            src={mediaUrls[0]}
-            alt="Post media"
-            className="w-full max-h-[400px] object-cover"
-            loading="lazy"
-          />
-        )}
+        <MediaItem url={mediaUrls[0]} isVideo={isVideo} thumbnail={thumb} className="w-full max-h-[400px] object-cover" />
       </div>
     );
   }
@@ -171,13 +204,10 @@ function MediaGrid({ mediaUrls, mediaTypes }: { mediaUrls: string[]; mediaTypes:
       <div className="mt-3 rounded-2xl overflow-hidden border border-gray-200 grid grid-cols-2 gap-0.5">
         {mediaUrls.slice(0, 2).map((url, idx) => {
           const isVideo = mediaTypes?.[idx] === 'video';
+          const thumb = getVideoThumbnailUrl(idx, mediaTypes, videoThumbnailUrls);
           return (
             <div key={idx} className="relative aspect-square">
-              {isVideo ? (
-                <video src={url} className="w-full h-full object-cover bg-black" controls preload="metadata" />
-              ) : (
-                <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" />
-              )}
+              <MediaItem url={url} isVideo={isVideo} thumbnail={thumb} className="w-full h-full object-cover" />
             </div>
           );
         })}
@@ -189,22 +219,20 @@ function MediaGrid({ mediaUrls, mediaTypes }: { mediaUrls: string[]; mediaTypes:
     return (
       <div className="mt-3 rounded-2xl overflow-hidden border border-gray-200 grid grid-cols-2 gap-0.5" style={{ height: '300px' }}>
         <div className="row-span-2 relative">
-          {mediaTypes?.[0] === 'video' ? (
-            <video src={mediaUrls[0]} className="w-full h-full object-cover bg-black" controls preload="metadata" />
-          ) : (
-            <img src={mediaUrls[0]} alt="" className="w-full h-full object-cover" loading="lazy" />
-          )}
+          <MediaItem
+            url={mediaUrls[0]}
+            isVideo={mediaTypes?.[0] === 'video'}
+            thumbnail={getVideoThumbnailUrl(0, mediaTypes, videoThumbnailUrls)}
+            className="w-full h-full object-cover"
+          />
         </div>
         {mediaUrls.slice(1, 3).map((url, idx) => {
           const realIdx = idx + 1;
           const isVideo = mediaTypes?.[realIdx] === 'video';
+          const thumb = getVideoThumbnailUrl(realIdx, mediaTypes, videoThumbnailUrls);
           return (
             <div key={idx} className="relative">
-              {isVideo ? (
-                <video src={url} className="w-full h-full object-cover bg-black" controls preload="metadata" />
-              ) : (
-                <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" />
-              )}
+              <MediaItem url={url} isVideo={isVideo} thumbnail={thumb} className="w-full h-full object-cover" />
             </div>
           );
         })}
@@ -217,13 +245,10 @@ function MediaGrid({ mediaUrls, mediaTypes }: { mediaUrls: string[]; mediaTypes:
     <div className="mt-3 rounded-2xl overflow-hidden border border-gray-200 grid grid-cols-2 gap-0.5" style={{ height: '300px' }}>
       {mediaUrls.slice(0, 4).map((url, idx) => {
         const isVideo = mediaTypes?.[idx] === 'video';
+        const thumb = getVideoThumbnailUrl(idx, mediaTypes, videoThumbnailUrls);
         return (
           <div key={idx} className="relative">
-            {isVideo ? (
-              <video src={url} className="w-full h-full object-cover bg-black" controls preload="metadata" />
-            ) : (
-              <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" />
-            )}
+            <MediaItem url={url} isVideo={isVideo} thumbnail={thumb} className="w-full h-full object-cover" />
             {idx === 3 && count > 4 && (
               <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                 <span className="text-white text-2xl font-bold">+{count - 4}</span>
@@ -325,7 +350,7 @@ function PreviewTweetCard({ post }: { post: ScheduledPost }) {
 
             {/* Media — shown on main tweet (above thread) */}
             {hasMedia ? (
-              <MediaGrid mediaUrls={post.mediaUrls} mediaTypes={post.mediaTypes} />
+              <MediaGrid mediaUrls={post.mediaUrls} mediaTypes={post.mediaTypes} videoThumbnailUrls={post.videoThumbnailUrls} />
             ) : hasFilePaths ? (
               <MediaPlaceholder filePaths={post.mediaFilePaths} mediaTypes={post.mediaTypes} />
             ) : null}
