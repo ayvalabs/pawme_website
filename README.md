@@ -22,3 +22,5 @@ Facebook
 facebook.com/pawmeai
 
 Added the content calender
+
+Upgraded to vercel pro
