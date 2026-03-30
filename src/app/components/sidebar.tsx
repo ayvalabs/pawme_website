@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BarChart3, Gift, Radio, FileText, Settings, LogOut, User } from 'lucide-react';
+import { BarChart3, Gift, Radio, FileText, Settings, LogOut, User, PenSquare } from 'lucide-react';
 import { ThemeAwareLogo } from '@/app/components/theme-aware-logo';
 import { useAuth } from '@/app/context/AuthContext';
 import { Button } from '@/app/components/ui/button';
@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback } from '@/app/components/ui/avatar';
 
 const navItems = [
   { name: 'Socials', href: '/dashboard/socials', icon: BarChart3 },
+  { name: 'Content', href: '/dashboard/content', icon: PenSquare },
   { name: 'Rewards', href: '/dashboard/rewards', icon: Gift },
   { name: 'Broadcast', href: '/dashboard/broadcast', icon: Radio },
   { name: 'Templates', href: '/dashboard/templates', icon: FileText },

@@ -9,7 +9,9 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "seed-rewards": "tsx scripts/seed-rewards.ts",
-    "validate-templates": "tsx scripts/validate-email-templates.ts"
+    "validate-templates": "tsx scripts/validate-email-templates.ts",
+    "seed-posts": "tsx scripts/seed-posts.ts",
+    "upload-media": "tsx scripts/upload-media.ts"
   },
   "dependencies": {
     "@capacitor/core": "^8.0.2",

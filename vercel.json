@@ -3,6 +3,10 @@
     {
       "path": "/api/metrics/snapshot",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/posts/publish",
+      "schedule": "*/15 * * * *"
     }
   ]
 }
