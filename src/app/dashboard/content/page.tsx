@@ -73,11 +73,13 @@ import {
   Bookmark,
   Share,
   Play,
+  LogIn,
 } from 'lucide-react';
 import { format, parseISO, formatDistanceToNowStrict } from 'date-fns';
 import { toast } from 'sonner';
 import type { ScheduledPost, CreatePostInput, PostStatus } from '@/types/scheduled-post';
 import EditPostDialog from './EditPostDialog';
+import { useAuth } from '@/app/context/AuthContext';
 
 const STATUS_COLORS: Record<PostStatus, string> = {
   draft: 'bg-gray-100 text-gray-800 border-gray-300',
@@ -349,6 +351,7 @@ function TweetCard({
   onEdit,
   onPublishNow,
   onDelete,
+  isAdmin = false,
 }: {
   post: ScheduledPost;
   isSelected: boolean;
@@ -356,6 +359,7 @@ function TweetCard({
   onEdit: () => void;
   onPublishNow: () => void;
   onDelete: () => void;
+  isAdmin?: boolean;
 }) {
   const hasMedia = post.mediaUrls && post.mediaUrls.length > 0;
   const hasFilePaths = post.mediaFilePaths && post.mediaFilePaths.length > 0;
@@ -382,14 +386,16 @@ function TweetCard({
         )}
 
         <div className="flex gap-3">
-          {/* Selection checkbox */}
-          <div className="flex flex-col items-center gap-2 pt-1">
-            <Checkbox
-              checked={isSelected}
-              onCheckedChange={onToggleSelect}
-              className="data-[state=checked]:bg-blue-500"
-            />
-          </div>
+          {/* Selection checkbox — admin only */}
+          {isAdmin && (
+            <div className="flex flex-col items-center gap-2 pt-1">
+              <Checkbox
+                checked={isSelected}
+                onCheckedChange={onToggleSelect}
+                className="data-[state=checked]:bg-blue-500"
+              />
+            </div>
+          )}
 
           {/* Avatar */}
           <div className="flex-shrink-0">
@@ -421,30 +427,32 @@ function TweetCard({
                 </span>
               </div>
 
-              {/* More menu */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="p-1.5 rounded-full hover:bg-blue-50 hover:text-blue-500 transition-colors text-gray-500 -mt-1">
-                    <MoreHorizontal className="w-5 h-5" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem onClick={onEdit}>
-                    <Edit2 className="w-4 h-4 mr-2" />
-                    Edit post
-                  </DropdownMenuItem>
-                  {(post.status === 'draft' || post.status === 'scheduled') && (
-                    <DropdownMenuItem onClick={onPublishNow}>
-                      <Send className="w-4 h-4 mr-2" />
-                      Publish now
+              {/* More menu — admin only */}
+              {isAdmin && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="p-1.5 rounded-full hover:bg-blue-50 hover:text-blue-500 transition-colors text-gray-500 -mt-1">
+                      <MoreHorizontal className="w-5 h-5" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem onClick={onEdit}>
+                      <Edit2 className="w-4 h-4 mr-2" />
+                      Edit post
                     </DropdownMenuItem>
-                  )}
-                  <DropdownMenuItem onClick={onDelete} className="text-red-600 focus:text-red-600">
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Delete post
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                    {(post.status === 'draft' || post.status === 'scheduled') && (
+                      <DropdownMenuItem onClick={onPublishNow}>
+                        <Send className="w-4 h-4 mr-2" />
+                        Publish now
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem onClick={onDelete} className="text-red-600 focus:text-red-600">
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Delete post
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
             </div>
 
             {/* Tweet text */}
@@ -559,7 +567,36 @@ function TweetCard({
   );
 }
 
-export default function ContentManagerPage() {
+export function ContentManager({ adminOverride }: { adminOverride?: boolean } = {}) {
+  const { user } = useAuth();
+  const [adminChecked, setAdminChecked] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Check admin status
+  useEffect(() => {
+    if (adminOverride !== undefined) {
+      setIsAdmin(adminOverride);
+      setAdminChecked(true);
+      return;
+    }
+    if (!user?.email) {
+      setIsAdmin(false);
+      setAdminChecked(true);
+      return;
+    }
+    const checkAdmin = async () => {
+      try {
+        const { isAdmin: checkIsAdmin } = await import('@/app/actions/admin');
+        const result = await checkIsAdmin(user.email!);
+        setIsAdmin(result);
+      } catch {
+        setIsAdmin(false);
+      }
+      setAdminChecked(true);
+    };
+    checkAdmin();
+  }, [user, adminOverride]);
+
   const [posts, setPosts] = useState<ScheduledPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<FilterState>({
@@ -846,22 +883,29 @@ export default function ContentManagerPage() {
       {/* Header */}
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Content Manager</h1>
-          <p className="text-gray-500 mt-1 text-sm">Preview and manage your scheduled posts as they&apos;ll appear on X</p>
+          <h1 className="text-2xl font-bold text-gray-900">
+            {isAdmin ? 'Content Manager' : 'Content Feed'}
+          </h1>
+          <p className="text-gray-500 mt-1 text-sm">
+            {isAdmin
+              ? 'Preview and manage your scheduled posts as they\'ll appear on X'
+              : 'Preview scheduled posts as they\'ll appear on X'}
+          </p>
         </div>
-        <Dialog open={showModal} onOpenChange={setShowModal}>
-          <DialogTrigger asChild>
-            <Button
-              onClick={() => {
-                resetForm();
-                setEditingPost(null);
-              }}
-              className="gap-2 rounded-full bg-black hover:bg-gray-800 text-white px-5"
-            >
-              <Plus className="w-4 h-4" />
-              Post
-            </Button>
-          </DialogTrigger>
+        {isAdmin ? (
+          <Dialog open={showModal} onOpenChange={setShowModal}>
+            <DialogTrigger asChild>
+              <Button
+                onClick={() => {
+                  resetForm();
+                  setEditingPost(null);
+                }}
+                className="gap-2 rounded-full bg-black hover:bg-gray-800 text-white px-5"
+              >
+                <Plus className="w-4 h-4" />
+                Post
+              </Button>
+            </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingPost ? 'Edit Post' : 'Create New Post'}</DialogTitle>
@@ -1162,6 +1206,12 @@ export default function ContentManagerPage() {
             </form>
           </DialogContent>
         </Dialog>
+        ) : (
+          <a href="/" className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700">
+            <LogIn className="w-4 h-4" />
+            Sign In
+          </a>
+        )}
       </div>
 
       {/* Stats Cards */}
@@ -1266,8 +1316,8 @@ export default function ContentManagerPage() {
         </div>
       </div>
 
-      {/* Bulk Actions */}
-      {selectedPosts.size > 0 && (
+      {/* Bulk Actions — admin only */}
+      {isAdmin && selectedPosts.size > 0 && (
         <div className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-2xl px-4 py-3">
           <span className="text-sm font-medium text-blue-800">
             {selectedPosts.size} post{selectedPosts.size !== 1 ? 's' : ''} selected
@@ -1327,6 +1377,7 @@ export default function ContentManagerPage() {
             <TweetCard
               key={post.id}
               post={post}
+              isAdmin={isAdmin}
               isSelected={selectedPosts.has(post.id)}
               onToggleSelect={() => togglePostSelection(post.id)}
               onEdit={() => openEditModal(post)}
@@ -1371,4 +1422,9 @@ export default function ContentManagerPage() {
       />
     </div>
   );
+}
+
+/** Default export for the /dashboard/content route (behind AdminGuard) */
+export default function ContentManagerPage() {
+  return <ContentManager adminOverride={true} />;
 }

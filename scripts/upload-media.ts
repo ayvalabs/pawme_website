@@ -166,14 +166,13 @@ async function main() {
     process.exit(1);
   }
 
-  // Get all scheduled posts that have mediaFilePaths but empty mediaUrls
+  // Get all scheduled posts that need media or thumbnail uploads
   const snapshot = await db.collection(COLLECTION).get();
   const postsToUpdate = snapshot.docs.filter(doc => {
     const data = doc.data();
-    return (
-      data.mediaFilePaths?.length > 0 &&
-      (!data.mediaUrls || data.mediaUrls.length === 0)
-    );
+    const needsMedia = data.mediaFilePaths?.length > 0 && (!data.mediaUrls || data.mediaUrls.length === 0);
+    const needsThumbnails = data.videoThumbnailFiles?.length > 0 && (!data.videoThumbnailUrls || data.videoThumbnailUrls.length === 0);
+    return needsMedia || needsThumbnails;
   });
 
   console.log(`\n📋 Found ${postsToUpdate.length} posts with media to upload\n`);
@@ -255,13 +254,79 @@ async function main() {
       }
     }
 
-    // Update Firestore with media URLs
+    // Upload video thumbnails if present
+    const videoThumbnailUrls: string[] = [];
+    if (data.videoThumbnailFiles?.length > 0) {
+      for (const thumbPath of data.videoThumbnailFiles) {
+        const thumbFilename = path.basename(thumbPath);
+        // Thumbnail paths are relative like "thumbnails/thumbnail_xxx.jpg"
+        // They live inside the media directory
+        if (uploadedFiles.has(thumbFilename)) {
+          videoThumbnailUrls.push(uploadedFiles.get(thumbFilename)!);
+          console.log(`   ♻️  Reusing thumbnail: ${thumbFilename}`);
+          continue;
+        }
+
+        // Search for thumbnail: first try media dir + thumbPath, then just filename
+        let thumbLocalPath = path.join(mediaDir, thumbPath);
+        if (!fs.existsSync(thumbLocalPath)) {
+          thumbLocalPath = path.join(mediaDir, thumbFilename);
+        }
+        if (!fs.existsSync(thumbLocalPath)) {
+          // Try additional dirs
+          let found = false;
+          for (const dir of additionalDirs) {
+            const altPath = path.join(dir, thumbFilename);
+            if (fs.existsSync(altPath)) {
+              thumbLocalPath = altPath;
+              found = true;
+              break;
+            }
+            const altPath2 = path.join(dir, thumbPath);
+            if (fs.existsSync(altPath2)) {
+              thumbLocalPath = altPath2;
+              found = true;
+              break;
+            }
+          }
+          if (!found) {
+            console.log(`   ⚠️  Thumbnail not found: ${thumbPath}`);
+            totalFailed++;
+            continue;
+          }
+        }
+
+        try {
+          const contentType = getMimeType(thumbFilename);
+          const storagePath = `posts-media/thumbnails/${thumbFilename}`;
+          const url = await uploadFile(thumbLocalPath, storagePath, contentType);
+          videoThumbnailUrls.push(url);
+          uploadedFiles.set(thumbFilename, url);
+          totalUploaded++;
+          const stats = fs.statSync(thumbLocalPath);
+          console.log(`   🖼️  Thumbnail uploaded: ${thumbFilename} (${(stats.size / 1024).toFixed(0)}KB)`);
+        } catch (error: any) {
+          console.error(`   ❌ Thumbnail upload failed: ${thumbFilename} — ${error.message}`);
+          totalFailed++;
+        }
+      }
+    }
+
+    // Update Firestore with media URLs and thumbnail URLs
+    const updateData: Record<string, any> = { updatedAt: new Date().toISOString() };
     if (mediaUrls.length > 0) {
-      await doc.ref.update({
-        mediaUrls,
-        updatedAt: new Date().toISOString(),
-      });
-      console.log(`   💾 Updated post with ${mediaUrls.length} media URL(s)\n`);
+      updateData.mediaUrls = mediaUrls;
+    }
+    if (videoThumbnailUrls.length > 0) {
+      updateData.videoThumbnailUrls = videoThumbnailUrls;
+    }
+
+    if (mediaUrls.length > 0 || videoThumbnailUrls.length > 0) {
+      await doc.ref.update(updateData);
+      const parts = [];
+      if (mediaUrls.length > 0) parts.push(`${mediaUrls.length} media`);
+      if (videoThumbnailUrls.length > 0) parts.push(`${videoThumbnailUrls.length} thumbnails`);
+      console.log(`   💾 Updated post with ${parts.join(' + ')}\n`);
     } else {
       console.log(`   ⏭️  No media uploaded for this post\n`);
     }
