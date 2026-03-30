@@ -40,7 +40,9 @@ export async function GET(request: Request) {
         mediaUrls: data.mediaUrls || [],
         mediaFilePaths: data.mediaFilePaths || [],
         mediaTypes: data.mediaTypes || [],
-        threadMediaMap: data.threadMediaMap,
+        threadMediaMap: data.threadMediaMap
+          ? (typeof data.threadMediaMap === 'string' ? JSON.parse(data.threadMediaMap) : data.threadMediaMap)
+          : undefined,
         videoThumbnailUrls: data.videoThumbnailUrls || [],
         videoThumbnailFiles: data.videoThumbnailFiles || [],
         scheduledAt: data.scheduledAt,

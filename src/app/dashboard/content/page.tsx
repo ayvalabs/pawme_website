@@ -211,16 +211,30 @@ function MediaItem({
   thumbnail?: string;
   className: string;
 }) {
+  const [playing, setPlaying] = useState(false);
+
   if (isVideo) {
+    if (playing) {
+      return (
+        <video
+          src={url}
+          className={`${className} bg-black`}
+          controls
+          autoPlay
+          preload="auto"
+          onClick={(e) => e.stopPropagation()}
+        />
+      );
+    }
     return (
-      <div className="relative w-full h-full">
+      <div className="relative w-full h-full cursor-pointer" onClick={() => setPlaying(true)}>
         {thumbnail ? (
           <img src={thumbnail} alt="Video thumbnail" className={className} loading="lazy" />
         ) : (
           <video src={url} className={`${className} bg-black`} preload="metadata" />
         )}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="bg-black/60 rounded-full p-3">
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="bg-black/60 rounded-full p-3 hover:bg-black/80 transition-colors">
             <Play className="w-6 h-6 text-white fill-white" />
           </div>
         </div>
@@ -470,26 +484,52 @@ function TweetCard({
                   {threadExpanded ? 'Hide thread' : `Show thread (${post.threadTexts!.length} more tweets)`}
                 </button>
                 {threadExpanded && (
-                  <div className="mt-2 border-l-2 border-blue-200 pl-3 space-y-3">
-                    {post.threadTexts!.map((tweet, idx) => (
-                      <div key={idx} className="relative">
-                        <div className="flex items-center gap-1 mb-0.5">
-                          <span className="text-xs text-gray-400 font-medium">{idx + 2}/{post.threadTexts!.length + 1}</span>
+                  <div className="mt-2 border-l-2 border-blue-200 pl-3 space-y-4">
+                    {post.threadTexts!.map((tweet, idx) => {
+                      const tweetPos = idx + 1;
+                      const mediaIndices = post.threadMediaMap?.[tweetPos] || [];
+                      const tMediaUrls = mediaIndices.map(i => post.mediaUrls?.[i]).filter((u): u is string => !!u);
+                      const tMediaTypes = mediaIndices.map(i => post.mediaTypes?.[i] || 'image') as ('image' | 'video')[];
+                      const tVideoThumbs = mediaIndices
+                        .filter(i => post.mediaTypes?.[i] === 'video')
+                        .map(i => getVideoThumbnailUrl(i, post.mediaTypes, post.videoThumbnailUrls))
+                        .filter((t): t is string => !!t);
+                      return (
+                        <div key={idx} className="relative">
+                          <div className="flex items-center gap-1 mb-0.5">
+                            <span className="text-xs text-gray-400 font-medium">{idx + 2}/{post.threadTexts!.length + 1}</span>
+                          </div>
+                          <div className="text-[14px] leading-5 text-gray-800 whitespace-pre-wrap break-words">
+                            {renderTweetText(tweet)}
+                          </div>
+                          {tMediaUrls.length > 0 && (
+                            <MediaGrid mediaUrls={tMediaUrls} mediaTypes={tMediaTypes} videoThumbnailUrls={tVideoThumbs} />
+                          )}
                         </div>
-                        <div className="text-[14px] leading-5 text-gray-800 whitespace-pre-wrap break-words">
-                          {renderTweetText(tweet)}
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
             )}
 
-            {/* Media */}
-            {hasMedia ? (
-              <MediaGrid mediaUrls={post.mediaUrls} mediaTypes={post.mediaTypes} videoThumbnailUrls={post.videoThumbnailUrls} />
-            ) : hasFilePaths ? (
+            {/* Media — if threadMediaMap exists, only show media mapped to main tweet (position 0) */}
+            {hasMedia ? (() => {
+              const hasThread = post.threadTexts && post.threadTexts.length > 0;
+              if (hasThread && post.threadMediaMap && post.threadMediaMap[0]) {
+                const mainIndices = post.threadMediaMap[0] as number[];
+                if (mainIndices.length === 0) return null;
+                const mUrls = mainIndices.map(i => post.mediaUrls?.[i]).filter((u): u is string => !!u);
+                const mTypes = mainIndices.map(i => post.mediaTypes?.[i] || 'image') as ('image' | 'video')[];
+                const mThumbs = mainIndices
+                  .filter(i => post.mediaTypes?.[i] === 'video')
+                  .map(i => getVideoThumbnailUrl(i, post.mediaTypes, post.videoThumbnailUrls))
+                  .filter((t): t is string => !!t);
+                if (mUrls.length === 0) return null;
+                return <MediaGrid mediaUrls={mUrls} mediaTypes={mTypes} videoThumbnailUrls={mThumbs} />;
+              }
+              return <MediaGrid mediaUrls={post.mediaUrls} mediaTypes={post.mediaTypes} videoThumbnailUrls={post.videoThumbnailUrls} />;
+            })() : hasFilePaths ? (
               <MediaPlaceholder filePaths={post.mediaFilePaths} mediaTypes={post.mediaTypes} />
             ) : null}
 

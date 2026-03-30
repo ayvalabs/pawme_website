@@ -11,7 +11,8 @@
     "seed-rewards": "tsx scripts/seed-rewards.ts",
     "validate-templates": "tsx scripts/validate-email-templates.ts",
     "seed-posts": "tsx scripts/seed-posts.ts",
-    "upload-media": "tsx scripts/upload-media.ts"
+    "upload-media": "tsx scripts/upload-media.ts",
+    "patch-thread-media": "tsx scripts/patch-thread-media.ts"
   },
   "dependencies": {
     "@capacitor/core": "^8.0.2",

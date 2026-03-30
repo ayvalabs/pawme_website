@@ -51,6 +51,9 @@ export async function POST(request: Request) {
 
     for (const doc of snapshot.docs) {
       const post = { id: doc.id, ...doc.data() } as any;
+      if (post.threadMediaMap && typeof post.threadMediaMap === 'string') {
+        post.threadMediaMap = JSON.parse(post.threadMediaMap);
+      }
       console.log(`Publishing post ${post.id}: "${post.text.substring(0, 50)}..."`);
 
       try {
@@ -95,7 +98,19 @@ export async function POST(request: Request) {
               tweetText += '\n\n' + post.ctaUrl;
             }
 
-            const tweet = await postTweet(tweetText, mediaIds);
+            // Distribute media across thread tweets using threadMediaMap
+            // threadMediaMap[0] = main tweet media indices, threadMediaMap[1] = first reply, etc.
+            const hasThreadMediaMap = post.threadMediaMap?.length > 0;
+
+            // Get media IDs for the main tweet
+            let mainMediaIds = mediaIds; // default: all media on main tweet
+            if (hasThreadMediaMap && post.threadMediaMap[0]) {
+              mainMediaIds = (post.threadMediaMap[0] as number[])
+                .map((idx: number) => mediaIds[idx])
+                .filter((id: string | undefined): id is string => !!id);
+            }
+
+            const tweet = await postTweet(tweetText, mainMediaIds);
             xPostId = tweet.id;
             console.log(`✅ Posted to X: ${xPostId}`);
 
@@ -107,10 +122,19 @@ export async function POST(request: Request) {
                   // Small delay between thread tweets to avoid rate limits
                   if (t > 0) await new Promise(r => setTimeout(r, 1000));
 
-                  const threadTweet = await postTweet(post.threadTexts[t], [], lastTweetId);
+                  // Get media IDs for this thread reply using threadMediaMap
+                  let threadMediaIds: string[] = [];
+                  const tweetPos = t + 1; // position 0 is main tweet
+                  if (hasThreadMediaMap && post.threadMediaMap[tweetPos]) {
+                    threadMediaIds = (post.threadMediaMap[tweetPos] as number[])
+                      .map((idx: number) => mediaIds[idx])
+                      .filter((id: string | undefined): id is string => !!id);
+                  }
+
+                  const threadTweet = await postTweet(post.threadTexts[t], threadMediaIds, lastTweetId);
                   threadPostIds.push(threadTweet.id);
                   lastTweetId = threadTweet.id;
-                  console.log(`  🧵 Thread ${t + 2}/${post.threadTexts.length + 1}: ${threadTweet.id}`);
+                  console.log(`  🧵 Thread ${t + 2}/${post.threadTexts.length + 1}: ${threadTweet.id}${threadMediaIds.length > 0 ? ` (${threadMediaIds.length} media)` : ''}`);
                 } catch (threadErr: any) {
                   console.error(`  ❌ Thread tweet ${t + 2} failed:`, threadErr.message);
                   // Continue with remaining thread tweets
