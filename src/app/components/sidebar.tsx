@@ -11,7 +11,7 @@ import { Avatar, AvatarFallback } from '@/app/components/ui/avatar';
 
 const navItems = [
   { name: 'Socials', href: '/dashboard/socials', icon: BarChart3 },
-  { name: 'Content', href: '/dashboard/content', icon: PenSquare },
+  { name: 'Content', href: '/tweets', icon: PenSquare },
   { name: 'Rewards', href: '/dashboard/rewards', icon: Gift },
   { name: 'Broadcast', href: '/dashboard/broadcast', icon: Radio },
   { name: 'Templates', href: '/dashboard/templates', icon: FileText },

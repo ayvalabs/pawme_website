@@ -9,11 +9,7 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "seed-rewards": "tsx scripts/seed-rewards.ts",
-    "validate-templates": "tsx scripts/validate-email-templates.ts",
-    "seed-posts": "tsx scripts/seed-posts.ts",
-    "upload-media": "tsx scripts/upload-media.ts",
-    "patch-thread-media": "tsx scripts/patch-thread-media.ts",
-    "generate-ai-media": "tsx scripts/generate-ai-media.ts"
+    "validate-templates": "tsx scripts/validate-email-templates.ts"
   },
   "dependencies": {
     "@capacitor/core": "^8.0.2",
@@ -69,6 +65,7 @@
     "stripe": "^16.12.0",
     "tailwind-merge": "^3.0.1",
     "tailwindcss-animate": "^1.0.7",
+    "twitter-api-v2": "^1.29.0",
     "zod": "^3.24.2"
   },
   "devDependencies": {

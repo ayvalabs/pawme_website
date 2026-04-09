@@ -1,5 +1,7 @@
 export type PostStatus = 'draft' | 'scheduled' | 'published' | 'failed';
 export type PostPlatform = 'x' | 'telegram' | 'both';
+export type ApprovalStatus = 'draft' | 'flagged' | 'approved' | 'published';
+export type ContentPillar = 'build_in_public' | 'product_showcase' | 'founder_voice' | 'community_prompt' | 'market_context';
 
 export interface ScheduledPost {
   id: string;
@@ -25,8 +27,10 @@ export interface ScheduledPost {
   status: PostStatus;
   /** Which platforms to post to */
   platforms: PostPlatform;
-  /** Post category for organization */
+  /** Post category for organization (legacy - use pillar instead) */
   category: string;
+  /** Content pillar (new editorial system) */
+  pillar?: ContentPillar;
   /** Hashtags (stored separately for easy editing) */
   hashtags: string[];
   /** Accounts to tag/mention */
@@ -37,6 +41,18 @@ export interface ScheduledPost {
   campaignWeek: number;
   /** Day within the campaign */
   campaignDay: number;
+  /** Risk score from content validation (0-100) */
+  riskScore?: number;
+  /** Duplicate similarity score vs recent posts (0-100) */
+  duplicateScore?: number;
+  /** Approval workflow status */
+  approvalStatus?: ApprovalStatus;
+  /** Source label for numerical claims */
+  sourceLabel?: string;
+  /** Source URL for numerical claims */
+  sourceUrl?: string;
+  /** Media library asset IDs (references to media-library collection) */
+  mediaLibraryIds?: string[];
   /** X post ID after publishing (main tweet) */
   xPostId?: string;
   /** X post IDs for thread replies */
