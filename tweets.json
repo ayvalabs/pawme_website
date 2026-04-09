@@ -1,0 +1,552 @@
+{
+  "project": "PawMe @pawme_ai",
+  "handle": "@pawme_ai",
+  "token": "$AYVA",
+  "iaoTarget": "28 April 2026 on Virtuals Protocol",
+  "marketFocus": "2030 projections: 1.3B pets, ~$500B global pet economy, pet tech $17-26B, pet food ~$145B",
+  "postingSchedule": "2 posts/day (09:00 morning, 18:00 evening HKT)",
+  "totalTweets": 60,
+  "tweets": [
+    {
+      "threadId": 1,
+      "date": "2026-04-01",
+      "time": "09:00",
+      "type": "market_vision",
+      "tweets": [
+        {"order":1, "text": "By 2030 there will be 1.3 billion pets worldwide.\n\nThe global pet economy is heading toward $500 billion.\n\nYet millions of pets suffer from separation anxiety and undetected health issues when we're at work.\n\nWe built PawMe — the first autonomous AI robot companion that follows, monitors health, and reduces anxiety. 🧵 #PawMe #VirtualsIAO", "media": "ZHIRT", "textToImagePrompt": "Happy golden retriever and cat with small white AI pet robot in cozy modern living room, warm sunlight, emotional and futuristic, ultra realistic cinematic", "videoSuggestion": "None"},
+        {"order":2, "text": "Pet tech alone is projected to reach $17–26 billion by 2030.\n\nPawMe sits at the intersection of health monitoring, entertainment, and actionable data insights.\n\nReal hardware prototypes. Real revenue potential on @virtuals_io.", "media": "nEeoQ", "textToImagePrompt": "White pet robot with glowing expressive LED eyes following a playful dog in sunny home interior, clean product photography style", "videoSuggestion": "15s robot moving demo clip"}
+      ]
+    },
+    {
+      "threadId": 2,
+      "date": "2026-04-01",
+      "time": "18:00",
+      "type": "build_in_public",
+      "tweets": [
+        {"order":1, "text": "8 months ago this was just an idea and a few sketches.\n\nToday we have 10 fully functional rolling prototypes.\n\nHere’s one of our very first 3D-printed heads. The journey from concept to reality starts here. #BuildInPublic", "media": "iKsOY", "textToImagePrompt": "Early 3D printed white robot head on workbench with tools and filament, realistic maker workshop photo", "videoSuggestion": "Short PCB assembly or early print timelapse clip"}
+      ]
+    },
+    {
+      "threadId": 3,
+      "date": "2026-04-02",
+      "time": "09:00",
+      "type": "market_segment",
+      "tweets": [
+        {"order":1, "text": "Pet food market alone will reach ~$145 billion by 2030.\n\nBut smarter feeding needs real activity and stress data.\n\nPawMe tracks your pet 24/7 and helps owners make better nutrition decisions while reducing waste.", "media": "", "textToImagePrompt": "Pet food bowls next to white AI robot monitoring happy dog eating, clean infographic style with data overlays", "videoSuggestion": "None"}
+      ]
+    },
+    {
+      "threadId": 4,
+      "date": "2026-04-02",
+      "time": "18:00",
+      "type": "product_showcase",
+      "tweets": [
+        {"order":1, "text": "PawMe in action: autonomous room-to-room tracking, expressive LED eyes that show emotion, two-way audio, laser play, night vision, and real-time health alerts.\n\n10 working units already built and pet-tested.", "media": "nEeoQ", "textToImagePrompt": "White pet robot with bright pixel eyes curiously watching a cat toy, studio lighting, clean white background product shot", "videoSuggestion": "15s robot following toy demo"}
+      ]
+    },
+    {
+      "threadId": 5,
+      "date": "2026-04-03",
+      "time": "09:00",
+      "type": "thought_leadership",
+      "tweets": [
+        {"order":1, "text": "Veterinary care and pet health services are among the fastest growing segments in the $500B pet economy by 2030.\n\nMost issues are caught too late.\n\nPawMe’s AI vision learns your pet’s normal behavior and flags anomalies early — potentially cutting vet costs dramatically.", "media": "", "textToImagePrompt": "Veterinarian examining dog with small AI robot nearby providing data on tablet, professional medical tech style", "videoSuggestion": "None"}
+      ]
+    },
+    {
+      "threadId": 6,
+      "date": "2026-04-03",
+      "time": "18:00",
+      "type": "build_in_public",
+      "tweets": [
+        {"order":1, "text": "Custom PCB design with ESP32-S3, motor drivers, sensors, and power management — all from scratch.\n\nEvery mechanical part designed and iterated in-house.\n\nHere’s a close-up of the wheel assembly that gives PawMe smooth, pet-safe movement.", "media": "EP9Az", "textToImagePrompt": "Close-up of white robot wheel with orange tire on workbench, detailed hardware engineering photo", "videoSuggestion": "Wheel movement or motor test clip"}
+      ]
+    },
+    {
+      "threadId": 7,
+      "date": "2026-04-04",
+      "time": "09:00",
+      "type": "market_segment",
+      "tweets": [
+        {"order":1, "text": "Pet insurance is exploding toward $24–30 billion globally by 2030.\n\nEarly detection means fewer claims and lower premiums.\n\nPawMe provides continuous health monitoring that can feed directly into smarter insurance models.", "media": "", "textToImagePrompt": "Pet insurance documents next to AI robot and healthy dog, modern financial tech aesthetic", "videoSuggestion": "None"}
+      ]
+    },
+    {
+      "threadId": 8,
+      "date": "2026-04-04",
+      "time": "18:00",
+      "type": "product_showcase",
+      "tweets": [
+        {"order":1, "text": "Docking station keeps PawMe charged and ready 24/7.\n\nAuto-return capability + clean industrial design.\n\nBuilt to live seamlessly in your home like a real family member.", "media": "f9Bi3", "textToImagePrompt": "White pet robot gracefully docking into sleek charging station in modern home, soft lighting", "videoSuggestion": "10s docking demonstration clip"}
+      ]
+    },
+    {
+      "threadId": 9,
+      "date": "2026-04-05",
+      "time": "09:00",
+      "type": "thought_leadership",
+      "tweets": [
+        {"order":1, "text": "Why pet health data matters in robotics.\n\nAnonymous aggregated insights from thousands of PawMe units can help vets, researchers, and brands improve care at scale.\n\nToken holders will share in this network revenue via buybacks and burns on Virtuals.", "media": "", "textToImagePrompt": "Abstract data visualization of pet health metrics flowing from multiple robots to cloud, futuristic blue tones", "videoSuggestion": "None"}
+      ]
+    },
+    {
+      "threadId": 10,
+      "date": "2026-04-05",
+      "time": "18:00",
+      "type": "build_in_public",
+      "tweets": [
+        {"order":1, "text": "Size testing complete.\n\nPawMe is compact enough for any home but sturdy enough for daily play.\n\nReal-world validation with shoe and hand for scale.", "media": "Jgd66", "textToImagePrompt": "Small white pet robot next to human shoe and hand for size comparison on floor, realistic photo", "videoSuggestion": "Size test or movement around room clip"}
+      ]
+    },
+    {
+      "threadId": 11,
+      "date": "2026-04-06",
+      "time": "09:00",
+      "type": "weekly_recap",
+      "tweets": [
+        {"order":1, "text": "Week 1 Recap 🔥\n• 2030 pet economy vision ($500B, 1.3B pets)\n• First build story\n• Market segments (food, vet, insurance)\n• Product highlights\n\nMomentum building toward $AYVA IAO on Virtuals. More coming daily. #PawMe", "media": "nEeoQ", "textToImagePrompt": "Collage of pet robot prototypes and market growth charts, clean motivational style", "videoSuggestion": "None"}
+      ]
+    },
+    {
+      "threadId": 12,
+      "date": "2026-04-06",
+      "time": "18:00",
+      "type": "token_tease",
+      "tweets": [
+        {"order":1, "text": "Soon $AYVA will launch on @virtuals_io.\n\nNot just hardware — a community-owned AI agent that earns real revenue from premium features and anonymized health insights.\n\nEarly supporters get priority on the upcoming Kickstarter too.", "media": "", "textToImagePrompt": "Token symbol $AYVA with cute pet robot in background, crypto-pet tech fusion style", "videoSuggestion": "None"}
+      ]
+    },
+    {
+      "threadId": 13,
+      "date": "2026-04-07",
+      "time": "09:00",
+      "type": "market_segment",
+      "tweets": [
+        {"order":1, "text": "By 2030 pet insurance could hit $24–30B globally.\n\nPawMe’s continuous monitoring provides data that helps insurers offer better plans and lower premiums for responsible pet parents.", "media": "", "textToImagePrompt": "Happy dog with AI robot and insurance policy icons, bright positive style", "videoSuggestion": "None"}
+      ]
+    },
+    {
+      "threadId": 14,
+      "date": "2026-04-07",
+      "time": "18:00",
+      "type": "build_in_public",
+      "tweets": [
+        {"order":1, "text": "Open-source firmware is a core part of PawMe.\n\nWe want the community to improve it, add features, and make it even better for all pets.\n\nGitHub repo coming soon — contributions welcome!", "media": "sv1JP", "textToImagePrompt": "Hand holding small white robot with code overlay on screen, open source vibe", "videoSuggestion": "Firmware flashing or code demo clip"}
+      ]
+    },
+    {
+      "threadId": 15,
+      "date": "2026-04-08",
+      "time": "09:00",
+      "type": "product_showcase",
+      "tweets": [
+        {"order":1, "text": "Expressive LED eyes are more than cute — they communicate emotions and status to your pet and you.\n\nHappy, curious, alert, or low battery — PawMe speaks visually.", "media": "nEeoQ", "textToImagePrompt": "Close-up of pet robot face with different LED eye expressions (happy, curious, alert), studio lighting", "videoSuggestion": "Eyes animation demo clip"}
+      ]
+    },
+    {
+      "threadId": 16,
+      "date": "2026-04-08",
+      "time": "18:00",
+      "type": "thought_leadership",
+      "tweets": [
+        {"order":1, "text": "Robotics + AI is transforming pet care.\n\nPawMe is embodied AI — not just software, but a physical companion that lives with your pet every day.", "media": "WLFX0", "textToImagePrompt": "Pet robot interacting with dog and cat in home, warm family scene", "videoSuggestion": "None"}
+      ]
+    },
+    {
+      "threadId": 17,
+      "date": "2026-04-09",
+      "time": "09:00",
+      "type": "build_in_public",
+      "tweets": [
+        {"order":1, "text": "Laser play module built and tested.\n\nKeeps pets entertained while we’re away — reducing boredom and anxiety.", "media": "gmiqP", "textToImagePrompt": "White pet robot projecting laser dot for cat to chase, fun action shot", "videoSuggestion": "Laser play test clip"}
+      ]
+    },
+    {
+      "threadId": 18,
+      "date": "2026-04-09",
+      "time": "18:00",
+      "type": "market_segment",
+      "tweets": [
+        {"order":1, "text": "Vet costs are one of the biggest pain points for pet owners.\n\nPawMe aims to cut unnecessary visits through early detection and daily health insights.", "media": "", "textToImagePrompt": "Pet owner looking at phone with robot alert, relieved expression", "videoSuggestion": "None"}
+      ]
+    },
+    {
+      "threadId": 19,
+      "date": "2026-04-10",
+      "time": "09:00",
+      "type": "product_showcase",
+      "tweets": [
+        {"order":1, "text": "Two-way audio lets you talk to your pet and hear them in real time — from anywhere in the world.", "media": "30vjn", "textToImagePrompt": "Pet robot with microphone icon and owner on phone in background, connected feel", "videoSuggestion": "Audio test clip"}
+      ]
+    },
+    {
+      "threadId": 20,
+      "date": "2026-04-10",
+      "time": "18:00",
+      "type": "token_tease",
+      "tweets": [
+        {"order":1, "text": "$AYVA token holders will share in revenue from premium AI features and anonymized pet health data sales.\n\nReal utility. Real flywheel.", "media": "", "textToImagePrompt": "Revenue flow diagram from robot to token holders, clean crypto style", "videoSuggestion": "None"}
+      ]
+    },
+    {
+      "threadId": 21,
+      "date": "2026-04-11",
+      "time": "09:00",
+      "type": "weekly_recap",
+      "tweets": [
+        {"order":1, "text": "Week 2 Recap 🔥\n• Deep dives into pet food, insurance & vet segments\n• Wheel & docking hardware details\n• Expressive eyes & audio features\n\nBuilding toward $AYVA IAO. Stay tuned!", "media": "EP9Az", "textToImagePrompt": "Weekly progress collage with robot parts and charts", "videoSuggestion": "None"}
+      ]
+    },
+    {
+      "threadId": 22,
+      "date": "2026-04-11",
+      "time": "18:00",
+      "type": "build_in_public",
+      "tweets": [
+        {"order":1, "text": "Night vision tested — PawMe keeps watching even in complete darkness.", "media": "8Stm4", "textToImagePrompt": "Pet robot in dark room with night vision overlay showing cat clearly", "videoSuggestion": "Night vision demo clip"}
+      ]
+    },
+    {
+      "threadId": 23,
+      "date": "2026-04-12",
+      "time": "09:00",
+      "type": "thought_leadership",
+      "tweets": [
+        {"order":1, "text": "Open-source firmware means developers worldwide can add new features, integrations, and improvements for PawMe.\n\nTrue community-driven robotics.", "media": "", "textToImagePrompt": "GitHub code screen with pet robot icon, open source community vibe", "videoSuggestion": "None"}
+      ]
+    },
+    {
+      "threadId": 24,
+      "date": "2026-04-12",
+      "time": "18:00",
+      "type": "product_showcase",
+      "tweets": [
+        {"order":1, "text": "Health anomaly detection is live in testing.\n\nPawMe learns your pet’s baseline and alerts you to changes early.", "media": "nEeoQ", "textToImagePrompt": "Robot with health alert icon next to sleeping dog, caring atmosphere", "videoSuggestion": "Health alert simulation clip"}
+      ]
+    },
+    {
+      "threadId": 25,
+      "date": "2026-04-13",
+      "time": "09:00",
+      "type": "market_segment",
+      "tweets": [
+        {"order":1, "text": "With 1.3B pets by 2030, the demand for smart companionship is massive.\n\nPawMe turns passive cameras into active, intelligent companions.", "media": "", "textToImagePrompt": "Large number 1.3 billion with many pets and robots, infographic style", "videoSuggestion": "None"}
+      ]
+    },
+    {
+      "threadId": 26,
+      "date": "2026-04-13",
+      "time": "18:00",
+      "type": "build_in_public",
+      "tweets": [
+        {"order":1, "text": "Final painted prototypes look clean and home-friendly.\n\nIndustrial design by Ameya Mistry — ready for real living rooms.", "media": "WLFX0", "textToImagePrompt": "Finished painted white pet robot on table, premium product photo", "videoSuggestion": "Painted prototype reveal clip"}
+      ]
+    },
+    {
+      "threadId": 27,
+      "date": "2026-04-14",
+      "time": "09:00",
+      "type": "token_tease",
+      "tweets": [
+        {"order":1, "text": "Token holders get early access and discounts on the May Kickstarter.\n\nBe part of the community that brings PawMe to thousands of homes.", "media": "", "textToImagePrompt": "Community of people and pets around robot, inclusive group shot", "videoSuggestion": "None"}
+      ]
+    },
+    {
+      "threadId": 28,
+      "date": "2026-04-14",
+      "time": "18:00",
+      "type": "product_showcase",
+      "tweets": [
+        {"order":1, "text": "360° smooth movement with soft orange tires — safe around pets and furniture.", "media": "gmiqP", "textToImagePrompt": "Pet robot turning smoothly on floor near dog, dynamic action shot", "videoSuggestion": "360 movement clip"}
+      ]
+    },
+    {
+      "threadId": 29,
+      "date": "2026-04-15",
+      "time": "09:00",
+      "type": "thought_leadership",
+      "tweets": [
+        {"order":1, "text": "The future of pet care is proactive, not reactive.\n\nPawMe + on-chain AI agents = continuous care with shared economic upside.", "media": "", "textToImagePrompt": "Futuristic timeline of pet care evolution with robots and data", "videoSuggestion": "None"}
+      ]
+    },
+    {
+      "threadId": 30,
+      "date": "2026-04-15",
+      "time": "18:00",
+      "type": "weekly_recap",
+      "tweets": [
+        {"order":1, "text": "Week 3 Recap 🔥\n• Open-source & firmware focus\n• Health detection & night vision\n• Token holder perks\n\nOnly 2 weeks until $AYVA IAO. The build is real.", "media": "Jgd66", "textToImagePrompt": "Progress timeline collage with robot images", "videoSuggestion": "None"}
+      ]
+    },
+    {
+      "threadId": 31,
+      "date": "2026-04-16",
+      "time": "09:00",
+      "type": "market_segment",
+      "tweets": [
+        {"order":1, "text": "Premium pet products are booming.\n\nPawMe is the premium companion hardware that pairs perfectly with premium food, insurance, and care.", "media": "", "textToImagePrompt": "Premium pet products shelf with PawMe robot in center", "videoSuggestion": "None"}
+      ]
+    },
+    {
+      "threadId": 32,
+      "date": "2026-04-16",
+      "time": "18:00",
+      "type": "build_in_public",
+      "tweets": [
+        {"order":1, "text": "Handheld size check — PawMe is lightweight and easy to move around the house.", "media": "sv1JP", "textToImagePrompt": "Human hand holding small white pet robot, size perspective photo", "videoSuggestion": "Handheld demo clip"}
+      ]
+    },
+    {
+      "threadId": 33,
+      "date": "2026-04-17",
+      "time": "09:00",
+      "type": "product_showcase",
+      "tweets": [
+        {"order":1, "text": "Multimodal AI: sees, hears, speaks, and moves — all in one compact robot.", "media": "nEeoQ", "textToImagePrompt": "Pet robot with icons for vision, audio, movement, AI brain", "videoSuggestion": "Multimodal features montage"}
+      ]
+    },
+    {
+      "threadId": 34,
+      "date": "2026-04-17",
+      "time": "18:00",
+      "type": "token_tease",
+      "tweets": [
+        {"order":1, "text": "Launching on Virtuals means PawMe becomes part of the agent economy — earning and sharing value autonomously.", "media": "", "textToImagePrompt": "Robot connected to blockchain network with coins flowing", "videoSuggestion": "None"}
+      ]
+    },
+    {
+      "threadId": 35,
+      "date": "2026-04-18",
+      "time": "09:00",
+      "type": "thought_leadership",
+      "tweets": [
+        {"order":1, "text": "Embodied AI is the next frontier.\n\nSoftware agents are great, but physical robots like PawMe live with your pet every day.", "media": "WLFX0", "textToImagePrompt": "Physical robot vs digital AI icon, comparison style", "videoSuggestion": "None"}
+      ]
+    },
+    {
+      "threadId": 36,
+      "date": "2026-04-18",
+      "time": "18:00",
+      "type": "build_in_public",
+      "tweets": [
+        {"order":1, "text": "All prototypes now have the final black accents and polished look.", "media": "8Stm4", "textToImagePrompt": "Finished white and black pet robot on table, premium final prototype", "videoSuggestion": "Final assembly reveal clip"}
+      ]
+    },
+    {
+      "threadId": 37,
+      "date": "2026-04-19",
+      "time": "09:00",
+      "type": "market_segment",
+      "tweets": [
+        {"order":1, "text": "1.3 billion pets by 2030 means huge demand for companionship tech.\n\nPawMe is ready to scale with the market.", "media": "", "textToImagePrompt": "Global map with 1.3 billion pet icons and robots", "videoSuggestion": "None"}
+      ]
+    },
+    {
+      "threadId": 38,
+      "date": "2026-04-19",
+      "time": "18:00",
+      "type": "product_showcase",
+      "tweets": [
+        {"order":1, "text": "App control from anywhere — live view, commands, alerts, all in one place.", "media": "nEeoQ", "textToImagePrompt": "Smartphone showing PawMe app with live robot feed", "videoSuggestion": "App demo clip"}
+      ]
+    },
+    {
+      "threadId": 39,
+      "date": "2026-04-20",
+      "time": "09:00",
+      "type": "weekly_recap",
+      "tweets": [
+        {"order":1, "text": "Week 4 Recap 🔥\n• Open-source push\n• Health & insurance angles\n• Final prototype polish\n\nOne week until IAO. The hardware is ready.", "media": "f9Bi3", "textToImagePrompt": "Four week progress summary collage", "videoSuggestion": "None"}
+      ]
+    },
+    {
+      "threadId": 40,
+      "date": "2026-04-20",
+      "time": "18:00",
+      "type": "token_tease",
+      "tweets": [
+        {"order":1, "text": "Fair launch on Virtuals — no pre-mine, bonding curve, community first.\n\nThis is how real projects should launch.", "media": "", "textToImagePrompt": "Fair launch bonding curve graphic with robot", "videoSuggestion": "None"}
+      ]
+    },
+    {
+      "threadId": 41,
+      "date": "2026-04-21",
+      "time": "09:00",
+      "type": "thought_leadership",
+      "tweets": [
+        {"order":1, "text": "Data privacy first — all health insights are anonymized before any aggregation.", "media": "", "textToImagePrompt": "Shield icon over pet data flowing to cloud, privacy focused", "videoSuggestion": "None"}
+      ]
+    },
+    {
+      "threadId": 42,
+      "date": "2026-04-21",
+      "time": "18:00",
+      "type": "build_in_public",
+      "tweets": [
+        {"order":1, "text": "Final quality checks on all 10 units complete.\n\nReady for the next phase.", "media": "30vjn", "textToImagePrompt": "Row of finished PawMe robots on shelf, quality check vibe", "videoSuggestion": "Quality inspection clip"}
+      ]
+    },
+    {
+      "threadId": 43,
+      "date": "2026-04-22",
+      "time": "09:00",
+      "type": "product_showcase",
+      "tweets": [
+        {"order":1, "text": "PawMe reduces anxiety through consistent companionship and play — even when you're away.", "media": "nEeoQ", "textToImagePrompt": "Calm dog relaxing next to pet robot, peaceful home scene", "videoSuggestion": "Anxiety reduction before/after style clip"}
+      ]
+    },
+    {
+      "threadId": 44,
+      "date": "2026-04-22",
+      "time": "18:00",
+      "type": "market_segment",
+      "tweets": [
+        {"order":1, "text": "The $500B pet economy by 2030 needs innovative hardware like PawMe to keep growing sustainably.", "media": "", "textToImagePrompt": "Growth arrow from current pet market to 2030 with robot", "videoSuggestion": "None"}
+      ]
+    },
+    {
+      "threadId": 45,
+      "date": "2026-04-23",
+      "time": "09:00",
+      "type": "token_tease",
+      "tweets": [
+        {"order":1, "text": "Revenue share for $AYVA holders from day one via Virtuals Agent Commerce Protocol.", "media": "", "textToImagePrompt": "Money flowing from robot usage to token holders", "videoSuggestion": "None"}
+      ]
+    },
+    {
+      "threadId": 46,
+      "date": "2026-04-23",
+      "time": "18:00",
+      "type": "build_in_public",
+      "tweets": [
+        {"order":1, "text": "Founder perspective: Why I spent 8 months building this instead of just software.", "media": "Jgd66", "textToImagePrompt": "Ashok holding prototype with thoughtful expression, founder story style", "videoSuggestion": "Short founder talking clip"}
+      ]
+    },
+    {
+      "threadId": 47,
+      "date": "2026-04-24",
+      "time": "09:00",
+      "type": "thought_leadership",
+      "tweets": [
+        {"order":1, "text": "Embodied AI agents on Virtuals + real hardware = the future of consumer robotics.", "media": "WLFX0", "textToImagePrompt": "Robot connected to blockchain with physical pet interaction", "videoSuggestion": "None"}
+      ]
+    },
+    {
+      "threadId": 48,
+      "date": "2026-04-24",
+      "time": "18:00",
+      "type": "product_showcase",
+      "tweets": [
+        {"order":1, "text": "All sensors calibrated — ready for real pet homes.", "media": "nEeoQ", "textToImagePrompt": "Robot with sensor icons highlighted, technical but friendly", "videoSuggestion": "Sensor calibration clip"}
+      ]
+    },
+    {
+      "threadId": 49,
+      "date": "2026-04-25",
+      "time": "09:00",
+      "type": "weekly_recap",
+      "tweets": [
+        {"order":1, "text": "Week 5 Recap 🔥\n• Final prototypes polished\n• Revenue model explained\n• Embodied AI vision\n\nIAO in 3 days. This is happening.", "media": "f9Bi3", "textToImagePrompt": "Five week journey summary with robot evolution", "videoSuggestion": "None"}
+      ]
+    },
+    {
+      "threadId": 50,
+      "date": "2026-04-25",
+      "time": "18:00",
+      "type": "token_tease",
+      "tweets": [
+        {"order":1, "text": "Join the $AYVA community and help shape the future of pet companionship.", "media": "", "textToImagePrompt": "Group of pet owners and robots together, community feel", "videoSuggestion": "None"}
+      ]
+    },
+    {
+      "threadId": 51,
+      "date": "2026-04-26",
+      "time": "09:00",
+      "type": "market_segment",
+      "tweets": [
+        {"order":1, "text": "With pet numbers exploding to 1.3B by 2030, lonely pets need companions like PawMe more than ever.", "media": "", "textToImagePrompt": "Many pets looking out windows with robot arriving", "videoSuggestion": "None"}
+      ]
+    },
+    {
+      "threadId": 52,
+      "date": "2026-04-26",
+      "time": "18:00",
+      "type": "build_in_public",
+      "tweets": [
+        {"order":1, "text": "Every screw, wire, and line of code documented for transparency.", "media": "iKsOY", "textToImagePrompt": "Workbench with robot parts and documentation notes", "videoSuggestion": "None"}
+      ]
+    },
+    {
+      "threadId": 53,
+      "date": "2026-04-27",
+      "time": "09:00",
+      "type": "product_showcase",
+      "tweets": [
+        {"order":1, "text": "PawMe is more than a gadget — it's a daily companion that grows with your pet.", "media": "nEeoQ", "textToImagePrompt": "Robot and puppy growing into adult dog together over time, heartwarming", "videoSuggestion": "None"}
+      ]
+    },
+    {
+      "threadId": 54,
+      "date": "2026-04-27",
+      "time": "18:00",
+      "type": "final_tease",
+      "tweets": [
+        {"order":1, "text": "Tomorrow we launch $AYVA on @virtuals_io.\n\nReal robot hardware + tokenized AI agent with revenue flywheel.\n\nFair launch. No pre-mine. Community first.\n\nGet ready. 🚀", "media": "WLFX0", "textToImagePrompt": "Two PawMe robots side by side with glowing eyes, one happy one alert, futuristic optimistic lighting", "videoSuggestion": "20s founder holding prototype clip"}
+      ]
+    },
+    {
+      "threadId": 55,
+      "date": "2026-04-28",
+      "time": "09:00",
+      "type": "iao_launch",
+      "tweets": [
+        {"order":1, "text": "IT’S LIVE.\n\n$AYVA IAO is now open on @virtuals_io\n\nPawMe — the first embodied pet health AI agent with 10 real working prototypes.\n\nBonding curve open. Fair launch. Revenue from premium AI + pet insights.\n\nLink: app.virtuals.io\n\nLet’s give every pet a best friend. #VirtualsIAO #PawMe", "media": "nEeoQ", "textToImagePrompt": "Hero launch image of PawMe robot in beautiful sunlit home with happy dog and cat, bright optimistic product launch style", "videoSuggestion": "30s full demo reel + short founder voiceover"}
+      ]
+    },
+    {
+      "threadId": 56,
+      "date": "2026-04-28",
+      "time": "18:00",
+      "type": "post_launch",
+      "tweets": [
+        {"order":1, "text": "Thank you to everyone who joined the $AYVA IAO today.\n\nThe bonding curve is live and the community is growing fast.\n\nNext: scaling production and bringing PawMe into more homes.", "media": "ZHIRT", "textToImagePrompt": "Celebration scene with robot and community icons", "videoSuggestion": "None"}
+      ]
+    },
+    {
+      "threadId": 57,
+      "date": "2026-04-28",
+      "time": "09:00",
+      "type": "post_launch_followup",
+      "tweets": [
+        {"order":1, "text": "Early $AYVA holders — watch for Kickstarter priority details coming soon.\n\nYour support helps us manufacture at scale.", "media": "", "textToImagePrompt": "Rocket launching with robot on top, momentum style", "videoSuggestion": "None"}
+      ]
+    },
+    {
+      "threadId": 58,
+      "date": "2026-04-28",
+      "time": "18:00",
+      "type": "post_launch_community",
+      "tweets": [
+        {"order":1, "text": "What feature would you like to see next in PawMe?\n\nReply below — your input shapes the open-source roadmap.", "media": "nEeoQ", "textToImagePrompt": "Robot listening with question mark bubbles", "videoSuggestion": "None"}
+      ]
+    },
+    {
+      "threadId": 59,
+      "date": "2026-04-28",
+      "time": "09:00",
+      "type": "post_launch_tease",
+      "tweets": [
+        {"order":1, "text": "The agent is now live on-chain.\n\nWatch PawMe start interacting autonomously soon.", "media": "WLFX0", "textToImagePrompt": "Robot with on-chain connection lines glowing", "videoSuggestion": "None"}
+      ]
+    },
+    {
+      "threadId": 60,
+      "date": "2026-04-28",
+      "time": "18:00",
+      "type": "closing",
+      "tweets": [
+        {"order":1, "text": "From 3D-printed prototypes to tokenized embodied AI in one journey.\n\nThank you for following the build.\n\n$PawMe / $AYVA — the future of pet companionship starts now. ❤️", "media": "nEeoQ", "textToImagePrompt": "Final hero shot of PawMe robot with sunset background, hopeful ending", "videoSuggestion": "Full journey montage clip"}
+      ]
+    }
+  ]
+}

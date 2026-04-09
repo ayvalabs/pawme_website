@@ -79,10 +79,7 @@ const bucket = admin.storage().bucket();
 const COLLECTION = 'scheduled-posts';
 
 // Default media directory - adjust to your local path
-const DEFAULT_MEDIA_DIR = path.join(
-  process.env.HOME || '/Users/ashokjaiswal',
-  'Library/CloudStorage/GoogleDrive-pawme@ayvalabs.com/My Drive/5. Product/History/WhatsApp Chat - Rolling Robot - Pawme'
-);
+const DEFAULT_MEDIA_DIR = '/Users/ashokjaiswal/Google Drive/My Drive/5. Product/History/WhatsApp Chat - Rolling Robot - Pawme';
 
 function getMediaDir(): string {
   const argIndex = process.argv.findIndex(a => a.startsWith('--media-dir='));

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack -p 3000",
+    "dev": "next dev --turbopack -p 3008",
     "build": "NODE_ENV=production next build",
     "start": "next start",
     "lint": "next lint",
@@ -12,7 +12,8 @@
     "validate-templates": "tsx scripts/validate-email-templates.ts",
     "seed-posts": "tsx scripts/seed-posts.ts",
     "upload-media": "tsx scripts/upload-media.ts",
-    "patch-thread-media": "tsx scripts/patch-thread-media.ts"
+    "patch-thread-media": "tsx scripts/patch-thread-media.ts",
+    "generate-ai-media": "tsx scripts/generate-ai-media.ts"
   },
   "dependencies": {
     "@capacitor/core": "^8.0.2",

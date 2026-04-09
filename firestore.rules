@@ -81,5 +81,10 @@ service cloud.firestore {
       // Only admin can create, update, or delete app settings
       allow write: if isAdmin();
     }
+
+    // Rules for pawme_virtuals tweet calendar — internal admin dashboard
+    match /pawme_virtuals_tweets/{docId} {
+      allow read, write: if true;
+    }
   }
 }
