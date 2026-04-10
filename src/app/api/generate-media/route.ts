@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
     const imageBuffer = Buffer.from(imagePart.inlineData.data, 'base64');
     const ext = imagePart.inlineData.mimeType?.includes('png') ? 'png' : 'jpg';
     const filename = `ai_generated_${tweetId}_${Date.now()}.${ext}`;
-    const bucket = admin.storage().bucket();
+    const bucket = admin.storage().bucket(process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET);
     const file = bucket.file(`posts-media/${filename}`);
 
     await file.save(imageBuffer, {
