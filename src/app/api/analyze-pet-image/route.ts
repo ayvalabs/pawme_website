@@ -3,8 +3,9 @@ import { NextRequest, NextResponse } from 'next/server';
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 
 const GEMINI_ENDPOINTS = [
-  `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
-  `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+  `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+  `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${GEMINI_API_KEY}`,
+  `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${GEMINI_API_KEY}`,
 ];
 
 const BREED_PROMPT = `You are a veterinary AI expert. Analyze this pet photo and provide the following information in JSON format ONLY (no markdown, no code blocks, just raw JSON):
@@ -45,10 +46,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Convert file to base64
+    // Convert file to base64 (remove any data URL prefix if present)
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
-    const base64 = buffer.toString('base64');
+    const base64 = buffer.toString('base64').replace(/^data:image\/[a-z]+;base64,/, '');
+
+    console.log('[analyze-pet-image] File info:', {
+      name: file.name,
+      type: file.type,
+      size: file.size,
+      base64Length: base64.length,
+      base64Prefix: base64.substring(0, 50) + '...'
+    });
 
     if (!GEMINI_API_KEY) {
       console.error('[analyze-pet-image] GEMINI_API_KEY not configured');
@@ -61,7 +70,7 @@ export async function POST(request: NextRequest) {
     // Determine mime type
     const mimeType = file.type || 'image/jpeg';
 
-    const body = JSON.stringify({
+    const requestBody = {
       contents: [
         {
           parts: [
@@ -70,7 +79,15 @@ export async function POST(request: NextRequest) {
           ],
         },
       ],
+    };
+
+    console.log('[analyze-pet-image] Request body preview:', {
+      mimeType,
+      hasInlineData: !!requestBody.contents[0].parts[1]?.inline_data,
+      dataLength: requestBody.contents[0].parts[1]?.inline_data?.data?.length || 0
     });
+
+    const body = JSON.stringify(requestBody);
 
     let lastError = '';
     for (const url of GEMINI_ENDPOINTS) {
