@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
-
-const GEMINI_ENDPOINTS = [
-  `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
-  `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
-];
+import { generateGeminiJson } from '@/lib/pawme-gemini';
+import { base64ApproxBytes, runApi } from '@/lib/pawme-logging';
 
 const BREED_PROMPT = `You are a veterinary AI expert. Analyze this pet photo and provide the following information in JSON format ONLY (no markdown, no code blocks, just raw JSON):
 
@@ -22,7 +17,18 @@ const BREED_PROMPT = `You are a veterinary AI expert. Analyze this pet photo and
 
 Be specific about the breed. If you can't determine something, make your best educated guess.`;
 
-const FALLBACK_RESULT = {
+interface BreedAnalysis {
+  breed: string;
+  type: 'dog' | 'cat' | 'bird' | 'rabbit' | 'other';
+  color: string;
+  estimatedAge: string;
+  gender: string;
+  weight: string;
+  careNotes: string;
+  confidence: number;
+}
+
+const FALLBACK_RESULT: BreedAnalysis = {
   breed: 'Unknown',
   type: 'other',
   color: 'Unknown',
@@ -33,78 +39,73 @@ const FALLBACK_RESULT = {
   confidence: 0,
 };
 
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024; // 10 MB
+
+const ENDPOINT = 'mobile/gemini-analyze';
+
+// Note: This endpoint is called during onboarding when the user may not be
+// signed in yet, so we intentionally do NOT call requireMobileUser here.
+// It's read-only and image-only — no user data leaks.
 export async function POST(request: NextRequest) {
-  try {
-    const { imageBase64 } = await request.json();
+  const { requestId, result, error } = await runApi<BreedAnalysis>(
+    { endpoint: ENDPOINT, request },
+    async ({ requestId: reqId, logInfo }): Promise<BreedAnalysis> => {
+      const body = await request.json();
+      const imageBase64 = body?.imageBase64;
 
-    if (!imageBase64) {
-      return NextResponse.json(
-        { success: false, message: 'imageBase64 is required.' },
-        { status: 400 },
-      );
-    }
-
-    if (!GEMINI_API_KEY) {
-      console.error('[gemini-analyze] GEMINI_API_KEY not configured');
-      return NextResponse.json(
-        { success: true, data: FALLBACK_RESULT },
-        { status: 200 },
-      );
-    }
-
-    const body = JSON.stringify({
-      contents: [
-        {
-          parts: [
-            { text: BREED_PROMPT },
-            { inline_data: { mime_type: 'image/jpeg', data: imageBase64 } },
-          ],
-        },
-      ],
-    });
-
-    let lastError = '';
-    for (const url of GEMINI_ENDPOINTS) {
-      try {
-        const response = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body,
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.warn('[gemini-analyze] Endpoint failed:', url, errorText);
-          lastError = errorText;
-          if (errorText.includes('location') || errorText.includes('not supported')) continue;
-          // For other errors, still try next endpoint
-          continue;
-        }
-
-        const data = await response.json();
-        const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-
-        const jsonStr = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-        try {
-          const parsed = JSON.parse(jsonStr);
-          return NextResponse.json({ success: true, data: parsed });
-        } catch {
-          console.error('[gemini-analyze] Failed to parse response:', text);
-          return NextResponse.json({ success: true, data: FALLBACK_RESULT });
-        }
-      } catch (error: any) {
-        console.warn('[gemini-analyze] Request error:', error.message);
-        lastError = error.message;
+      if (!imageBase64) {
+        const err: Error & { statusCode?: number } = new Error('imageBase64 is required.');
+        err.statusCode = 400;
+        throw err;
       }
-    }
 
-    console.error('[gemini-analyze] All endpoints failed:', lastError);
-    return NextResponse.json({ success: true, data: FALLBACK_RESULT });
-  } catch (error: any) {
-    console.error('[gemini-analyze] Error:', error);
+      const imageBytes = base64ApproxBytes(imageBase64);
+      if (imageBytes > MAX_IMAGE_BYTES) {
+        const err: Error & { statusCode?: number } = new Error(
+          `Image too large (${Math.round(imageBytes / 1024 / 1024)}MB). Max 10MB.`,
+        );
+        err.statusCode = 413;
+        throw err;
+      }
+
+      logInfo({ imageBytes });
+
+      const { data, modelUsed, totalMs } = await generateGeminiJson<BreedAnalysis>(
+        BREED_PROMPT,
+        String(imageBase64),
+        undefined,
+        { requestId: reqId, endpoint: ENDPOINT },
+      );
+      logInfo({ model: modelUsed, geminiMs: totalMs });
+      return data;
+    },
+  );
+
+  if (error) {
+    const statusCode =
+      typeof (error as any)?.statusCode === 'number' ? (error as any).statusCode : 200;
+    if (statusCode >= 400 && statusCode < 500) {
+      return NextResponse.json(
+        { success: false, message: error instanceof Error ? error.message : 'Invalid request', requestId },
+        { status: statusCode, headers: { 'x-request-id': requestId } },
+      );
+    }
     return NextResponse.json(
-      { success: false, message: error?.message || 'Failed to analyze image.' },
-      { status: 500 },
+      {
+        success: true,
+        data: FALLBACK_RESULT,
+        requestId,
+        debug:
+          process.env.NODE_ENV !== 'production'
+            ? { error: error instanceof Error ? error.message : String(error) }
+            : undefined,
+      },
+      { status: 200, headers: { 'x-request-id': requestId } },
     );
   }
+
+  return NextResponse.json(
+    { success: true, data: result, requestId },
+    { headers: { 'x-request-id': requestId } },
+  );
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateGeminiJson } from '@/lib/pawme-gemini';
 import { getOwnedPetContext, mergePetContext, requireMobileUser } from '@/lib/pawme-mobile';
+import { logApi, runApi, safePreview } from '@/lib/pawme-logging';
 
 interface NutritionPlan {
   dailyCalories: string;
@@ -22,21 +23,42 @@ const FALLBACK_RESULT: NutritionPlan = {
   portionGuide: 'Use the pet’s age, body condition, and activity level to guide portions.',
 };
 
+const ENDPOINT = 'mobile/gemini-nutrition';
+
 export async function POST(request: NextRequest) {
-  try {
-    const { uid } = await requireMobileUser(request);
-    const body = await request.json();
+  const { requestId, result, error } = await runApi<NutritionPlan>(
+    { endpoint: ENDPOINT, request },
+    async ({ requestId: reqId, logInfo }): Promise<NutritionPlan> => {
+      const { uid } = await requireMobileUser(request);
+      logInfo({ uid });
 
-    let firestoreContext = null;
-    if (body.petId) {
-      firestoreContext = await getOwnedPetContext(uid, String(body.petId));
-    }
+      const body = await request.json();
 
-    const petContext = firestoreContext
-      ? mergePetContext(firestoreContext, body.petContext)
-      : body.petContext || {};
+      logInfo({
+        hasPetId: Boolean(body.petId),
+        hasCurrentDiet: typeof body.currentDiet === 'string' && body.currentDiet.length > 0,
+      });
 
-    const prompt = `You are PawMe Copilot, creating a practical pet nutrition plan.
+      let firestoreContext = null;
+      if (body.petId) {
+        try {
+          firestoreContext = await getOwnedPetContext(uid, String(body.petId));
+        } catch (petErr) {
+          logApi('warn', {
+            requestId: reqId,
+            endpoint: ENDPOINT,
+            event: 'pet-context-skipped',
+            petId: String(body.petId),
+            reason: safePreview(petErr instanceof Error ? petErr.message : String(petErr), 200),
+          });
+        }
+      }
+
+      const petContext = firestoreContext
+        ? mergePetContext(firestoreContext, body.petContext)
+        : body.petContext || {};
+
+      const prompt = `You are PawMe Copilot, creating a practical pet nutrition plan.
 
 Return valid JSON only:
 {
@@ -59,24 +81,48 @@ ${JSON.stringify(petContext, null, 2)}
 
 Care context:
 ${JSON.stringify(
-      firestoreContext
-        ? {
-            observations: firestoreContext.observations,
-            reminders: firestoreContext.reminders,
-            records: firestoreContext.records,
-          }
-        : {},
-      null,
-      2,
-    )}
+  firestoreContext
+    ? {
+        observations: firestoreContext.observations,
+        reminders: firestoreContext.reminders,
+        records: firestoreContext.records,
+      }
+    : {},
+  null,
+  2,
+)}
 
 Current diet from owner:
 ${String(body.currentDiet || '')}`;
 
-    const data = await generateGeminiJson<NutritionPlan>(prompt);
-    return NextResponse.json({ success: true, data });
-  } catch (error) {
-    console.error('[mobile/gemini-nutrition] Error:', error);
-    return NextResponse.json({ success: true, data: FALLBACK_RESULT });
+      const { data, modelUsed, totalMs } = await generateGeminiJson<NutritionPlan>(
+        prompt,
+        undefined,
+        undefined,
+        { requestId: reqId, endpoint: ENDPOINT },
+      );
+      logInfo({ model: modelUsed, geminiMs: totalMs });
+      return data;
+    },
+  );
+
+  if (error) {
+    return NextResponse.json(
+      {
+        success: true,
+        data: FALLBACK_RESULT,
+        requestId,
+        debug:
+          process.env.NODE_ENV !== 'production'
+            ? { error: error instanceof Error ? error.message : String(error) }
+            : undefined,
+      },
+      { status: 200, headers: { 'x-request-id': requestId } },
+    );
   }
+
+  return NextResponse.json(
+    { success: true, data: result, requestId },
+    { headers: { 'x-request-id': requestId } },
+  );
 }

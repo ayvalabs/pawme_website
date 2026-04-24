@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
+import type { QueryDocumentSnapshot } from 'firebase-admin/firestore';
 
 type PetType = 'dog' | 'cat' | 'bird' | 'rabbit' | 'other';
 
@@ -51,31 +52,38 @@ export async function getOwnedPetContext(
   }
 
   const [observationSnap, vaccinationSnap, reminderSnap, recordSnap] = await Promise.all([
-    adminDb
-      .collection('petObservations')
-      .where('petId', '==', petId)
-      .orderBy('createdAt', 'desc')
-      .limit(6)
-      .get(),
-    adminDb
-      .collection('petVaccinations')
-      .where('petId', '==', petId)
-      .orderBy('createdAt', 'desc')
-      .limit(12)
-      .get(),
-    adminDb
-      .collection('petReminders')
-      .where('petId', '==', petId)
-      .orderBy('createdAt', 'desc')
-      .limit(12)
-      .get(),
-    adminDb
-      .collection('petMedicalRecords')
-      .where('petId', '==', petId)
-      .orderBy('createdAt', 'desc')
-      .limit(8)
-      .get(),
+    adminDb.collection('petObservations').where('petId', '==', petId).get(),
+    adminDb.collection('petVaccinations').where('petId', '==', petId).get(),
+    adminDb.collection('petReminders').where('petId', '==', petId).get(),
+    adminDb.collection('petMedicalRecords').where('petId', '==', petId).get(),
   ]);
+
+  const sortDocsByCreatedAtDesc = (
+    docs: QueryDocumentSnapshot[],
+    limitCount: number,
+  ): Array<Record<string, unknown>> => {
+    return docs
+      .map((doc) => doc.data() as Record<string, unknown>)
+      .sort((a, b) => {
+        const getMillis = (value: unknown) => {
+          if (!value) return 0;
+          if (typeof value === 'string') {
+            const parsed = Date.parse(value);
+            return Number.isNaN(parsed) ? 0 : parsed;
+          }
+          if (typeof value === 'object' && value !== null && 'toMillis' in value && typeof (value as { toMillis?: unknown }).toMillis === 'function') {
+            return ((value as { toMillis: () => number }).toMillis());
+          }
+          if (typeof value === 'object' && value !== null && '_seconds' in value) {
+            return Number((value as { _seconds?: number })._seconds || 0) * 1000;
+          }
+          return 0;
+        };
+
+        return getMillis(b.createdAt) - getMillis(a.createdAt);
+      })
+      .slice(0, limitCount);
+  };
 
   return {
     pet: {
@@ -92,10 +100,10 @@ export async function getOwnedPetContext(
         ? petData.careGoals.map((item) => String(item))
         : undefined,
     },
-    observations: observationSnap.docs.map((doc) => doc.data()),
-    vaccinations: vaccinationSnap.docs.map((doc) => doc.data()),
-    reminders: reminderSnap.docs.map((doc) => doc.data()),
-    records: recordSnap.docs.map((doc) => doc.data()),
+    observations: sortDocsByCreatedAtDesc(observationSnap.docs, 6),
+    vaccinations: sortDocsByCreatedAtDesc(vaccinationSnap.docs, 12),
+    reminders: sortDocsByCreatedAtDesc(reminderSnap.docs, 12),
+    records: sortDocsByCreatedAtDesc(recordSnap.docs, 8),
   };
 }
 
