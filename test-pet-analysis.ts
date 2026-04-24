@@ -46,7 +46,11 @@ async function testPetAnalysis() {
 
 // Test Gemini API directly
 async function testGeminiDirect() {
-  const GEMINI_API_KEY = 'AIzaSyDogvV0S30jRYOHQ9g27srEYErTq34yuKI';
+  const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+  if (!GEMINI_API_KEY) {
+    console.error('GEMINI_API_KEY not set. Run: export GEMINI_API_KEY=... or use dotenv');
+    return;
+  }
   
   console.log('\nTesting Gemini API directly...');
   
