@@ -86,5 +86,51 @@ service cloud.firestore {
     match /pawme_virtuals_tweets/{docId} {
       allow read, write: if true;
     }
+
+    // =====================================================
+    // PawMe Social Calendar — Internal Admin Dashboard
+    // All collections below are admin-only (pawme@ayvalabs.com)
+    // =====================================================
+
+    // Drafts collection — social media draft posts
+    match /drafts/{draftId} {
+      allow read, write: if isAdmin();
+    }
+
+    // Scheduled posts — shared with pawme_website tweet calendar
+    match /scheduled-posts/{postId} {
+      allow read, write: if isAdmin();
+    }
+
+    // Scanned tweets — Twitter keyword scan results
+    match /scanned_tweets/{tweetId} {
+      allow read, write: if isAdmin();
+    }
+
+    // Published posts — posts that have been published to X
+    match /published_posts/{postId} {
+      allow read, write: if isAdmin();
+    }
+
+    // Content collection — content inbox items
+    match /content/{contentId} {
+      allow read, write: if isAdmin();
+    }
+
+    // Media assets — uploaded media files metadata
+    match /media_assets/{assetId} {
+      allow read, write: if isAdmin();
+    }
+
+    // Audit logs — action history for compliance
+    match /audit_logs/{logId} {
+      allow read: if isAdmin();
+      allow create: if request.auth != null;
+    }
+
+    // Scan keywords — Twitter keyword configuration
+    match /scan_keywords/{keywordId} {
+      allow read, write: if isAdmin();
+    }
   }
 }
