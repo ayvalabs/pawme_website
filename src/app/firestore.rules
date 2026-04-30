@@ -22,6 +22,12 @@ service cloud.firestore {
       // The document ID must match the user's UID.
       allow create: if request.auth != null && request.auth.uid == userId;
 
+      // Server-side AI usage counters. Owner can read; only Admin SDK writes.
+      match /usage/{periodId} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow write: if false;
+      }
+
       // Users can update their own document or referral updates
       // Admin can update any user document
       allow update: if
@@ -43,6 +49,51 @@ service cloud.firestore {
             request.resource.data.points == resource.data.points + 150
           )
         );
+    }
+
+    // =====================================================
+    // PawMe mobile — referral codes
+    // =====================================================
+    match /referralCodes/{code} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+                    && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    // =====================================================
+    // PawMe mobile — pet documents and subcollections
+    // =====================================================
+    function isPetOwner(petId) {
+      return request.auth != null &&
+        get(/databases/$(database)/documents/pets/$(petId)).data.userId == request.auth.uid;
+    }
+
+    match /pets/{petId} {
+      allow read: if request.auth != null &&
+        resource.data.userId == request.auth.uid;
+
+      allow create: if request.auth != null &&
+        request.resource.data.userId == request.auth.uid;
+
+      allow update, delete: if request.auth != null &&
+        resource.data.userId == request.auth.uid;
+
+      match /vaccinations/{recId} {
+        allow read, write: if isAdmin() || isPetOwner(petId);
+      }
+      match /medications/{recId} {
+        allow read, write: if isAdmin() || isPetOwner(petId);
+      }
+      match /symptomChecks/{recId} {
+        allow read, write: if isAdmin() || isPetOwner(petId);
+      }
+      match /photoScans/{recId} {
+        allow read, write: if isAdmin() || isPetOwner(petId);
+      }
+      match /trainingSessions/{recId} {
+        allow read, write: if isAdmin() || isPetOwner(petId);
+      }
     }
 
     // Rules for the 'verifications' collection

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { generateGeminiJson } from '@/lib/pawme-gemini';
 import { getOwnedPetContext, mergePetContext, requireMobileUser } from '@/lib/pawme-mobile';
 import { base64ApproxBytes, logApi, runApi, safePreview } from '@/lib/pawme-logging';
+import { assertAndBumpUsage, UsageLimitError } from '@/lib/pawme-usage';
 
 interface SymptomResult {
   severity: 'low' | 'medium' | 'high' | 'emergency';
@@ -56,6 +57,10 @@ export async function POST(request: NextRequest) {
         throw err;
       }
 
+      // Server-side usage gate (source of truth). Throws 402 if free/Pro cap reached.
+      const usage = await assertAndBumpUsage(uid, 'symptom');
+      logInfo({ usage: usage.used, limit: usage.limit, isPro: usage.isPro });
+
       logInfo({
         hasImage: Boolean(body.imageBase64),
         imageBytes,
@@ -82,42 +87,54 @@ export async function POST(request: NextRequest) {
         ? mergePetContext(firestoreContext, body.petContext)
         : body.petContext || {};
 
-      const prompt = `You are PawMe Copilot, a conservative AI pet symptom guide.
+      const pet = (petContext as Record<string, unknown>) || {};
+      const petName = (pet.name as string) || 'this pet';
+      const parentName = (body.userContext?.firstName as string) || '';
 
-Return valid JSON only:
+      // Compact recent-care summary (token-efficient — just the highlights).
+      const careLines: string[] = [];
+      if (firestoreContext) {
+        const lastObs = firestoreContext.observations?.slice(0, 3) ?? [];
+        if (lastObs.length) {
+          careLines.push(
+            `Recent symptoms: ${lastObs
+              .map((o: any) => `${o.condition || 'check'} (${o.severity || '?'})`)
+              .join('; ')}`,
+          );
+        }
+        const meds = (firestoreContext.records as any[])?.filter((r) => r?.kind === 'medication').slice(0, 3) ?? [];
+        if (meds.length) {
+          careLines.push(`Active meds: ${meds.map((m: any) => m.title || m.name).filter(Boolean).join(', ')}`);
+        }
+      }
+      const careBlock = careLines.length ? `\nCare history: ${careLines.join(' | ')}` : '';
+
+      const ageStr = `${(pet as any).ageYears ?? '?'}y${
+        (pet as any).ageMonths ? ` ${(pet as any).ageMonths}m` : ''
+      }`;
+
+      const prompt = `You are PawPilot, a cautious AI pet symptom guide. Never diagnose with certainty.
+
+PET: ${petName} (${(pet.species as string) || 'unknown'}${
+        pet.breed ? `, ${pet.breed}` : ''
+      }, ${ageStr}${(pet as any).weightKg ? `, ${(pet as any).weightKg}kg` : ''})${careBlock}
+
+Return JSON only:
 {
   "severity": "low" | "medium" | "high" | "emergency",
-  "condition": "short symptom summary",
-  "description": "short explanation of what this may represent",
-  "recommendations": ["3-5 practical next steps"],
-  "shouldSeeVet": true,
-  "urgency": "clear next-step guidance"
+  "condition": "short symptom summary mentioning ${petName}",
+  "description": "1-2 sentences ABOUT ${petName} specifically; reference breed/age when relevant",
+  "recommendations": ["3-5 actionable steps that mention ${petName} by name"],
+  "shouldSeeVet": true | false,
+  "urgency": "one-line next step for ${parentName || 'the parent'}"
 }
 
 Rules:
-- Never diagnose with certainty.
-- Use cautious language.
+- Always refer to the pet as "${petName}" — never "your pet" or "the dog/cat".
+- Use cautious language ("may indicate", "consistent with"). Never definitive.
 - Escalate emergencies clearly.
-- Consider recent observations and care history if present.
 
-Pet context:
-${JSON.stringify(petContext, null, 2)}
-
-Recent care context:
-${JSON.stringify(
-  firestoreContext
-    ? {
-        observations: firestoreContext.observations,
-        vaccinations: firestoreContext.vaccinations,
-        records: firestoreContext.records,
-      }
-    : {},
-  null,
-  2,
-)}
-
-Owner description:
-${String(body.description || '')}`;
+Parent reports: ${String(body.description || '(image only)')}`;
 
       const { data, modelUsed, totalMs } = await generateGeminiJson<SymptomResult>(
         prompt,
@@ -132,6 +149,21 @@ ${String(body.description || '')}`;
   );
 
   if (error) {
+    if (error instanceof UsageLimitError) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: error.message,
+          code: 'usage_limit_reached',
+          category: error.category,
+          used: error.used,
+          limit: error.limit,
+          isPro: error.isPro,
+          requestId,
+        },
+        { status: 402, headers: { 'x-request-id': requestId } },
+      );
+    }
     const statusCode =
       typeof (error as any)?.statusCode === 'number' ? (error as any).statusCode : 200;
     // 400/413 surface as JSON error; everything else returns a safe fallback

@@ -230,3 +230,56 @@ export async function generateGeminiJson<T>(
     throw new Error('Gemini returned invalid JSON: ' + preview);
   }
 }
+
+export interface GeminiFrame {
+  base64: string;
+  mimeType?: string;
+  /** Optional human label for this frame (e.g. "frame 1 of 5", "0:08") */
+  label?: string;
+}
+
+/**
+ * Multi-image variant of generateGeminiJson. Useful for video frame analysis
+ * where we sample N stills from a short clip and ask Gemini to reason across them.
+ */
+export async function generateGeminiJsonMulti<T>(
+  prompt: string,
+  frames: GeminiFrame[],
+  ctx?: GeminiContext,
+): Promise<{ data: T; modelUsed: string; totalMs: number }> {
+  const parts: Array<Record<string, unknown>> = [{ text: prompt }];
+
+  for (const frame of frames) {
+    if (!frame?.base64) continue;
+    const cleanBase64 = frame.base64.replace(/^data:.+;base64,/, '');
+    if (frame.label) {
+      parts.push({ text: `[${frame.label}]` });
+    }
+    parts.push({
+      inline_data: {
+        mime_type: frame.mimeType || 'image/jpeg',
+        data: cleanBase64,
+      },
+    });
+  }
+
+  const body = buildBody(parts, { jsonMode: true });
+  const result = await runGeminiRequest(GEMINI_VISION_MODELS, body, ctx);
+  const cleaned = cleanGeminiText(result.text);
+
+  try {
+    const parsed = JSON.parse(cleaned) as T;
+    return { data: parsed, modelUsed: result.modelUsed, totalMs: result.totalMs };
+  } catch (error) {
+    const preview = cleaned.slice(0, 1200);
+    logApi('error', {
+      requestId: ctx?.requestId || 'no-req-id',
+      endpoint: ctx?.endpoint || 'gemini',
+      event: 'gemini-json-parse-failed-multi',
+      model: result.modelUsed,
+      error: error instanceof Error ? error.message : String(error),
+      preview,
+    });
+    throw new Error('Gemini returned invalid JSON: ' + preview);
+  }
+}
