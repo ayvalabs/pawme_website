@@ -12,16 +12,32 @@ export async function generatePasswordResetLink({ email }: { email: string }) {
   }
 
   try {
-    // Generate password reset link using Firebase Admin SDK
-    // Redirect to our custom password reset page for branded experience
+    // Firebase Admin's `generatePasswordResetLink(email, settings)` has been
+    // throwing "INTERNAL ASSERT FAILED: Unable to create the email action
+    // link" for some accounts even when the continueUrl domain is authorized.
+    // The fallback: call without settings — Firebase generates a link to its
+    // default-hosted handler. We then extract the oobCode and rewrite the URL
+    // to point at our branded /reset-password page anyway.
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.ayvalabs.com';
-    const actionCodeSettings = {
-      url: `${baseUrl}/reset-password`,
-      handleCodeInApp: false,
-    };
 
-    console.log('🔵 [ACTION] Generating reset link with settings:', actionCodeSettings);
-    const firebaseResetLink = await adminAuth.generatePasswordResetLink(email, actionCodeSettings);
+    let firebaseResetLink: string;
+    try {
+      // First try with action code settings for the most direct branded flow.
+      const actionCodeSettings = {
+        url: `${baseUrl}/reset-password`,
+        handleCodeInApp: false,
+      };
+      console.log('🔵 [ACTION] Generating reset link with settings:', actionCodeSettings);
+      firebaseResetLink = await adminAuth.generatePasswordResetLink(email, actionCodeSettings);
+    } catch (settingsErr: any) {
+      console.warn(
+        '⚠️ [ACTION] generatePasswordResetLink with settings failed, retrying without:',
+        settingsErr?.message,
+      );
+      // Fallback: no settings. Firebase uses its default action URL but we
+      // still extract the oobCode and build our own branded link below.
+      firebaseResetLink = await adminAuth.generatePasswordResetLink(email);
+    }
     console.log('✅ [ACTION] Password reset link generated successfully');
 
     // Extract the oobCode from Firebase's link and create our custom link
@@ -43,8 +59,15 @@ export async function generatePasswordResetLink({ email }: { email: string }) {
 
     return { success: true, message: 'Password reset email sent.' };
   } catch (error: any) {
-    console.error('❌ [ACTION] Failed to generate password reset link:', error);
-    
+    // Verbose error logging — INTERNAL ASSERT FAILED hides the real cause
+    // unless we also dump errorInfo. The Identity Toolkit error code lives
+    // there (e.g. EMAIL_NOT_FOUND, INVALID_PROVIDER_ID, etc.).
+    console.error('❌ [ACTION] Failed to generate password reset link:');
+    console.error('  message:', error?.message);
+    console.error('  code:', error?.code);
+    console.error('  errorInfo:', JSON.stringify(error?.errorInfo, null, 2));
+    console.error('  stack:', String(error?.stack || '').split('\n').slice(0, 4).join('\n'));
+
     if (error.code === 'auth/user-not-found') {
       // Return success even if user not found (security best practice)
       console.log('🔵 [ACTION] User not found, but returning success for security');
