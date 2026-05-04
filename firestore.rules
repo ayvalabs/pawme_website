@@ -99,6 +99,9 @@ service cloud.firestore {
       match /trainingSessions/{recId} {
         allow read, write: if isAdmin() || isPetOwner(petId);
       }
+      match /trackerImports/{recId} {
+        allow read, write: if isAdmin() || isPetOwner(petId);
+      }
     }
 
     // Rules for the 'verifications' collection

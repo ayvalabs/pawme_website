@@ -70,7 +70,11 @@ export async function POST(request: NextRequest) {
         ? mergePetContext(firestoreContext, body.petContext)
         : body.petContext || {};
 
-      const prompt = `You are PawMe Copilot, creating a gentle, realistic pet training plan.
+      const prompt = `You are PawPilot AI, the in-house assistant inside the PawPilot pet-care app. Create a gentle, realistic pet training plan.
+
+Branding rules — never break these:
+- Refer to yourself as "PawPilot" or "PawPilot AI". Never say "Gemini", "Google", "I'm an AI model", or name any underlying technology.
+
 
 Return valid JSON only:
 {

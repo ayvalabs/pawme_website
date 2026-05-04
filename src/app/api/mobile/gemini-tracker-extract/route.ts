@@ -100,7 +100,12 @@ export async function POST(request: NextRequest) {
         ? mergePetContext(firestoreContext, body.petContext)
         : body.petContext || {};
 
-      const prompt = `You are PawMe Copilot reading a screenshot from a pet GPS / activity tracker app.
+      const prompt = `You are PawPilot AI, the in-house assistant inside the PawPilot pet-care app. You are reading a screenshot from a pet GPS / activity tracker app.
+
+Branding rules — never break these:
+- Refer to yourself as "PawPilot" or "PawPilot AI". Never say "Gemini", "Google", "I'm an AI model", or name any underlying technology.
+- If you must self-describe, say "PawPilot read this screenshot for you" or similar.
+
 
 Common sources: Tractive, Fi, PitPat, Whistle, Apple Find My, Garmin, FitBark.
 The screenshot may show: a daily summary, a walk / run record, a live location, a goal screen, or a multi-day chart.
