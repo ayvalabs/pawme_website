@@ -87,3 +87,23 @@ The migration assumes pawme_website's Firestore project (`pawme-bc0a0`) is the s
 - [ ] Smoke each route with curl against a Firebase App Hosting preview channel before promoting.
 - [ ] Confirm pawpilot's S2S webhook URL has been swapped (otherwise IAP events for pawme bundle will be silently dropped on pawme side).
 - [ ] After deploy, remove the proxy URLs from any leftover docs and decommission pawpilot_website routes.
+
+---
+
+## Phase 3 — Printed passport orders (PR feat/v2-phase3-printed-passport)
+
+**New env vars required:**
+- `STRIPE_PUBLISHABLE_KEY` — returned to the mobile app so the Payment Sheet can init. Likely already set for the existing checkout flow; verify on Firebase App Hosting deployment.
+
+**Reuses existing:**
+- `STRIPE_SECRET_KEY` — server-side PaymentIntent creation
+- `STRIPE_WEBHOOK_SECRET` — signature verification for the unified stripe webhook (extended in this PR, not a new endpoint)
+
+**Stripe dashboard tasks (before deploy):**
+- Enable Apple Pay + Google Pay under Payment Methods (Stripe handles the SDK glue)
+- Apple Pay domain verification — only if web checkout is added later; not needed for the in-app Payment Sheet
+- No new webhook endpoint — the existing `/api/webhooks/stripe` route now dispatches on `metadata.type`
+
+**Pending product decision:** POD provider for fulfillment (Gelato / Printful / Lob). Currently webhook marks order `paid` and leaves a TODO; pick a provider and the dispatch glue gets added in a follow-up.
+
+**Shipping table:** flat country-band rates in `src/lib/passport-pricing.ts`. Swap for POD-quoted rates when provider is wired.
