@@ -87,3 +87,41 @@ The migration assumes pawme_website's Firestore project (`pawme-bc0a0`) is the s
 - [ ] Smoke each route with curl against a Firebase App Hosting preview channel before promoting.
 - [ ] Confirm pawpilot's S2S webhook URL has been swapped (otherwise IAP events for pawme bundle will be silently dropped on pawme side).
 - [ ] After deploy, remove the proxy URLs from any leftover docs and decommission pawpilot_website routes.
+
+---
+
+## Coupon/KOL Admin Migration (PR feat/v2-admin-coupon-kol-migration)
+
+**New env vars required on Firebase App Hosting (set before deploy):**
+
+- `ADMIN_PASSWORD` — shared admin password. Server-side only. Admin pages
+  HMAC this against the seed `pm_admin_v1` and store in `pm_admin` cookie
+  (httpOnly, secure, 7-day). Pick a long random string; rotate via
+  redeploy.
+- `FIREBASE_SERVICE_ACCOUNT` — full service-account JSON (already used
+  by firebase-admin). The new ga4.ts client reuses it to JWT-sign GA4
+  Data API requests. Service-account email must be granted at least
+  "Viewer" on the GA4 property (Admin → Property Access Management).
+- `GA4_PROPERTY_ID` — defaults to `520086205` (PawMe property). Override
+  if the GA4 property changes.
+- `REVENUECAT_SECRET_API_KEY` — required by pawme-rc.ts (isUserPro +
+  grantProEntitlement). Same key used by the existing /api/mobile/promo/redeem.
+  Pawme RC project not yet created at time of port; once created, set
+  this and the lib starts working.
+
+**Brand changes vs pawpilot:**
+- cookie `pp_admin` → `pm_admin`
+- HMAC seed `pp_admin_v1` → `pm_admin_v1` (consistent across all 3
+  callers — admin-gate + 2 API routes that recompute it)
+- session cookie `pawpilot_session` → `pawme_session`
+- referral host `pawpilot.xyz` → `pawme.ayvalabs.com`
+- brand text `PawPilot Admin` → `PawMe Admin`
+
+**Firestore collections used (same pawme-bc0a0 project as the rest):**
+- `kols/{code}`, `kols/{code}/stats/latest`, `kols/{code}/posts/{id}`
+- `promoCodes/{CODE}`, `promoRedemptions/{auto}`
+- `users/{uid}` (read-only from admin for user list)
+- `pushCampaigns/{auto}` (push-campaign route writes here)
+
+**Not yet tested in production** — verify ADMIN_PASSWORD login flow +
+GA4 reads + RC grant on a preview deployment before merging.
