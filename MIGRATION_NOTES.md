@@ -87,3 +87,22 @@ The migration assumes pawme_website's Firestore project (`pawme-bc0a0`) is the s
 - [ ] Smoke each route with curl against a Firebase App Hosting preview channel before promoting.
 - [ ] Confirm pawpilot's S2S webhook URL has been swapped (otherwise IAP events for pawme bundle will be silently dropped on pawme side).
 - [ ] After deploy, remove the proxy URLs from any leftover docs and decommission pawpilot_website routes.
+
+---
+
+## Shop physical-goods orders (PR feat/v2-shop-physical-orders)
+
+Adds direct-sale physical goods to the existing Shop (alongside affiliate
+products). Same Stripe Payment Sheet pattern as Phase 3 passport + Phase 4
+tag — Apple Pay / Google Pay automatic via `automatic_payment_methods`.
+
+**New env vars required:** none beyond Phase 3.
+
+**Schema extension** on `shop-products/{id}`:
+  fulfillmentType: 'affiliate' | 'physical'   (default 'affiliate')
+  priceCents:      number                     (required when 'physical')
+  currency:        string                     (default 'usd')
+  stockUnits:      number                     (optional, decremented on fulfillment)
+
+Add a product manually via Firestore until the admin UI extends to support
+physical products (admin migration PR #4 covers promo/KOL but not products).

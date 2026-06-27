@@ -79,12 +79,40 @@ export async function POST(request: NextRequest) {
       case 'payment_intent.succeeded': {
         const paymentIntent = event.data.object as Stripe.PaymentIntent;
         console.log('✅ Payment succeeded:', paymentIntent.id);
+
+        // Shop physical-goods order (first-party direct sale via Stripe).
+        // Pre-created at PaymentIntent creation; orderId on metadata.
+        if (paymentIntent.metadata?.type === 'shop_physical') {
+          const orderId = paymentIntent.metadata.orderId;
+          if (orderId) {
+            await adminDb.collection('shopOrders').doc(orderId).update({
+              status: 'paid',
+              paidAt: new Date().toISOString(),
+              stripeChargeId: paymentIntent.latest_charge ?? null,
+            });
+            console.log('✅ Shop order marked paid:', orderId);
+            // TODO: decrement shop-products/{productId}.stockUnits and
+            // dispatch to 3PL once a fulfillment provider is chosen.
+          }
+        }
         break;
       }
 
       case 'payment_intent.payment_failed': {
         const paymentIntent = event.data.object as Stripe.PaymentIntent;
         console.error('❌ Payment failed:', paymentIntent.id);
+
+        if (paymentIntent.metadata?.type === 'shop_physical') {
+          const orderId = paymentIntent.metadata.orderId;
+          if (orderId) {
+            await adminDb.collection('shopOrders').doc(orderId).update({
+              status: 'failed',
+              failedAt: new Date().toISOString(),
+              failureCode: paymentIntent.last_payment_error?.code ?? null,
+              failureMessage: paymentIntent.last_payment_error?.message ?? null,
+            });
+          }
+        }
         break;
       }
 
