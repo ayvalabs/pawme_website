@@ -31,4 +31,16 @@ if (!admin.apps.length) {
 
 export const adminAuth = admin.auth();
 export const adminDb = admin.firestore();
+
+// Drop `undefined` fields on write instead of throwing. Without this, writing a
+// doc that has an optional field left unset (e.g. discount.productId on a promo
+// code) fails with "Cannot use 'undefined' as a Firestore value". Must run once
+// before any Firestore op; guarded so dev hot-reload re-runs don't throw
+// "Firestore has already been initialized".
+try {
+  adminDb.settings({ ignoreUndefinedProperties: true });
+} catch {
+  /* settings already applied (hot reload) — safe to ignore */
+}
+
 export default admin;

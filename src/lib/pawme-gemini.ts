@@ -39,10 +39,21 @@ function cleanGeminiText(text: string) {
   return text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
 }
 
+export interface GeminiUsage {
+  /** Tokens we sent (prompt + image patches). */
+  inputTokens: number;
+  /** Tokens Gemini returned in the response. */
+  outputTokens: number;
+  /** inputTokens + outputTokens — what Google bills against. */
+  totalTokens: number;
+}
+
 export interface GeminiResult {
   text: string;
   modelUsed: string;
   totalMs: number;
+  /** Token counts from the successful call. undefined if Gemini didn't return usageMetadata. */
+  usage?: GeminiUsage;
   attempts: Array<{ model: string; ok: boolean; status?: number; durationMs: number; error?: string }>;
 }
 
@@ -99,6 +110,23 @@ async function runGeminiRequest(
         .join('\n') || '';
 
       if (text) {
+        // Capture token usage so the caller can record per-user spend.
+        // Gemini exposes this on `usageMetadata`. Some older models return
+        // it under different keys — we read defensively.
+        const meta = (data?.usageMetadata || {}) as Record<string, number | undefined>;
+        const inputTokens =
+          (meta.promptTokenCount as number | undefined) ??
+          (meta.promptTokens as number | undefined) ??
+          0;
+        const outputTokens =
+          (meta.candidatesTokenCount as number | undefined) ??
+          (meta.candidatesTokens as number | undefined) ??
+          0;
+        const totalTokens =
+          (meta.totalTokenCount as number | undefined) ??
+          (meta.totalTokens as number | undefined) ??
+          inputTokens + outputTokens;
+
         attempts.push({ model, ok: true, status: 200, durationMs });
         logApi('info', {
           requestId: ctx?.requestId || 'no-req-id',
@@ -107,8 +135,16 @@ async function runGeminiRequest(
           model,
           durationMs,
           textLength: text.length,
+          inputTokens,
+          outputTokens,
         });
-        return { text, modelUsed: model, totalMs: Date.now() - overallStart, attempts };
+        return {
+          text,
+          modelUsed: model,
+          totalMs: Date.now() - overallStart,
+          usage: { inputTokens, outputTokens, totalTokens },
+          attempts,
+        };
       }
 
       lastError = 'Gemini returned an empty response';
@@ -191,7 +227,7 @@ export async function generateGeminiJson<T>(
   imageBase64?: string,
   mimeType?: string,
   ctx?: GeminiContext,
-): Promise<{ data: T; modelUsed: string; totalMs: number }> {
+): Promise<{ data: T; modelUsed: string; totalMs: number; usage?: GeminiUsage }> {
   const parts: Array<Record<string, unknown>> = [{ text: prompt }];
   if (imageBase64) {
     const cleanBase64 = imageBase64.replace(/^data:.+;base64,/, '');
@@ -216,7 +252,7 @@ export async function generateGeminiJson<T>(
 
   try {
     const parsed = JSON.parse(cleaned) as T;
-    return { data: parsed, modelUsed: result.modelUsed, totalMs: result.totalMs };
+    return { data: parsed, modelUsed: result.modelUsed, totalMs: result.totalMs, usage: result.usage };
   } catch (error) {
     const preview = cleaned.slice(0, 1200);
     logApi('error', {
@@ -246,7 +282,7 @@ export async function generateGeminiJsonMulti<T>(
   prompt: string,
   frames: GeminiFrame[],
   ctx?: GeminiContext,
-): Promise<{ data: T; modelUsed: string; totalMs: number }> {
+): Promise<{ data: T; modelUsed: string; totalMs: number; usage?: GeminiUsage }> {
   const parts: Array<Record<string, unknown>> = [{ text: prompt }];
 
   for (const frame of frames) {
@@ -269,7 +305,7 @@ export async function generateGeminiJsonMulti<T>(
 
   try {
     const parsed = JSON.parse(cleaned) as T;
-    return { data: parsed, modelUsed: result.modelUsed, totalMs: result.totalMs };
+    return { data: parsed, modelUsed: result.modelUsed, totalMs: result.totalMs, usage: result.usage };
   } catch (error) {
     const preview = cleaned.slice(0, 1200);
     logApi('error', {

@@ -30,11 +30,38 @@ export async function requireMobileUser(request: NextRequest): Promise<{ uid: st
   const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
 
   if (!token) {
-    throw new Error('Missing Authorization bearer token');
+    const e = new Error('Missing Authorization bearer token') as Error & { statusCode?: number };
+    e.statusCode = 401;
+    throw e;
   }
 
-  const decoded = await adminAuth.verifyIdToken(token);
-  return { uid: decoded.uid };
+  try {
+    const decoded = await adminAuth.verifyIdToken(token);
+    return { uid: decoded.uid };
+  } catch {
+    // Invalid / expired / malformed token — surface as 401, not a 500.
+    const e = new Error('Invalid or expired authentication token') as Error & { statusCode?: number };
+    e.statusCode = 401;
+    throw e;
+  }
+}
+
+/**
+ * Like requireMobileUser but never throws. Returns the uid when a valid
+ * bearer token is present (anonymous or signed-in), otherwise null. Use for
+ * endpoints that are reachable pre-signup (e.g. onboarding breed analysis)
+ * but still want to attribute AI cost to a user when one exists.
+ */
+export async function optionalMobileUser(request: NextRequest): Promise<{ uid: string | null }> {
+  const authHeader = request.headers.get('authorization') || '';
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+  if (!token) return { uid: null };
+  try {
+    const decoded = await adminAuth.verifyIdToken(token);
+    return { uid: decoded.uid };
+  } catch {
+    return { uid: null };
+  }
 }
 
 export async function getOwnedPetContext(

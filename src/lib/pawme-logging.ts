@@ -52,6 +52,46 @@ export function base64ApproxBytes(base64: string | undefined | null): number {
   return Math.max(0, Math.floor(trimmed.length * 0.75) - padding);
 }
 
+/** Keys whose values are redacted in logs (binary / credential data). */
+const LOG_REDACT_KEYS = new Set([
+  'imageBase64', 'base64', 'jwsRepresentation', 'purchaseToken',
+  'originalJson', 'signature',
+]);
+
+/**
+ * Recursively sanitise a value for structured logging:
+ *   – redacts known large/sensitive keys
+ *   – truncates strings >400 chars
+ *   – caps arrays at 20 items
+ *   – stops recursing after 4 levels
+ */
+export function sanitizeForLog(value: unknown, depth = 0): unknown {
+  if (depth > 4) return '[deep]';
+  if (value === null || value === undefined) return value;
+  if (typeof value === 'string') {
+    return value.length > 400 ? `${value.slice(0, 400)}\u2026(+${value.length - 400})` : value;
+  }
+  if (typeof value === 'number' || typeof value === 'boolean') return value;
+  if (Array.isArray(value)) {
+    const sliced = value.slice(0, 20).map((item) => sanitizeForLog(item, depth + 1));
+    return value.length > 20 ? [...sliced, `\u2026(+${value.length - 20} more)`] : sliced;
+  }
+  if (typeof value === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      if (LOG_REDACT_KEYS.has(k)) {
+        out[k] = typeof v === 'string' ? `[${v.length} chars redacted]` : '[redacted]';
+      } else if (k === 'frames' && Array.isArray(v)) {
+        out[k] = `[${v.length} frame(s) redacted]`;
+      } else {
+        out[k] = sanitizeForLog(v, depth + 1);
+      }
+    }
+    return out;
+  }
+  return value;
+}
+
 export function logApi(level: LogLevel, fields: LogFields) {
   const payload = {
     ts: new Date().toISOString(),
@@ -83,6 +123,27 @@ export async function runApi<T>(
   const requestId = getRequestId(opts.request);
   const start = Date.now();
 
+  // Best-effort: capture a sanitized snapshot of the incoming request for logging.
+  let reqLog: Record<string, unknown> | undefined;
+  try {
+    const method = opts.request.method.toUpperCase();
+    if (method === 'GET') {
+      const params: Record<string, string> = {};
+      opts.request.nextUrl.searchParams.forEach((v, k) => { params[k] = v; });
+      if (Object.keys(params).length) reqLog = params;
+    } else {
+      const ct = opts.request.headers.get('content-type') ?? '';
+      if (ct.includes('application/json')) {
+        const raw = await opts.request.clone().json().catch(() => null);
+        if (raw && typeof raw === 'object') {
+          reqLog = sanitizeForLog(raw) as Record<string, unknown>;
+        }
+      }
+    }
+  } catch {
+    // best-effort — never block the actual handler
+  }
+
   let extraInfo: Partial<LogFields> = {};
   const logInfo = (f: Partial<LogFields>) => {
     extraInfo = { ...extraInfo, ...f };
@@ -92,6 +153,8 @@ export async function runApi<T>(
     requestId,
     endpoint: opts.endpoint,
     event: 'start',
+    method: opts.request.method,
+    ...(reqLog ? { requestBody: reqLog } : {}),
     ...opts.extraFields,
   });
 
@@ -104,6 +167,7 @@ export async function runApi<T>(
       event: 'done',
       durationMs,
       success: true,
+      responseBody: sanitizeForLog(result),
       ...opts.extraFields,
       ...extraInfo,
     });
