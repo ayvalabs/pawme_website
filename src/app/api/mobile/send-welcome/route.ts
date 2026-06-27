@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sendWelcomeEmail } from '@/app/actions/email';
+import { requireMobileUser } from '@/lib/pawme-mobile';
 
+// Auth: requires a Firebase ID token (Bearer). Anonymous-auth users accepted —
+// the gate is to prevent unauthenticated email-send abuse (Resend bill / inbox spam).
 export async function POST(request: NextRequest) {
   try {
+    await requireMobileUser(request);
     const { email, name } = await request.json();
 
     if (!email || !name) {
@@ -15,6 +19,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, message: 'Welcome email sent.' });
   } catch (error: any) {
     console.error('[API] send-welcome error:', error);
-    return NextResponse.json({ success: false, message: error?.message || 'Failed to send welcome email.' }, { status: 500 });
+    const status = typeof error?.statusCode === 'number' ? error.statusCode : 500;
+    return NextResponse.json({ success: false, message: error?.message || 'Failed to send welcome email.' }, { status });
   }
 }
