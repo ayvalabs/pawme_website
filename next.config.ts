@@ -28,29 +28,11 @@ const nextConfig: NextConfig = {
         source: '/__/auth/:path*',
         destination: 'https://pawme-bc0a0.firebaseapp.com/__/auth/:path*',
       },
-      // PawPilot Shop proxy: the released mobile app calls www.ayvalabs.com
-      // (this site), but the first-party shop endpoints live on the PawPilot
-      // site. Forward /api/mobile/shop/* to pawpilot.ayvalabs.com so the live
-      // app's Shop tab works without an app rebuild. This site has no
-      // /api/mobile/shop route of its own, so nothing is shadowed.
-      {
-        source: '/api/mobile/shop/:path*',
-        destination: 'https://pawpilot.ayvalabs.com/api/mobile/shop/:path*',
-      },
-      // PawPilot promo / invite proxy: same reason as the shop above. The
-      // released app redeems coupon/influencer codes and generates invite
-      // codes against www.ayvalabs.com, but the promo system (promoCodes
-      // Firestore + RevenueCat grant) only exists on the PawPilot site.
-      // Forward both so coupon redemption + invites work on the live app
-      // without a rebuild. This site has no promo/invite routes to shadow.
-      {
-        source: '/api/mobile/promo/:path*',
-        destination: 'https://pawpilot.ayvalabs.com/api/mobile/promo/:path*',
-      },
-      {
-        source: '/api/mobile/invite/:path*',
-        destination: 'https://pawpilot.ayvalabs.com/api/mobile/invite/:path*',
-      },
+      // Mobile API routes for shop / promo / invite were previously proxied
+      // to pawpilot.ayvalabs.com while pawme_website didn't host them.
+      // Removed on 2026-06-27 — the v2 mobile-api-port branch now hosts
+      // these routes locally (src/app/api/mobile/{shop,promo,invite}/...),
+      // and the PawMe app (v2.0) hits pawme.ayvalabs.com directly.
     ];
   },
 };
