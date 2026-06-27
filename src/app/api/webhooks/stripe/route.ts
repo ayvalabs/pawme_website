@@ -79,12 +79,40 @@ export async function POST(request: NextRequest) {
       case 'payment_intent.succeeded': {
         const paymentIntent = event.data.object as Stripe.PaymentIntent;
         console.log('✅ Payment succeeded:', paymentIntent.id);
+
+        // QR collar tag (Phase 4). Order pre-created at PaymentIntent
+        // creation time; orderId is on metadata.
+        if (paymentIntent.metadata?.type === 'qr_collar_tag') {
+          const orderId = paymentIntent.metadata.orderId;
+          if (orderId) {
+            await adminDb.collection('tagOrders').doc(orderId).update({
+              status: 'paid',
+              paidAt: new Date().toISOString(),
+              stripeChargeId: paymentIntent.latest_charge ?? null,
+            });
+            console.log('✅ Tag order marked paid:', orderId);
+            // TODO: dispatch to tag manufacturer (engraving + ship). Until
+            // a provider is wired, status stays 'paid' and ops fulfills manually.
+          }
+        }
         break;
       }
 
       case 'payment_intent.payment_failed': {
         const paymentIntent = event.data.object as Stripe.PaymentIntent;
         console.error('❌ Payment failed:', paymentIntent.id);
+
+        if (paymentIntent.metadata?.type === 'qr_collar_tag') {
+          const orderId = paymentIntent.metadata.orderId;
+          if (orderId) {
+            await adminDb.collection('tagOrders').doc(orderId).update({
+              status: 'failed',
+              failedAt: new Date().toISOString(),
+              failureCode: paymentIntent.last_payment_error?.code ?? null,
+              failureMessage: paymentIntent.last_payment_error?.message ?? null,
+            });
+          }
+        }
         break;
       }
 
