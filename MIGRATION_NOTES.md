@@ -87,3 +87,21 @@ The migration assumes pawme_website's Firestore project (`pawme-bc0a0`) is the s
 - [ ] Smoke each route with curl against a Firebase App Hosting preview channel before promoting.
 - [ ] Confirm pawpilot's S2S webhook URL has been swapped (otherwise IAP events for pawme bundle will be silently dropped on pawme side).
 - [ ] After deploy, remove the proxy URLs from any leftover docs and decommission pawpilot_website routes.
+
+---
+
+## Apple Wallet pet passport pass (PR feat/v2-passport-apple-wallet-backend)
+
+**New env vars (REQUIRED for pass generation; route 503s without them):**
+- `APPLE_PASS_TYPE_ID` — e.g. `pass.ai.ayvalabs.pawme.passport`
+- `APPLE_PASS_CERT_P12_BASE64` — `base64 -i pawme-pass.p12` from the user-generated cert
+- `APPLE_PASS_KEY_PASSWORD` — password set when exporting the .p12
+
+**Public assets needed at `public/wallet-assets/`:**
+- `icon.png` (29×29), `icon@2x.png` (58×58), `logo.png` (160×50), `wwdr.pem` (Apple Worldwide Developer Relations intermediate cert — public, from https://www.apple.com/certificateauthority/)
+
+**Until cert + assets are in place** the route gracefully returns 503 with `{ reason: 'wallet_not_configured' }` — the app shows "Coming soon" alert.
+
+**Apple Developer steps:** Identifiers → Pass Type IDs → New → `pass.ai.ayvalabs.pawme.passport` → generate signing cert → download `.p12` → convert to base64 → set env vars.
+
+**App side** (separate PR feat/v2-passport-apple-wallet-app): "Add to Apple Wallet" button in PetPassport's card actions row, iOS only.
