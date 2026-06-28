@@ -118,3 +118,27 @@ App should route to `PaywallScreen` when it sees `reason === 'free_limit_reached
 **Pro detection:** reads `users/{uid}.isPro === true`. Set by the RC webhook handler (existing) on subscription start.
 
 **Counter source:** `users/{uid}/aiUsage/{YYYY-MM}.callCount` — same doc that `pawme-cost-tracking.ts:recordAiUsage` already writes. No new collection.
+
+### Note on the two usage-gating libs
+
+This PR adds `src/lib/ai-allowance.ts` BUT the codebase already had
+`src/lib/pawme-usage.ts` doing similar work (it gates gemini-chat,
+gemini-photo-scan, gemini-symptoms, training via `assertAndBumpUsage`).
+
+For this PR we removed the redundant `requireWithinFreeTier` calls on
+gemini-chat + gemini-photo-scan (the existing `assertAndBumpUsage` fires
+first and is more sophisticated — per-category limits, day/month windows).
+
+`ai-allowance.ts` is wired ONLY into `food/scan` (which had no usage gate
+before). It reads the same `users/{uid}/aiUsage/{YYYY-MM}.callCount`
+counter that `pawme-cost-tracking.ts:recordAiUsage` writes — so the
+data already flows.
+
+**Follow-up** (not blocking this PR): pick ONE gate. Either:
+- (a) Migrate `assertAndBumpUsage` callers to `requireWithinFreeTier`
+  (simpler — one counter source, one PR shape)
+- (b) Delete `ai-allowance.ts` and route `food/scan` through
+  `assertAndBumpUsage` with a new 'foodScan' category
+
+(a) is cleaner if you want pooled limits across features. (b) is cleaner
+if you want per-category limits. Pick when this PR lands.
