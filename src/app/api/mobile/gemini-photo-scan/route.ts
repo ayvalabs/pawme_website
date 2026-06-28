@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateGeminiJson } from '@/lib/pawme-gemini';
 import { getOwnedPetContext, mergePetContext, requireMobileUser } from '@/lib/pawme-mobile';
+import { requireWithinFreeTier } from '@/lib/ai-allowance';
 import { base64ApproxBytes, logApi, runApi, safePreview } from '@/lib/pawme-logging';
 import { assertAndBumpUsage, UsageLimitError } from '@/lib/pawme-usage';
 
@@ -94,6 +95,10 @@ export async function POST(request: NextRequest) {
     async ({ requestId: reqId, logInfo }): Promise<PhotoScanResult> => {
       const { uid } = await requireMobileUser(request);
       logInfo({ uid });
+
+      // Free-tier metering (PRD-ai-cost-metering §3) — non-Pro users hit
+      // a monthly cap; over the cap throws structured 402 → app paywall.
+      await requireWithinFreeTier(uid, 'gemini-photo-scan');
 
       const body = await request.json();
 

@@ -87,3 +87,34 @@ The migration assumes pawme_website's Firestore project (`pawme-bc0a0`) is the s
 - [ ] Smoke each route with curl against a Firebase App Hosting preview channel before promoting.
 - [ ] Confirm pawpilot's S2S webhook URL has been swapped (otherwise IAP events for pawme bundle will be silently dropped on pawme side).
 - [ ] After deploy, remove the proxy URLs from any leftover docs and decommission pawpilot_website routes.
+
+---
+
+## AI cost metering — per-user free-tier (PR feat/v2-ai-cost-metering)
+
+**New env var (optional):**
+- `AI_FREE_ALLOWANCE_PER_MONTH` — integer. Default `25`. Per-user
+  monthly AI-call cap. Pro users are unmetered. Anon users (no uid)
+  short-circuit to allow.
+
+**Wired into these high-cost routes** (per PRD §7 step 3):
+- `gemini-photo-scan`
+- `gemini-chat`
+- `food/scan` (only for signed-in users; anon scans always allowed)
+
+**402 response shape** the app must handle:
+```json
+{
+  "success": false,
+  "reason": "free_limit_reached",
+  "feature": "gemini-photo-scan",
+  "used": 25,
+  "allowance": 25,
+  "remaining": 0
+}
+```
+App should route to `PaywallScreen` when it sees `reason === 'free_limit_reached'`.
+
+**Pro detection:** reads `users/{uid}.isPro === true`. Set by the RC webhook handler (existing) on subscription start.
+
+**Counter source:** `users/{uid}/aiUsage/{YYYY-MM}.callCount` — same doc that `pawme-cost-tracking.ts:recordAiUsage` already writes. No new collection.

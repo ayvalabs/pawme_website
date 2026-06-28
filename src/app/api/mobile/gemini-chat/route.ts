@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateGeminiText } from '@/lib/pawme-gemini';
 import { getOwnedPetContext, mergePetContext, requireMobileUser } from '@/lib/pawme-mobile';
+import { requireWithinFreeTier } from '@/lib/ai-allowance';
 import { logApi, runApi, safePreview } from '@/lib/pawme-logging';
 import { assertAndBumpUsage, UsageLimitError } from '@/lib/pawme-usage';
 
@@ -108,6 +109,9 @@ export async function POST(request: NextRequest) {
     async ({ requestId: reqId, logInfo }): Promise<{ response: string }> => {
       const { uid } = await requireMobileUser(request);
       logInfo({ uid });
+
+      // Free-tier metering — see PRD-ai-cost-metering §3.
+      await requireWithinFreeTier(uid, 'gemini-chat');
 
       const body = await request.json();
       const messages = Array.isArray(body.messages) ? body.messages : [];
