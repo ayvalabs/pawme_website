@@ -34,9 +34,24 @@ export async function POST(request: NextRequest) {
 
       const body = await request.json();
 
+      // Guard against empty bodies — calling Gemini with no signal is a
+      // wasted token spend and the response is meaningless. Mirror the
+      // validation pattern in gemini-symptoms / food-scan: require either
+      // currentDiet text OR a petContext (own pet via petId, or the
+      // explicit petContext payload).
+      const hasCurrentDiet = typeof body.currentDiet === 'string' && body.currentDiet.trim().length > 0;
+      const hasPetContext =
+        Boolean(body.petId) ||
+        (body.petContext && typeof body.petContext === 'object' && Object.keys(body.petContext).length > 0);
+      if (!hasCurrentDiet && !hasPetContext) {
+        const err = new Error('Provide currentDiet, petId, or petContext.') as Error & { statusCode?: number };
+        err.statusCode = 400;
+        throw err;
+      }
+
       logInfo({
         hasPetId: Boolean(body.petId),
-        hasCurrentDiet: typeof body.currentDiet === 'string' && body.currentDiet.length > 0,
+        hasCurrentDiet,
       });
 
       let firestoreContext = null;
