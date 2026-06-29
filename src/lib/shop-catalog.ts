@@ -74,6 +74,18 @@ export interface ShopProduct {
    * commerce is live. Undefined is treated as in stock (static catalog).
    */
   inStock?: boolean;
+  /**
+   * Fulfillment model. 'affiliate' = redirect to Amazon/external (current
+   * default). 'physical' = direct sale via Stripe Payment Sheet, fulfilled
+   * by Ayva (requires priceCents + currency). Undefined treated as 'affiliate'.
+   */
+  fulfillmentType?: 'affiliate' | 'physical';
+  /** Direct-sale price in cents. Required when fulfillmentType='physical'. */
+  priceCents?: number;
+  /** Currency code (ISO 4217). Defaults to 'usd' when priceCents set. */
+  currency?: string;
+  /** Stock units left. Undefined = unmetered. 0 = out of stock. */
+  stockUnits?: number;
 }
 
 // Replace these ASINs with real product IDs from your Amazon Associates

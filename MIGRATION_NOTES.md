@@ -157,3 +157,19 @@ data already flows.
 
 (a) is cleaner if you want pooled limits across features. (b) is cleaner
 if you want per-category limits. Pick when this PR lands.
+## Shop physical-goods orders (PR feat/v2-shop-physical-orders)
+
+Adds direct-sale physical goods to the existing Shop (alongside affiliate
+products). Same Stripe Payment Sheet pattern as Phase 3 passport + Phase 4
+tag — Apple Pay / Google Pay automatic via `automatic_payment_methods`.
+
+**New env vars required:** none beyond Phase 3.
+
+**Schema extension** on `shop-products/{id}`:
+  fulfillmentType: 'affiliate' | 'physical'   (default 'affiliate')
+  priceCents:      number                     (required when 'physical')
+  currency:        string                     (default 'usd')
+  stockUnits:      number                     (optional, decremented on fulfillment)
+
+Add a product manually via Firestore until the admin UI extends to support
+physical products (admin migration PR #4 covers promo/KOL but not products).
