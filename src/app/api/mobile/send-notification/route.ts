@@ -6,21 +6,29 @@ import {
   type APNsNotification,
   type APNsSendResult,
 } from '@/lib/apns';
+import { requireMobileUser } from '@/lib/pawme-mobile';
 
 /**
  * Send push notification to a specific user or broadcast to all users via APNs.
  *
  * Body:
- *   - userId?: string        — send to a specific user
+ *   - userId?: string        — send to a specific user (MUST match authed caller for non-broadcast)
  *   - title: string           — notification title
  *   - body: string            — notification body text
  *   - data?: object           — optional data payload (e.g. { screen: 'Pets', petId: '...' })
  *   - badge?: number          — optional badge count
- *   - broadcast?: boolean     — if true, send to all users with push tokens
+ *   - broadcast?: boolean     — if true, send to all users with push tokens (ADMIN ONLY)
  *   - sandbox?: boolean       — if true, use APNs sandbox (for TestFlight / dev builds)
+ *
+ * Auth: requires a Firebase ID token (Bearer). For `broadcast: true` a second
+ * `X-Admin-Token: <ADMIN_PASSWORD>` header is required — without it broadcast
+ * is rejected (any authed user could otherwise spam every device). Non-broadcast
+ * calls require body.userId === decoded.uid (no spoofing).
  */
 export async function POST(request: NextRequest) {
   try {
+    const { uid } = await requireMobileUser(request);
+
     // Validate APNs configuration
     const config = validateAPNsConfig();
     if (!config.valid) {
@@ -37,6 +45,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { success: false, message: 'title and body are required.' },
         { status: 400 },
+      );
+    }
+
+    // Gate broadcast behind a second factor — any authenticated user otherwise
+    // could push to every device. Caller must send X-Admin-Token matching the
+    // ADMIN_PASSWORD env. Without that, broadcast: true is rejected as 403.
+    if (broadcast) {
+      const adminToken = request.headers.get('x-admin-token') || '';
+      const adminSecret = process.env.ADMIN_PASSWORD || '';
+      if (!adminSecret || adminToken !== adminSecret) {
+        return NextResponse.json(
+          { success: false, message: 'Broadcast requires X-Admin-Token header matching ADMIN_PASSWORD.' },
+          { status: 403 },
+        );
+      }
+    } else if (userId && userId !== uid) {
+      // Non-broadcast: caller can only send to themselves.
+      return NextResponse.json(
+        { success: false, message: 'userId does not match authenticated user.' },
+        { status: 403 },
       );
     }
 
@@ -138,9 +166,10 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('[send-notification] Error:', error);
+    const status = typeof error?.statusCode === 'number' ? error.statusCode : 500;
     return NextResponse.json(
       { success: false, message: error?.message || 'Failed to send notification.' },
-      { status: 500 },
+      { status },
     );
   }
 }
