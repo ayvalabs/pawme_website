@@ -95,6 +95,24 @@ export async function POST(request: NextRequest) {
             // dispatch to 3PL once a fulfillment provider is chosen.
           }
         }
+
+        // Printed-passport order (Phase 3). We pre-created the orderId at
+        // PaymentIntent creation time and stashed it in metadata.
+        if (paymentIntent.metadata?.type === 'printed_passport') {
+          const orderId = paymentIntent.metadata.orderId;
+          if (orderId) {
+            await adminDb.collection('passportOrders').doc(orderId).update({
+              status: 'paid',
+              paidAt: new Date().toISOString(),
+              stripeChargeId: paymentIntent.latest_charge ?? null,
+            });
+            console.log('✅ Passport order marked paid:', orderId);
+            // TODO: dispatch to POD provider here (Gelato / Printful / Lob).
+            // The order doc has address, petId, petName — pull pet photo + the
+            // saved passport snapshot from `passports/` and submit the print
+            // job. On success, write { status: 'in_production', podJobId }.
+          }
+        }
         break;
       }
 
@@ -106,6 +124,18 @@ export async function POST(request: NextRequest) {
           const orderId = paymentIntent.metadata.orderId;
           if (orderId) {
             await adminDb.collection('shopOrders').doc(orderId).update({
+              status: 'failed',
+              failedAt: new Date().toISOString(),
+              failureCode: paymentIntent.last_payment_error?.code ?? null,
+              failureMessage: paymentIntent.last_payment_error?.message ?? null,
+            });
+          }
+        }
+
+        if (paymentIntent.metadata?.type === 'printed_passport') {
+          const orderId = paymentIntent.metadata.orderId;
+          if (orderId) {
+            await adminDb.collection('passportOrders').doc(orderId).update({
               status: 'failed',
               failedAt: new Date().toISOString(),
               failureCode: paymentIntent.last_payment_error?.code ?? null,
