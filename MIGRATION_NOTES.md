@@ -190,3 +190,20 @@ physical products (admin migration PR #4 covers promo/KOL but not products).
 **Pending product decision:** POD provider for fulfillment (Gelato / Printful / Lob). Currently webhook marks order `paid` and leaves a TODO; pick a provider and the dispatch glue gets added in a follow-up.
 
 **Shipping table:** flat country-band rates in `src/lib/passport-pricing.ts`. Swap for POD-quoted rates when provider is wired.
+## Phase 4 — QR collar tag + lost-pet found-relay (PR feat/v2-phase4-collar-tag-found-view)
+
+**New env vars required:** none beyond Phase 3.
+
+**Reuses existing:**
+- `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PUBLISHABLE_KEY`
+- `RESEND_API_KEY`, `SENDER_EMAIL` (owner notification on found-report)
+- APNs config (`APNS_KEY_CONTENT`, `APNS_KEY_ID`, `APNS_TEAM_ID`) — push to owner on found-report
+
+**New routes/pages:**
+- `POST /api/mobile/tag/order/create` — sells $14.99 QR collar tag (Stripe Payment Sheet)
+- `POST /api/pet/[petId]/found` — public (no auth), throttled, finder → owner relay
+- `/found/[petId]` page — public mobile-friendly form, no app install required
+
+**Pending product decisions:**
+- Tag manufacturer (engrave-on-demand vendor). Webhook leaves a TODO for dispatch.
+- SMS provider for owner notification (currently push + email only). Twilio recommended if SMS desired.

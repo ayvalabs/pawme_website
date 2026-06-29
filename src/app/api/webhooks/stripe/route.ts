@@ -96,6 +96,22 @@ export async function POST(request: NextRequest) {
           }
         }
 
+        // QR collar tag (Phase 4). Order pre-created at PaymentIntent
+        // creation time; orderId is on metadata.
+        if (paymentIntent.metadata?.type === 'qr_collar_tag') {
+          const orderId = paymentIntent.metadata.orderId;
+          if (orderId) {
+            await adminDb.collection('tagOrders').doc(orderId).update({
+              status: 'paid',
+              paidAt: new Date().toISOString(),
+              stripeChargeId: paymentIntent.latest_charge ?? null,
+            });
+            console.log('✅ Tag order marked paid:', orderId);
+            // TODO: dispatch to tag manufacturer (engraving + ship). Until
+            // a provider is wired, status stays 'paid' and ops fulfills manually.
+          }
+        }
+
         // Printed-passport order (Phase 3). We pre-created the orderId at
         // PaymentIntent creation time and stashed it in metadata.
         if (paymentIntent.metadata?.type === 'printed_passport') {
@@ -124,6 +140,18 @@ export async function POST(request: NextRequest) {
           const orderId = paymentIntent.metadata.orderId;
           if (orderId) {
             await adminDb.collection('shopOrders').doc(orderId).update({
+              status: 'failed',
+              failedAt: new Date().toISOString(),
+              failureCode: paymentIntent.last_payment_error?.code ?? null,
+              failureMessage: paymentIntent.last_payment_error?.message ?? null,
+            });
+          }
+        }
+
+        if (paymentIntent.metadata?.type === 'qr_collar_tag') {
+          const orderId = paymentIntent.metadata.orderId;
+          if (orderId) {
+            await adminDb.collection('tagOrders').doc(orderId).update({
               status: 'failed',
               failedAt: new Date().toISOString(),
               failureCode: paymentIntent.last_payment_error?.code ?? null,
