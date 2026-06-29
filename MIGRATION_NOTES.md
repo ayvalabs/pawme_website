@@ -105,3 +105,55 @@ The migration assumes pawme_website's Firestore project (`pawme-bc0a0`) is the s
 **Apple Developer steps:** Identifiers → Pass Type IDs → New → `pass.ai.ayvalabs.pawme.passport` → generate signing cert → download `.p12` → convert to base64 → set env vars.
 
 **App side** (separate PR feat/v2-passport-apple-wallet-app): "Add to Apple Wallet" button in PetPassport's card actions row, iOS only.
+## AI cost metering — per-user free-tier (PR feat/v2-ai-cost-metering)
+
+**New env var (optional):**
+- `AI_FREE_ALLOWANCE_PER_MONTH` — integer. Default `25`. Per-user
+  monthly AI-call cap. Pro users are unmetered. Anon users (no uid)
+  short-circuit to allow.
+
+**Wired into these high-cost routes** (per PRD §7 step 3):
+- `gemini-photo-scan`
+- `gemini-chat`
+- `food/scan` (only for signed-in users; anon scans always allowed)
+
+**402 response shape** the app must handle:
+```json
+{
+  "success": false,
+  "reason": "free_limit_reached",
+  "feature": "gemini-photo-scan",
+  "used": 25,
+  "allowance": 25,
+  "remaining": 0
+}
+```
+App should route to `PaywallScreen` when it sees `reason === 'free_limit_reached'`.
+
+**Pro detection:** reads `users/{uid}.isPro === true`. Set by the RC webhook handler (existing) on subscription start.
+
+**Counter source:** `users/{uid}/aiUsage/{YYYY-MM}.callCount` — same doc that `pawme-cost-tracking.ts:recordAiUsage` already writes. No new collection.
+
+### Note on the two usage-gating libs
+
+This PR adds `src/lib/ai-allowance.ts` BUT the codebase already had
+`src/lib/pawme-usage.ts` doing similar work (it gates gemini-chat,
+gemini-photo-scan, gemini-symptoms, training via `assertAndBumpUsage`).
+
+For this PR we removed the redundant `requireWithinFreeTier` calls on
+gemini-chat + gemini-photo-scan (the existing `assertAndBumpUsage` fires
+first and is more sophisticated — per-category limits, day/month windows).
+
+`ai-allowance.ts` is wired ONLY into `food/scan` (which had no usage gate
+before). It reads the same `users/{uid}/aiUsage/{YYYY-MM}.callCount`
+counter that `pawme-cost-tracking.ts:recordAiUsage` writes — so the
+data already flows.
+
+**Follow-up** (not blocking this PR): pick ONE gate. Either:
+- (a) Migrate `assertAndBumpUsage` callers to `requireWithinFreeTier`
+  (simpler — one counter source, one PR shape)
+- (b) Delete `ai-allowance.ts` and route `food/scan` through
+  `assertAndBumpUsage` with a new 'foodScan' category
+
+(a) is cleaner if you want pooled limits across features. (b) is cleaner
+if you want per-category limits. Pick when this PR lands.

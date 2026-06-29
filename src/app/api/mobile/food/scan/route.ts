@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { generateGeminiJson } from '@/lib/pawme-gemini';
 import { recordAiUsage } from '@/lib/pawme-cost-tracking';
 import { optionalMobileUser } from '@/lib/pawme-mobile';
+import { requireWithinFreeTier } from '@/lib/ai-allowance';
 import { base64ApproxBytes, runApi } from '@/lib/pawme-logging';
 import { scoreFood, type FoodScore } from '@/lib/pawme-food-scoring';
 
@@ -118,6 +119,10 @@ export async function POST(request: NextRequest) {
     { endpoint: ENDPOINT, request },
     async ({ requestId: reqId, logInfo }): Promise<ScanResponse> => {
       const { uid } = await optionalMobileUser(request);
+      // Free-tier metering — only for signed-in users (anon scans are
+      // reachable pre-signup as hero acquisition). When uid is null,
+      // requireWithinFreeTier short-circuits to allow.
+      await requireWithinFreeTier(uid, 'food-scan');
       const body = await request.json();
       const barcode: string | undefined = body?.barcode ? String(body.barcode).trim() : undefined;
       const imageBase64: string | undefined = body?.imageBase64;
