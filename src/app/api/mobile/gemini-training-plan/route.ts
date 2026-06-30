@@ -3,6 +3,7 @@ import { generateGeminiJson } from '@/lib/pawme-gemini';
 import { getOwnedPetContext, mergePetContext, requireMobileUser } from '@/lib/pawme-mobile';
 import { logApi, runApi } from '@/lib/pawme-logging';
 import { assertAndBumpUsage, UsageLimitError } from '@/lib/pawme-usage';
+import { recordAiUsage } from '@/lib/pawme-cost-tracking';
 
 /**
  * POST /api/mobile/gemini-training-plan
@@ -155,10 +156,11 @@ Rules:
 - No markdown. No emoji.`;
 
       try {
-        const { data } = await generateGeminiJson<TrainingPlan>(prompt, undefined, undefined, {
+        const { data, modelUsed, usage } = await generateGeminiJson<TrainingPlan>(prompt, undefined, undefined, {
           requestId: rid,
           endpoint: ENDPOINT,
         });
+        void recordAiUsage({ userId: uid, endpoint: ENDPOINT, model: modelUsed, usage, requestId: rid });
         return { ...data, skill, petName };
       } catch (e: any) {
         logApi('warn', { requestId: rid, endpoint: ENDPOINT, event: 'fallback', reason: e?.message });

@@ -46,15 +46,56 @@ export interface GeminiUsage {
   outputTokens: number;
   /** inputTokens + outputTokens — what Google bills against. */
   totalTokens: number;
+  /** Estimated cost in USD based on model pricing. */
+  estimatedCostUsd: number;
 }
 
 export interface GeminiResult {
   text: string;
   modelUsed: string;
   totalMs: number;
-  /** Token counts from the successful call. undefined if Gemini didn't return usageMetadata. */
+  /** Token counts + cost from the successful call. undefined if Gemini didn't return usageMetadata. */
   usage?: GeminiUsage;
   attempts: Array<{ model: string; ok: boolean; status?: number; durationMs: number; error?: string }>;
+}
+
+/** _meta block attached to every API response so the client can show confidence + cost. */
+export interface GeminiMeta {
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+  costUsd: number;
+  latencyMs: number;
+  /** 0–100 confidence score extracted from the AI response, or null if unavailable. */
+  confidence: number | null;
+}
+
+// Pricing per 1M tokens (USD) as of June 2026.
+// https://ai.google.dev/pricing
+const MODEL_PRICING: Record<string, { inputPer1M: number; outputPer1M: number }> = {
+  'gemini-2.5-flash':   { inputPer1M: 0.075,  outputPer1M: 0.30  },
+  'gemini-2.5-pro':     { inputPer1M: 1.25,   outputPer1M: 10.00 },
+  'gemini-flash-latest':{ inputPer1M: 0.075,  outputPer1M: 0.30  },
+  'gemini-1.5-flash':   { inputPer1M: 0.075,  outputPer1M: 0.30  },
+  'gemini-1.5-pro':     { inputPer1M: 1.25,   outputPer1M: 5.00  },
+};
+
+export function estimateCostUsd(model: string, inputTokens: number, outputTokens: number): number {
+  const pricing = MODEL_PRICING[model] ?? { inputPer1M: 0.075, outputPer1M: 0.30 };
+  return (inputTokens / 1_000_000) * pricing.inputPer1M
+       + (outputTokens / 1_000_000) * pricing.outputPer1M;
+}
+
+/** Build a _meta block from a GeminiResult + optional confidence extracted by the caller. */
+export function buildGeminiMeta(result: GeminiResult, confidence: number | null = null): GeminiMeta {
+  return {
+    model: result.modelUsed,
+    inputTokens:  result.usage?.inputTokens  ?? 0,
+    outputTokens: result.usage?.outputTokens ?? 0,
+    costUsd:      result.usage?.estimatedCostUsd ?? 0,
+    latencyMs:    result.totalMs,
+    confidence,
+  };
 }
 
 export interface GeminiContext {
@@ -126,6 +167,7 @@ async function runGeminiRequest(
           (meta.totalTokenCount as number | undefined) ??
           (meta.totalTokens as number | undefined) ??
           inputTokens + outputTokens;
+        const estimatedCostUsd = estimateCostUsd(model, inputTokens, outputTokens);
 
         attempts.push({ model, ok: true, status: 200, durationMs });
         logApi('info', {
@@ -137,12 +179,13 @@ async function runGeminiRequest(
           textLength: text.length,
           inputTokens,
           outputTokens,
+          estimatedCostUsd,
         });
         return {
           text,
           modelUsed: model,
           totalMs: Date.now() - overallStart,
-          usage: { inputTokens, outputTokens, totalTokens },
+          usage: { inputTokens, outputTokens, totalTokens, estimatedCostUsd },
           attempts,
         };
       }

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { generateGeminiJson } from '@/lib/pawme-gemini';
 import { getOwnedPetContext, mergePetContext, requireMobileUser } from '@/lib/pawme-mobile';
 import { base64ApproxBytes, logApi, runApi, safePreview } from '@/lib/pawme-logging';
+import { assertAndBumpUsage, UsageLimitError } from '@/lib/pawme-usage';
+import { recordAiUsage } from '@/lib/pawme-cost-tracking';
 
 interface ExtractedMedicalRecord {
   title: string;
@@ -58,10 +60,8 @@ export async function POST(request: NextRequest) {
         throw err;
       }
 
-      logInfo({
-        imageBytes,
-        hasPetId: Boolean(body.petId),
-      });
+      const usageReadout = await assertAndBumpUsage(uid, 'recordExtract');
+      logInfo({ imageBytes, hasPetId: Boolean(body.petId), usage: usageReadout.used, limit: usageReadout.limit });
 
       let firestoreContext = null;
       if (body.petId) {
@@ -129,18 +129,25 @@ ${JSON.stringify(
   2,
 )}`;
 
-      const { data, modelUsed, totalMs } = await generateGeminiJson<ExtractedMedicalRecord>(
+      const { data, modelUsed, totalMs, usage } = await generateGeminiJson<ExtractedMedicalRecord>(
         prompt,
         String(body.imageBase64),
         undefined,
         { requestId: reqId, endpoint: ENDPOINT },
       );
-      logInfo({ model: modelUsed, geminiMs: totalMs });
+      void recordAiUsage({ userId: uid, endpoint: ENDPOINT, model: modelUsed, usage, requestId: reqId });
+      logInfo({ model: modelUsed, geminiMs: totalMs, costUsd: usage?.estimatedCostUsd });
       return data;
     },
   );
 
   if (error) {
+    if (error instanceof UsageLimitError) {
+      return NextResponse.json(
+        { success: false, message: error.message, code: 'usage_limit_reached', category: error.category, used: error.used, limit: error.limit, isPro: error.isPro, requestId },
+        { status: 402, headers: { 'x-request-id': requestId } },
+      );
+    }
     const statusCode =
       typeof (error as any)?.statusCode === 'number' ? (error as any).statusCode : 200;
     if (statusCode >= 400 && statusCode < 500) {

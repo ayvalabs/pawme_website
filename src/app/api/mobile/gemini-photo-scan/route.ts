@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateGeminiJson } from '@/lib/pawme-gemini';
+import { buildGeminiMeta, generateGeminiJson } from '@/lib/pawme-gemini';
 import { getOwnedPetContext, mergePetContext, requireMobileUser } from '@/lib/pawme-mobile';
 import { requireWithinFreeTier } from '@/lib/ai-allowance';
 import { base64ApproxBytes, logApi, runApi, safePreview } from '@/lib/pawme-logging';
 import { assertAndBumpUsage, UsageLimitError } from '@/lib/pawme-usage';
+import { recordAiUsage } from '@/lib/pawme-cost-tracking';
 
 /**
  * POST /api/mobile/gemini-photo-scan
@@ -33,8 +34,9 @@ interface PhotoScanResult {
   recommendations: string[];
   shouldSeeVet: boolean;
   urgency: string;
-  // Optional, scan-specific fields the model may populate
   detectedConditions?: string[];
+  /** 0–100: AI confidence given the image quality and available context. */
+  confidence: number;
 }
 
 const FALLBACK_RESULT = (scanType: ScanType): PhotoScanResult => ({
@@ -49,6 +51,7 @@ const FALLBACK_RESULT = (scanType: ScanType): PhotoScanResult => ({
   ],
   shouldSeeVet: false,
   urgency: 'Re-scan or consult a veterinarian if the symptom persists.',
+  confidence: 0,
 });
 
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // 8 MB decoded
@@ -192,17 +195,20 @@ Rules:
   · emergency = urgent veterinary attention now
 - Include the "AI guidance only" framing in recommendations.`;
 
-      const { data, modelUsed, totalMs } = await generateGeminiJson<PhotoScanResult>(
+      const { data, modelUsed, totalMs, usage: geminiUsage } = await generateGeminiJson<PhotoScanResult>(
         prompt,
         String(body.imageBase64),
         undefined,
         { requestId: reqId, endpoint: ENDPOINT },
       );
 
-      logInfo({ model: modelUsed, geminiMs: totalMs, concernLevel: data?.concernLevel });
-      // Force scanType in the output to whatever the caller asked for, in case
-      // the model echoes the wrong one.
-      return { ...data, scanType: body.scanType as ScanType };
+      void recordAiUsage({ userId: uid, endpoint: ENDPOINT, model: modelUsed, usage: geminiUsage, requestId: reqId });
+      logInfo({ model: modelUsed, geminiMs: totalMs, concernLevel: data?.concernLevel, confidence: data?.confidence, costUsd: geminiUsage?.estimatedCostUsd });
+      return {
+        ...data,
+        scanType: body.scanType as ScanType,
+        _meta: buildGeminiMeta({ text: '', modelUsed, totalMs, usage: geminiUsage, attempts: [] }, data.confidence ?? null),
+      } as PhotoScanResult & { _meta: ReturnType<typeof buildGeminiMeta> };
     },
   );
 

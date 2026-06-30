@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateGeminiText } from '@/lib/pawme-gemini';
+import { buildGeminiMeta, generateGeminiJson } from '@/lib/pawme-gemini';
 import { getOwnedPetContext, mergePetContext, requireMobileUser } from '@/lib/pawme-mobile';
 import { requireWithinFreeTier } from '@/lib/ai-allowance';
 import { logApi, runApi, safePreview } from '@/lib/pawme-logging';
 import { assertAndBumpUsage, UsageLimitError } from '@/lib/pawme-usage';
+import { recordAiUsage } from '@/lib/pawme-cost-tracking';
 
 /**
  * Trim a chat history to the last N turns to keep token usage bounded.
@@ -98,15 +99,19 @@ RULES:
 CONVERSATION (latest user message at the bottom):
 ${conversation}
 
-Respond as PawPilot.`;
+Respond as PawPilot. Return ONLY valid JSON in this exact shape:
+{
+  "response": "<your plain-prose reply, no markdown>",
+  "confidence": <integer 0-100 — how confident you are in this answer given the information available>
+}`;
 }
 
 const ENDPOINT = 'mobile/gemini-chat';
 
 export async function POST(request: NextRequest) {
-  const { requestId, result, error } = await runApi<{ response: string }>(
+  const { requestId, result, error } = await runApi<{ response: string; confidence: number | null; _meta: ReturnType<typeof buildGeminiMeta> }>(
     { endpoint: ENDPOINT, request },
-    async ({ requestId: reqId, logInfo }): Promise<{ response: string }> => {
+    async ({ requestId: reqId, logInfo }): Promise<{ response: string; confidence: number | null; _meta: ReturnType<typeof buildGeminiMeta> }> => {
       const { uid } = await requireMobileUser(request);
       logInfo({ uid });
 
@@ -149,18 +154,33 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      const geminiResult = await generateGeminiText(
+      const geminiResult = await generateGeminiJson<{ response: string; confidence: number }>(
         buildChatPrompt({
           petContext: body.petContext,
           userContext: body.userContext,
           firestoreContext,
           messages,
         }),
+        undefined,
+        undefined,
         { requestId: reqId, endpoint: ENDPOINT },
       );
 
-      logInfo({ model: geminiResult.modelUsed, geminiMs: geminiResult.totalMs });
-      return { response: geminiResult.text };
+      void recordAiUsage({ userId: uid, endpoint: ENDPOINT, model: geminiResult.modelUsed, usage: geminiResult.usage, requestId: reqId });
+      logInfo({
+        model: geminiResult.modelUsed,
+        geminiMs: geminiResult.totalMs,
+        confidence: geminiResult.data.confidence,
+        costUsd: geminiResult.usage?.estimatedCostUsd,
+      });
+      return {
+        response: geminiResult.data.response,
+        confidence: geminiResult.data.confidence ?? null,
+        _meta: buildGeminiMeta(
+          { text: '', modelUsed: geminiResult.modelUsed, totalMs: geminiResult.totalMs, usage: geminiResult.usage, attempts: [] },
+          geminiResult.data.confidence ?? null,
+        ),
+      };
     },
   );
 

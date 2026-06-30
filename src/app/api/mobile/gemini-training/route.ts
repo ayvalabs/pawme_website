@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { generateGeminiJson } from '@/lib/pawme-gemini';
 import { getOwnedPetContext, mergePetContext, requireMobileUser } from '@/lib/pawme-mobile';
 import { logApi, runApi, safePreview } from '@/lib/pawme-logging';
+import { assertAndBumpUsage, UsageLimitError } from '@/lib/pawme-usage';
+import { recordAiUsage } from '@/lib/pawme-cost-tracking';
 
 interface TrainingExercise {
   name: string;
@@ -43,6 +45,9 @@ export async function POST(request: NextRequest) {
     async ({ requestId: reqId, logInfo }): Promise<TrainingPlan> => {
       const { uid } = await requireMobileUser(request);
       logInfo({ uid });
+
+      const usageReadout = await assertAndBumpUsage(uid, 'training');
+      logInfo({ usage: usageReadout.used, limit: usageReadout.limit, isPro: usageReadout.isPro });
 
       const body = await request.json();
       logInfo({
@@ -118,18 +123,25 @@ ${String(body.focus || 'general behavior')}
 Level:
 ${String(body.level || 'beginner')}`;
 
-      const { data, modelUsed, totalMs } = await generateGeminiJson<TrainingPlan>(
+      const { data, modelUsed, totalMs, usage } = await generateGeminiJson<TrainingPlan>(
         prompt,
         undefined,
         undefined,
         { requestId: reqId, endpoint: ENDPOINT },
       );
-      logInfo({ model: modelUsed, geminiMs: totalMs });
+      void recordAiUsage({ userId: uid, endpoint: ENDPOINT, model: modelUsed, usage, requestId: reqId });
+      logInfo({ model: modelUsed, geminiMs: totalMs, costUsd: usage?.estimatedCostUsd });
       return data;
     },
   );
 
   if (error) {
+    if (error instanceof UsageLimitError) {
+      return NextResponse.json(
+        { success: false, message: error.message, code: 'usage_limit_reached', category: error.category, used: error.used, limit: error.limit, isPro: error.isPro, requestId },
+        { status: 402, headers: { 'x-request-id': requestId } },
+      );
+    }
     return NextResponse.json(
       {
         success: true,

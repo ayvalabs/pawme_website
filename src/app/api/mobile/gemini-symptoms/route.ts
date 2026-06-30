@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateGeminiJson } from '@/lib/pawme-gemini';
+import { buildGeminiMeta, generateGeminiJson } from '@/lib/pawme-gemini';
 import { getOwnedPetContext, mergePetContext, requireMobileUser } from '@/lib/pawme-mobile';
 import { base64ApproxBytes, logApi, runApi, safePreview } from '@/lib/pawme-logging';
 import { assertAndBumpUsage, UsageLimitError } from '@/lib/pawme-usage';
+import { recordAiUsage } from '@/lib/pawme-cost-tracking';
 
 interface SymptomResult {
   severity: 'low' | 'medium' | 'high' | 'emergency';
@@ -11,6 +12,8 @@ interface SymptomResult {
   recommendations: string[];
   shouldSeeVet: boolean;
   urgency: string;
+  /** 0–100: how confident the AI is given the information provided. */
+  confidence: number;
 }
 
 const FALLBACK_RESULT: SymptomResult = {
@@ -24,6 +27,7 @@ const FALLBACK_RESULT: SymptomResult = {
   ],
   shouldSeeVet: true,
   urgency: 'Consult your veterinarian if symptoms are worsening or severe.',
+  confidence: 0,
 };
 
 // Refuse images larger than this to protect Gemini quotas and log bloat.
@@ -136,15 +140,23 @@ Rules:
 
 Parent reports: ${String(body.description || '(image only)')}`;
 
-      const { data, modelUsed, totalMs } = await generateGeminiJson<SymptomResult>(
+      const geminiResult = await generateGeminiJson<SymptomResult>(
         prompt,
         body.imageBase64 ? String(body.imageBase64) : undefined,
         undefined,
         { requestId: reqId, endpoint: ENDPOINT },
       );
+      const { data, modelUsed, totalMs, usage: geminiUsage } = geminiResult;
 
-      logInfo({ model: modelUsed, geminiMs: totalMs });
-      return data;
+      void recordAiUsage({ userId: uid, endpoint: ENDPOINT, model: modelUsed, usage: geminiUsage, requestId: reqId });
+      logInfo({ model: modelUsed, geminiMs: totalMs, confidence: data.confidence, costUsd: geminiUsage?.estimatedCostUsd });
+      return {
+        ...data,
+        _meta: buildGeminiMeta(
+          { text: '', modelUsed, totalMs, usage: geminiUsage, attempts: [] },
+          data.confidence ?? null,
+        ),
+      } as SymptomResult & { _meta: ReturnType<typeof buildGeminiMeta> };
     },
   );
 

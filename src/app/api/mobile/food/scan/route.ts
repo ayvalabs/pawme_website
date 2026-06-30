@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateGeminiJson } from '@/lib/pawme-gemini';
+import { buildGeminiMeta, generateGeminiJson } from '@/lib/pawme-gemini';
 import { recordAiUsage } from '@/lib/pawme-cost-tracking';
 import { optionalMobileUser } from '@/lib/pawme-mobile';
 import { requireWithinFreeTier } from '@/lib/ai-allowance';
@@ -41,6 +41,7 @@ interface ScanResponse {
   verdict: string;
   petConcerns: string[];
   betterOptionsGuidance: string;
+  _meta?: ReturnType<typeof buildGeminiMeta>;
 }
 
 // ── Open Pet Food Facts barcode lookup (free, open product DB). ───────────────
@@ -101,7 +102,8 @@ function verdictPrompt(product: FoodProduct, s: FoodScore, pet?: PetContext): st
 {
   "verdict": "2-3 sentences. ALWAYS address the pet by name when a name is given (e.g. 'Bailey'), not 'your dog'. Mention the grade and the main reason, tailored to this pet's breed/age/allergies. Warm, clear, no jargon.",
   "petConcerns": ["each a short specific concern that ties an ingredient to THIS pet's allergies/conditions/age/breed; [] if none"],
-  "betterOptionsGuidance": "1-2 sentences on what to look for in a better food for this pet. No brand names."
+  "betterOptionsGuidance": "1-2 sentences on what to look for in a better food for this pet. No brand names.",
+  "confidence": <integer 0-100 — how confident you are in this assessment given the ingredient data quality and pet context available>
 }
 
 FOOD: ${product.name}${product.brand ? ' by ' + product.brand : ''}
@@ -194,18 +196,20 @@ export async function POST(request: NextRequest) {
       let verdict = '';
       let petConcerns: string[] = [];
       let betterOptionsGuidance = '';
+      let verdictMeta: ReturnType<typeof buildGeminiMeta> | undefined;
       try {
         const v = await generateGeminiJson<{
           verdict: string;
           petConcerns: string[];
           betterOptionsGuidance: string;
+          confidence: number;
         }>(verdictPrompt(product, s, pet), undefined, undefined, { requestId: reqId, endpoint: ENDPOINT });
         void recordAiUsage({ userId: uid, endpoint: ENDPOINT, model: v.modelUsed, usage: v.usage, requestId: reqId });
         verdict = v.data?.verdict || '';
         petConcerns = Array.isArray(v.data?.petConcerns) ? v.data.petConcerns : [];
         betterOptionsGuidance = v.data?.betterOptionsGuidance || '';
+        verdictMeta = buildGeminiMeta({ text: '', modelUsed: v.modelUsed, totalMs: v.totalMs, usage: v.usage, attempts: [] }, v.data?.confidence ?? null);
       } catch {
-        // Verdict is a nice-to-have; the score/flags still stand on their own.
         verdict = `This food grades ${s.grade} (${s.score}/100). See the flagged ingredients below.`;
       }
 
@@ -219,6 +223,7 @@ export async function POST(request: NextRequest) {
         verdict,
         petConcerns,
         betterOptionsGuidance,
+        _meta: verdictMeta,
       };
     },
   );

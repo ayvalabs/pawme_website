@@ -21,13 +21,23 @@ import { adminDb } from '@/lib/firebase-admin';
 import type { Firestore } from 'firebase-admin/firestore';
 import { FieldValue } from 'firebase-admin/firestore';
 
-export type UsageCategory = 'chat' | 'symptom' | 'photoScan' | 'training';
+export type UsageCategory =
+  | 'chat'
+  | 'symptom'
+  | 'photoScan'
+  | 'training'
+  | 'nutrition'
+  | 'trackerExtract'
+  | 'recordExtract';
 
 const PERIOD: Record<UsageCategory, 'day' | 'month'> = {
   chat: 'day',
   symptom: 'month',
   photoScan: 'month',
   training: 'month',
+  nutrition: 'month',
+  trackerExtract: 'month',
+  recordExtract: 'month',
 };
 
 /**
@@ -35,10 +45,13 @@ const PERIOD: Record<UsageCategory, 'day' | 'month'> = {
  * profile of each category (vision >> text).
  */
 const FREE_LIMITS: Record<UsageCategory, number> = {
-  chat: 10, // text only — cheap; lift from 5 to keep the daily-habit hook
-  symptom: 1, // vision call — expensive; one taste per month
-  photoScan: 1, // vision call — expensive; one taste per month
-  training: 1, // vision + text — expensive; one taste per month
+  chat: 10,          // text only — cheap; daily habit hook
+  symptom: 1,        // vision — one taste per month
+  photoScan: 1,      // vision — one taste per month
+  training: 1,       // text — one taste per month
+  nutrition: 1,      // text — one taste per month
+  trackerExtract: 5, // vision — utility feature, slightly more generous
+  recordExtract: 5,  // vision — utility feature, slightly more generous
 };
 
 /**
@@ -47,10 +60,13 @@ const FREE_LIMITS: Record<UsageCategory, number> = {
  * If you ever see a real user complaining they hit one of these, raise it.
  */
 const PRO_LIMITS: Record<UsageCategory, number> = {
-  chat: 200, // per day — corresponds to a chat every 7 minutes for 24 hours
-  symptom: 30, // per month — about one a day
-  photoScan: 30, // per month
-  training: 30, // per month
+  chat: 200,          // per day
+  symptom: 30,        // per month
+  photoScan: 30,      // per month
+  training: 30,       // per month
+  nutrition: 30,      // per month
+  trackerExtract: 60, // per month
+  recordExtract: 60,  // per month
 };
 
 function periodKey(category: UsageCategory, now = new Date()): string {
