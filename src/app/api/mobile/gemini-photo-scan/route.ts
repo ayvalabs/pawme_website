@@ -25,7 +25,7 @@ import { recordAiUsage } from '@/lib/pawme-cost-tracking';
  *   }
  */
 
-type ScanType = 'coat' | 'eyes' | 'ears' | 'wound' | 'body';
+type ScanType = 'coat' | 'eyes' | 'ears' | 'wound' | 'body' | 'stool';
 
 interface PhotoScanResult {
   scanType: ScanType;
@@ -37,6 +37,35 @@ interface PhotoScanResult {
   detectedConditions?: string[];
   /** 0–100: AI confidence given the image quality and available context. */
   confidence: number;
+
+  // ── Stool (Gut Health) scan only ──────────────────────────────────────────
+  detectedSampleType?: 'stool' | 'vomit' | 'urine' | 'not_waste';
+  bristolScore?: number; // 1–7 (1 hard/dry, 3–4 ideal, 7 watery); 0 if not stool
+  primaryColor?: string;
+  bloodDetected?: boolean;
+  foreignObjectDetected?: boolean;
+  gutGrade?: 'A' | 'B' | 'C' | 'D' | 'F';
+}
+
+/** Deterministic A–F Gut Health grade from the clinical metrics (never the model's guess). */
+function computeGutGrade(m: {
+  bristolScore?: number;
+  primaryColor?: string;
+  bloodDetected?: boolean;
+  foreignObjectDetected?: boolean;
+}): 'A' | 'B' | 'C' | 'D' | 'F' {
+  const color = (m.primaryColor || '').toLowerCase();
+  if (m.bloodDetected || /black|tarry|red|blood/.test(color)) return 'F';
+  if (m.foreignObjectDetected) return 'D';
+  const s = m.bristolScore ?? 4;
+  const cautionColor = /yellow|orange|green|grey|gray|white|pale/.test(color);
+  let grade: 'A' | 'B' | 'C' | 'D' | 'F';
+  if (s === 3 || s === 4) grade = 'A';
+  else if (s === 2 || s === 5) grade = 'B';
+  else if (s === 1 || s === 6) grade = 'C';
+  else grade = 'D'; // 7 = watery diarrhoea (or unscored)
+  if (cautionColor && (grade === 'A' || grade === 'B')) grade = 'C';
+  return grade;
 }
 
 const FALLBACK_RESULT = (scanType: ScanType): PhotoScanResult => ({
@@ -58,7 +87,7 @@ const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // 8 MB decoded
 
 const ENDPOINT = 'mobile/gemini-photo-scan';
 
-const SCAN_TYPE_PROMPTS: Record<ScanType, { focus: string; ask: string }> = {
+const SCAN_TYPE_PROMPTS: Record<Exclude<ScanType, 'stool'>, { focus: string; ask: string }> = {
   coat: {
     focus: 'the coat and skin',
     ask:
@@ -87,7 +116,7 @@ const SCAN_TYPE_PROMPTS: Record<ScanType, { focus: string; ask: string }> = {
 };
 
 function isScanType(v: unknown): v is ScanType {
-  return v === 'coat' || v === 'eyes' || v === 'ears' || v === 'wound' || v === 'body';
+  return v === 'coat' || v === 'eyes' || v === 'ears' || v === 'wound' || v === 'body' || v === 'stool';
 }
 
 export async function POST(request: NextRequest) {
@@ -112,7 +141,7 @@ export async function POST(request: NextRequest) {
       }
       if (!isScanType(body.scanType)) {
         const err: Error & { statusCode?: number } = new Error(
-          'scanType must be one of: coat, eyes, ears, wound, body',
+          'scanType must be one of: coat, eyes, ears, wound, body, stool',
         );
         err.statusCode = 400;
         throw err;
@@ -157,15 +186,58 @@ export async function POST(request: NextRequest) {
         ? mergePetContext(firestoreContext, body.petContext)
         : body.petContext || {};
 
-      const cfg = SCAN_TYPE_PROMPTS[body.scanType as ScanType];
       const pet = (petContext as Record<string, unknown>) || {};
       const petName = (pet.name as string) || 'this pet';
 
       const ageStr = `${(pet as any).ageYears ?? '?'}y${
         (pet as any).ageMonths ? ` ${(pet as any).ageMonths}m` : ''
       }`;
+      const petLine = `PET: ${petName} (${(pet.species as string) || 'unknown'}${
+        pet.breed ? `, ${pet.breed}` : ''
+      }, ${ageStr}${(pet as any).weightKg ? `, ${(pet as any).weightKg}kg` : ''})`;
 
-      const prompt = `You are PawPilot, a cautious AI inspecting a photo of ${cfg.focus} for ${petName}.
+      const isStool = body.scanType === 'stool';
+
+      const stoolPrompt = `You are PawMe, a cautious veterinary AI analysing a photo of ${petName}'s stool (poop).
+
+${petLine}
+
+Score consistency on the Bristol Stool Scale adapted for pets (1–7):
+1 = separate hard lumps (constipated / dry)
+2 = firm, sausage-shaped, cracked surface
+3 = firm log with soft cracks (ideal)
+4 = smooth, soft, holds its form (ideal)
+5 = soft blobs with clear edges (slightly loose)
+6 = mushy with ragged edges (loose)
+7 = watery, no solid pieces (diarrhoea)
+
+Colour guide: brown = normal; BLACK/tarry = possible digested blood (URGENT); RED streaks = fresh blood (URGENT); yellow/orange = bile or rapid transit; green = grass or bile; grey/pale greasy = fat malabsorption; white specks = possible worms.
+
+Return JSON only:
+{
+  "scanType": "stool",
+  "detectedSampleType": "stool" | "vomit" | "urine" | "not_waste",
+  "bristolScore": 1-7 (use 0 if not stool),
+  "primaryColor": "brown|black|red|yellow|orange|green|grey|white|other",
+  "bloodDetected": true|false,
+  "foreignObjectDetected": true|false,
+  "concernLevel": "normal" | "monitor" | "see_vet" | "emergency",
+  "observation": "1-2 sentences about ${petName}'s stool, BY NAME",
+  "recommendations": ["3-4 practical steps that mention ${petName}; AI guidance only, not a diagnosis"],
+  "shouldSeeVet": true|false,
+  "urgency": "one line on vet-visit timing for ${petName}",
+  "confidence": 0-100
+}
+
+Rules:
+- If the image is NOT animal waste (a shoe, food, a face, plain floor), set detectedSampleType="not_waste", bristolScore=0, confidence low, and say so kindly in the observation.
+- Always call the pet "${petName}" — never "your pet".
+- Cautious language ("appears to", "may indicate"). Never a definitive diagnosis.
+- If the photo is dark/blurry, set concernLevel="monitor" and ask for a clearer, well-lit photo in recommendations.`;
+
+      const cfg = isStool ? null : SCAN_TYPE_PROMPTS[body.scanType as Exclude<ScanType, 'stool'>];
+
+      const genericPrompt = `You are PawPilot, a cautious AI inspecting a photo of ${cfg?.focus} for ${petName}.
 
 PET: ${petName} (${(pet.species as string) || 'unknown'}${
         pet.breed ? `, ${pet.breed}` : ''
@@ -183,7 +255,7 @@ Return JSON only:
 }
 
 Rules:
-- ${cfg.ask}
+- ${cfg?.ask ?? ''}
 - Always refer to the pet as "${petName}" — never "your pet" or "the dog/cat".
 - Tailor to breed + life stage; note breed-specific risks.
 - Use cautious language ("appears to", "may indicate"). Never definitive.
@@ -195,6 +267,8 @@ Rules:
   · emergency = urgent veterinary attention now
 - Include the "AI guidance only" framing in recommendations.`;
 
+      const prompt = isStool ? stoolPrompt : genericPrompt;
+
       const { data, modelUsed, totalMs, usage: geminiUsage } = await generateGeminiJson<PhotoScanResult>(
         prompt,
         String(body.imageBase64),
@@ -203,7 +277,25 @@ Rules:
       );
 
       void recordAiUsage({ userId: uid, endpoint: ENDPOINT, model: modelUsed, usage: geminiUsage, requestId: reqId });
-      logInfo({ model: modelUsed, geminiMs: totalMs, concernLevel: data?.concernLevel, confidence: data?.confidence, costUsd: geminiUsage?.estimatedCostUsd });
+
+      // Stool safety net (never let the model under-call blood/tarry) + grade.
+      if (isStool) {
+        const color = (data.primaryColor || '').toLowerCase();
+        const urgent = data.bloodDetected === true || /black|tarry|red|blood/.test(color);
+        const caution =
+          data.foreignObjectDetected === true ||
+          /yellow|orange|green|grey|gray|white|pale/.test(color) ||
+          (typeof data.bristolScore === 'number' && (data.bristolScore <= 1 || data.bristolScore >= 6));
+        if (urgent) {
+          data.concernLevel = 'emergency';
+          data.shouldSeeVet = true;
+        } else if (caution && data.concernLevel === 'normal') {
+          data.concernLevel = 'monitor';
+        }
+        data.gutGrade = computeGutGrade(data);
+      }
+
+      logInfo({ model: modelUsed, geminiMs: totalMs, concernLevel: data?.concernLevel, confidence: data?.confidence, gutGrade: data?.gutGrade, costUsd: geminiUsage?.estimatedCostUsd });
       return {
         ...data,
         scanType: body.scanType as ScanType,
