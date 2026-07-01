@@ -45,6 +45,9 @@ interface PhotoScanResult {
   bloodDetected?: boolean;
   foreignObjectDetected?: boolean;
   gutGrade?: 'A' | 'B' | 'C' | 'D' | 'F';
+  homeCare?: string[];
+  monitoring?: string[];
+  whenToSeeVet?: string[];
 }
 
 /** Deterministic A–F Gut Health grade from the clinical metrics (never the model's guess). */
@@ -224,6 +227,9 @@ Return JSON only:
   "concernLevel": "normal" | "monitor" | "see_vet" | "emergency",
   "observation": "1-2 sentences about ${petName}'s stool, BY NAME",
   "recommendations": ["3-4 practical steps that mention ${petName}; AI guidance only, not a diagnosis"],
+  "homeCare": ["2-3 short at-home care steps for ${petName}"],
+  "monitoring": ["2 short things to watch in ${petName}"],
+  "whenToSeeVet": ["2 short red-flag triggers that mean book a vet"],
   "shouldSeeVet": true|false,
   "urgency": "one line on vet-visit timing for ${petName}",
   "confidence": 0-100
