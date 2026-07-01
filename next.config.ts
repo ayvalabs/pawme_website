@@ -3,6 +3,10 @@ import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
   /* config options here */
+  // Reduce peak build memory (helps avoid Vercel OOM/SIGKILL during build).
+  experimental: {
+    webpackMemoryOptimizations: true,
+  },
   typescript: {
     ignoreBuildErrors: true,
   },
