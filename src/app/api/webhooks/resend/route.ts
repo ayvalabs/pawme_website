@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/firebase/config';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
+// API webhooks must be dynamic — never statically generated
+export const dynamic = 'force-dynamic';
+
 // Resend webhook events for email tracking
 // https://resend.com/docs/dashboard/webhooks/event-types
 
