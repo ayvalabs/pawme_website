@@ -7,6 +7,21 @@ const nextConfig: NextConfig = {
   experimental: {
     webpackMemoryOptimizations: true,
   },
+  // Keep heavy native/server-only deps out of the webpack bundle AND the
+  // build-trace step. This is the fix that stopped the Vercel OOM (SIGKILL)
+  // and the 20-min "Collecting build traces" hang (firebase-admin/grpc tree).
+  serverExternalPackages: [
+    'firebase-admin',
+    '@grpc/grpc-js',
+    '@grpc/proto-loader',
+    'protobufjs',
+    'google-gax',
+    '@google-cloud/firestore',
+    'google-auth-library',
+    'farmhash-modern',
+    'stripe',
+    'sharp',
+  ],
   typescript: {
     ignoreBuildErrors: true,
   },
