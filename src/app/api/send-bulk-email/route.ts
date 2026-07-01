@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+let _resend: Resend | null = null;
+function getResend(): Resend {
+  if (!_resend) _resend = new Resend(process.env.RESEND_API_KEY || '');
+  return _resend;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -27,7 +31,7 @@ export async function POST(request: NextRequest) {
         // Replace {{name}} placeholder with actual name
         const personalizedContent = htmlContent.replace(/\{\{name\}\}/g, recipient.name);
 
-        return resend.emails.send({
+        return getResend().emails.send({
           from: 'PawMe <noreply@ayvalabs.com>',
           to: recipient.email,
           subject: subject,

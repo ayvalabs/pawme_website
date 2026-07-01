@@ -21,9 +21,11 @@ import { priceForAddress } from '@/lib/passport-pricing';
 
 export const runtime = 'nodejs';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-06-20',
-});
+let _stripe: Stripe | null = null;
+function getStripe(): Stripe {
+  if (!_stripe) _stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', { apiVersion: '2024-06-20' });
+  return _stripe;
+}
 
 interface Address {
   name: string;
@@ -116,7 +118,7 @@ export async function POST(request: NextRequest) {
     const orderRef = adminDb.collection('shopOrders').doc();
     const orderId = orderRef.id;
 
-    const intent = await stripe.paymentIntents.create({
+    const intent = await getStripe().paymentIntents.create({
       amount: totalCents,
       currency,
       automatic_payment_methods: { enabled: true },

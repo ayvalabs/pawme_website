@@ -3,9 +3,11 @@ import Stripe from 'stripe';
 import { adminDb } from '@/lib/firebase-admin';
 import { sendVipDepositReceiptEmail } from '@/app/actions/email';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-06-20',
-});
+let _stripe: Stripe | null = null;
+function getStripe(): Stripe {
+  if (!_stripe) _stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', { apiVersion: '2024-06-20' });
+  return _stripe;
+}
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
@@ -16,7 +18,7 @@ export async function POST(request: NextRequest) {
   let event: Stripe.Event;
 
   try {
-    event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+    event = getStripe().webhooks.constructEvent(body, signature, webhookSecret);
   } catch (err: any) {
     console.error('❌ Webhook signature verification failed:', err.message);
     return NextResponse.json({ error: 'Webhook signature verification failed' }, { status: 400 });

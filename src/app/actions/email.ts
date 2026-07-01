@@ -5,7 +5,14 @@ import { Resend } from 'resend';
 import { defaultTemplates } from '@/lib/email-templates';
 import { adminDb } from '@/lib/firebase-admin';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Lazy: instantiate on first use, not at module load. Prevents `next build`
+// (which imports every route while collecting page data) from throwing
+// "Missing API key" when RESEND_API_KEY isn't present in the build env.
+let _resend: Resend | null = null;
+function getResend(): Resend {
+  if (!_resend) _resend = new Resend(process.env.RESEND_API_KEY || '');
+  return _resend;
+}
 const fromEmail = 'PawMe <pawme@ayvalabs.com>';
 
 async function getAppUrl(): Promise<string> {
@@ -86,7 +93,7 @@ async function renderAndSend(templateId: keyof typeof defaultTemplates, to: stri
   
   try {
     console.log(`[EMAIL] Sending email via Resend... (To: ${to}, Subject: ${subject})`);
-    const { data, error } = await resend.emails.send({
+    const { data, error } = await getResend().emails.send({
       from: fromEmail,
       to,
       subject,
