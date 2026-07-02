@@ -7,6 +7,22 @@ const nextConfig: NextConfig = {
   experimental: {
     webpackMemoryOptimizations: true,
   },
+  // Keep heavy native/server-only deps out of the webpack bundle AND the
+  // build-trace step — stops the Vercel OOM (SIGKILL) + the long "Collecting
+  // build traces" hang. (Additive only; does NOT remove any /api routes, so
+  // the current production app that still calls www keeps working.)
+  serverExternalPackages: [
+    'firebase-admin',
+    '@grpc/grpc-js',
+    '@grpc/proto-loader',
+    'protobufjs',
+    'google-gax',
+    '@google-cloud/firestore',
+    'google-auth-library',
+    'farmhash-modern',
+    'stripe',
+    'sharp',
+  ],
   typescript: {
     ignoreBuildErrors: true,
   },
