@@ -20,8 +20,14 @@ export default {
         body: ['"PT Sans"', 'sans-serif'],
         headline: ['"Poppins"', 'sans-serif'],
         code: ['monospace'],
+        playfair: ['var(--font-playfair)', 'Georgia', 'serif'],
+        inter: ['var(--font-inter)', 'system-ui', 'sans-serif'],
       },
       colors: {
+        sage: '#F47B5A',
+        coral: { DEFAULT: '#F47B5A', dark: '#E56A48', deep: '#C6512F' },
+        parchment: '#FBF4EF',
+        obsidian: '#1A1A1A',
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
         card: {
