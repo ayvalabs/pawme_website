@@ -48,6 +48,7 @@
     "ffmpeg": "^0.0.4",
     "firebase": "^10.14.1",
     "firebase-admin": "^13.8.0",
+    "framer-motion": "^12.42.2",
     "genkit": "^1.33.0",
     "input-otp": "^1.4.2",
     "lucide-react": "^0.475.0",

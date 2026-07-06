@@ -3,7 +3,6 @@ import Script from 'next/script';
 import './globals.css';
 import { AuthProvider } from '@/app/context/AuthContext';
 import { Toaster } from '@/app/components/ui/sonner';
-import { FaviconHandler } from './components/favicon-handler';
 
 export const metadata: Metadata = {
   title: 'PawMe - AI Companion Robot for Pets | Coming Soon on Kickstarter',
@@ -83,7 +82,6 @@ function trackPawMePurchase(email, firstName, lastName, stripeSessionId) {
         </Script>
         {/* End PawMe Tracking Helper */}
         <AuthProvider>
-          <FaviconHandler />
           {children}
           <Toaster 
             position="bottom-center"

@@ -191,3 +191,25 @@ html {
 [data-sonner-toast] [data-close-button]:hover {
   opacity: 1 !important;
 }
+
+/* ─── PawMe marketing (vitality) utilities ─── */
+@keyframes breathe {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.92; transform: scale(1.008); }
+}
+@keyframes pulseGlowCoral {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(244, 123, 90, 0.4); }
+  50% { box-shadow: 0 0 20px 4px rgba(244, 123, 90, 0.2); }
+}
+.animate-breathe { animation: breathe 4s ease-in-out infinite; }
+.animate-pulse-glow { animation: pulseGlowCoral 2.5s ease-in-out infinite; }
+.glass {
+  background: rgba(251, 244, 239, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(244, 123, 90, 0.08);
+}
+.vitality-line {
+  width: 1px;
+  background: linear-gradient(180deg, transparent 0%, #F47B5A20 20%, #F47B5A40 50%, #F47B5A20 80%, transparent 100%);
+}
